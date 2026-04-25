@@ -153,6 +153,7 @@ textarea{resize:vertical;min-height:65px}
 </head>
 <body>
 <div class="app">
+
 <!-- SIDEBAR -->
 <div class="sidebar">
   <div class="logo">
@@ -1411,10 +1412,6 @@ function setRelTab(id,el){
   el.classList.add('on');
 }
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<script>
-
 // ======================== INIT ========================
 
 const today = new Date().toISOString().split('T')[0];
@@ -1426,8 +1423,3 @@ document.querySelectorAll('input[type=date]').forEach(el=>{
 populateSelects();
 renderAll();
 toggleP();
-
-</script>
-
-</body>
-</html>
