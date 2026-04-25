@@ -1417,23 +1417,17 @@ function setRelTab(id,el){
 <script>
 
 // ======================== INIT ========================
-document.querySelectorAll('input[type=date]').forEach(el=>{if(!el.value)el.value=today;});
+
+const today = new Date().toISOString().split('T')[0];
+
+document.querySelectorAll('input[type=date]').forEach(el=>{
+  if(!el.value) el.value = today;
+});
+
 populateSelects();
 renderAll();
 toggleP();
-</script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<script>
-function gerarPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  doc.text("Teste PDF funcionando!", 20, 20);
-
-  doc.save("teste.pdf");
-}
 </script>
 
 </body>
