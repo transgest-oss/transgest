@@ -1138,7 +1138,12 @@ function renderOC(){
     <td>${chip(o.tipo,'cgr')}</td>
     <td class="mono">${fmt(o.valor)}</td>
     <td>${chipS(o.nf)}</td>
-    <td>${acts(`editarOC(${o.id})`,`excluirOC(${o.id})`)}</td>
+    <td>
+  <div class="action-btns">
+    <button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button>
+    ${acts(`editarOC(${o.id})`,`excluirOC(${o.id})`)}
+  </div>
+</td>
   </tr>`).join(''):'<tr><td colspan="8" class="empty">Nenhuma OC cadastrada</td></tr>';
 }
 
@@ -1413,7 +1418,6 @@ function setRelTab(id,el){
   el.classList.add('on');
 }
 
-
 // ======================== PDF ========================
 function gerarPDF(){
   const { jsPDF } = window.jspdf || {};
@@ -1425,6 +1429,82 @@ function gerarPDF(){
   doc.setFontSize(16);
   doc.text('Teste PDF funcionando!', 20, 20);
   doc.save('teste.pdf');
+}
+
+function gerarPDFOC(id){
+  const o = OCs.find(x => x.id === id);
+
+  if(!o){
+    toast('OC não encontrada','error');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(18);
+  doc.text('ORDEM DE COMPRA', 105, 20, { align:'center' });
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica','normal');
+  doc.text(`Nº ${o.num}`, 20, 35);
+  doc.text(`Data: ${o.data}`, 150, 35);
+
+  doc.setDrawColor(0, 196, 161);
+  doc.setLineWidth(1);
+  doc.line(20, 42, 190, 42);
+
+  doc.setFont('helvetica','bold');
+  doc.text('Fornecedor:', 20, 58);
+  doc.setFont('helvetica','normal');
+  doc.text(String(o.forn || '-'), 55, 58);
+
+  doc.setFont('helvetica','bold');
+  doc.text('Equipamento:', 20, 72);
+  doc.setFont('helvetica','normal');
+  doc.text(String(o.placas || '-'), 55, 72);
+
+  doc.setFont('helvetica','bold');
+  doc.text('Tipo:', 20, 86);
+  doc.setFont('helvetica','normal');
+  doc.text(String(o.tipo || '-'), 55, 86);
+
+  doc.setFont('helvetica','bold');
+  doc.text('Descrição:', 20, 105);
+  doc.setFont('helvetica','normal');
+
+  const descricao = doc.splitTextToSize(String(o.desc || 'Sem descrição informada.'), 170);
+  doc.text(descricao, 20, 114);
+
+  const yValor = 135 + (descricao.length * 5);
+
+  doc.setDrawColor(20, 32, 56);
+  doc.setFillColor(240, 240, 240);
+  doc.roundedRect(20, yValor, 170, 18, 3, 3, 'FD');
+
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(14);
+  doc.text(`Valor Total: ${fmt(o.valor)}`, 105, yValor + 12, { align:'center' });
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica','normal');
+
+  const texto = [
+    'Esta Ordem de Compra autoriza a execução do serviço ou fornecimento da mercadoria acima descrita,',
+    'conforme valores previamente acordados.',
+    '',
+    'O faturamento deverá ser realizado mediante emissão de Nota Fiscal em nome da empresa contratante.',
+    '',
+    'O envio da Nota Fiscal deverá ser realizado juntamente com o documento de cobrança',
+    '(PIX ou boleto) para o e-mail: ajbamtransportes@gmail.com.',
+    '',
+    'Documento gerado eletronicamente pelo sistema TransGest.'
+  ];
+
+  doc.text(texto, 20, yValor + 35);
+
+  doc.save(`${o.num}.pdf`);
 }
 
 // ======================== INIT ========================
