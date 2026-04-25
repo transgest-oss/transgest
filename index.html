@@ -1439,72 +1439,117 @@ function gerarPDFOC(id){
     return;
   }
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const { jsPDF } = window.jspdf || {};
+  if(!jsPDF){
+    toast('Biblioteca PDF não carregou. Atualize a página e tente de novo.','error');
+    return;
+  }
 
+  // Meia folha A4 na horizontal: 297mm x 105mm
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: [297, 105]
+  });
+
+  const pageW = 297;
+  const margin = 10;
+  const right = pageW - margin;
+
+  // Faixa superior
+  doc.setFillColor(11, 22, 40);
+  doc.rect(0, 0, pageW, 18, 'F');
+
+  // Logo simples vetorial, até termos a imagem oficial separada
+  doc.setFillColor(0, 196, 161);
+  doc.roundedRect(10, 4, 12, 10, 2, 2, 'F');
   doc.setFont('helvetica','bold');
-  doc.setFontSize(18);
-  doc.text('ORDEM DE COMPRA', 105, 20, { align:'center' });
+  doc.setTextColor(11, 22, 40);
+  doc.setFontSize(7);
+  doc.text('AJ', 16, 10.5, { align:'center' });
 
-  doc.setFontSize(11);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(13);
+  doc.text('AJBAM TRANSPORTES', 27, 9);
   doc.setFont('helvetica','normal');
-  doc.text(`Nº ${o.num}`, 20, 35);
-  doc.text(`Data: ${o.data}`, 150, 35);
-
-  doc.setDrawColor(0, 196, 161);
-  doc.setLineWidth(1);
-  doc.line(20, 42, 190, 42);
+  doc.setFontSize(7);
+  doc.text('Ordem de Compra Digital', 27, 14);
 
   doc.setFont('helvetica','bold');
-  doc.text('Fornecedor:', 20, 58);
+  doc.setFontSize(16);
+  doc.text('ORDEM DE COMPRA', pageW / 2, 12, { align:'center' });
+
+  doc.setFontSize(8);
   doc.setFont('helvetica','normal');
-  doc.text(String(o.forn || '-'), 55, 58);
+  doc.text(`Nº ${o.num}`, right, 8, { align:'right' });
+  doc.text(`Data: ${formatarDataBR(o.data)}`, right, 13, { align:'right' });
 
+  // Bloco principal
+  doc.setTextColor(20, 32, 56);
+  doc.setDrawColor(210, 218, 230);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(10, 24, 277, 44, 2, 2);
+
+  doc.setFontSize(8);
   doc.setFont('helvetica','bold');
-  doc.text('Equipamento:', 20, 72);
+  doc.text('FORNECEDOR', 16, 33);
+  doc.text('EQUIPAMENTO / PLACA', 150, 33);
+  doc.text('TIPO', 222, 33);
+
   doc.setFont('helvetica','normal');
-  doc.text(String(o.placas || '-'), 55, 72);
-
-  doc.setFont('helvetica','bold');
-  doc.text('Tipo:', 20, 86);
-  doc.setFont('helvetica','normal');
-  doc.text(String(o.tipo || '-'), 55, 86);
-
-  doc.setFont('helvetica','bold');
-  doc.text('Descrição:', 20, 105);
-  doc.setFont('helvetica','normal');
-
-  const descricao = doc.splitTextToSize(String(o.desc || 'Sem descrição informada.'), 170);
-  doc.text(descricao, 20, 114);
-
-  const yValor = 135 + (descricao.length * 5);
-
-  doc.setDrawColor(20, 32, 56);
-  doc.setFillColor(240, 240, 240);
-  doc.roundedRect(20, yValor, 170, 18, 3, 3, 'FD');
-
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(14);
-  doc.text(`Valor Total: ${fmt(o.valor)}`, 105, yValor + 12, { align:'center' });
-
   doc.setFontSize(10);
-  doc.setFont('helvetica','normal');
+  doc.text(truncarPDF(String(o.forn || '-'), 52), 16, 40);
+  doc.text(truncarPDF(String(o.placas || '-'), 25), 150, 40);
+  doc.text(truncarPDF(String(o.tipo || '-'), 25), 222, 40);
 
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(8);
+  doc.text('DESCRIÇÃO DO SERVIÇO / MERCADORIA', 16, 52);
+
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(9);
+  const descricao = doc.splitTextToSize(String(o.desc || 'Sem descrição informada.'), 188);
+  doc.text(descricao.slice(0, 3), 16, 59);
+
+  // Caixa do valor
+  doc.setFillColor(0, 196, 161);
+  doc.roundedRect(218, 50, 58, 13, 2, 2, 'F');
+  doc.setTextColor(11, 22, 40);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(11);
+  doc.text(`VALOR: ${fmt(o.valor)}`, 247, 58.5, { align:'center' });
+
+  // Texto de autorização
+  doc.setTextColor(20, 32, 56);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(7.7);
   const texto = [
-    'Esta Ordem de Compra autoriza a execução do serviço ou fornecimento da mercadoria acima descrita,',
-    'conforme valores previamente acordados.',
-    '',
+    'Esta Ordem de Compra autoriza a execução do serviço ou fornecimento da mercadoria acima descrita, conforme valores previamente acordados.',
     'O faturamento deverá ser realizado mediante emissão de Nota Fiscal em nome da empresa contratante.',
-    '',
-    'O envio da Nota Fiscal deverá ser realizado juntamente com o documento de cobrança',
-    '(PIX ou boleto) para o e-mail: ajbamtransportes@gmail.com.',
-    '',
+    'Enviar a Nota Fiscal juntamente com o documento de cobrança (PIX ou boleto) para: ajbamtransportes@gmail.com.',
     'Documento gerado eletronicamente pelo sistema TransGest.'
   ];
+  doc.text(texto, 10, 78);
 
-  doc.text(texto, 20, yValor + 35);
+  // Linha inferior discreta
+  doc.setDrawColor(0, 196, 161);
+  doc.setLineWidth(0.6);
+  doc.line(10, 99, 287, 99);
 
   doc.save(`${o.num}.pdf`);
+}
+
+function formatarDataBR(dataISO){
+  if(!dataISO) return '-';
+  const partes = String(dataISO).split('-');
+  if(partes.length !== 3) return dataISO;
+  return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
+function truncarPDF(txt, max){
+  txt = String(txt || '-');
+  return txt.length > max ? txt.slice(0, max - 3) + '...' : txt;
 }
 
 // ======================== INIT ========================
