@@ -227,8 +227,17 @@ textarea{resize:vertical;min-height:65px}
     <!-- ORDENS DE COMPRA -->
     <div class="screen" id="screen-oc">
       <div class="section-header">
-        <div class="section-title">Ordens de Compra (<span id="oc-count">0</span>)</div>
-        <button class="btn btn-primary" onclick="openModal('modal-oc','novo')">+ Nova OC</button>
+  <div class="section-title">
+    Ordens de Compra (<span id="oc-count">0</span>)
+  </div>
+
+  <button class="btn btn-primary" onclick="openModal('modal-oc','novo')">
+    + Nova OC
+  </button>
+
+  <button class="btn btn-secondary" onclick="gerarPDF()">
+  📄 Testar PDF 
+</button>
       </div>
       <div class="table-wrap"><table>
         <thead><tr><th>Nº OC</th><th>Data</th><th>Fornecedor</th><th>Placa(s)</th><th>Tipo</th><th>Valor</th><th>NF</th><th style="width:120px">Ações</th></tr></thead>
@@ -1403,11 +1412,27 @@ function setRelTab(id,el){
   el.classList.add('on');
 }
 
-// ======================== INIT ========================
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+
+// ================= INIT =================
 document.querySelectorAll('input[type=date]').forEach(el=>{if(!el.value)el.value=today;});
 populateSelects();
 renderAll();
-toggleP();
+togglePO();
+
+// ================= PDF =================
+function gerarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.text("Teste PDF funcionando!", 20, 20);
+
+  doc.save("teste.pdf");
+}
+
 </script>
+
 </body>
 </html>
