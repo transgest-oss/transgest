@@ -1493,15 +1493,15 @@ function gerarPDFOC(id){
 
   doc.setFontSize(8);
   doc.setFont('helvetica','bold');
-  doc.text('FORNECEDOR', 16, 33);
-  doc.text('EQUIPAMENTO / PLACA', 150, 33);
+  doc.text('FORNECEDOR', 16, 35);
+  doc.text('EQUIPAMENTO / PLACA', 150, 35);
   doc.text('TIPO', 222, 33);
 
   doc.setFont('helvetica','normal');
   doc.setFontSize(10);
-  doc.text(truncarPDF(String(o.forn || '-'), 52), 16, 40);
-  doc.text(truncarPDF(String(o.placas || '-'), 25), 150, 40);
-  doc.text(truncarPDF(String(o.tipo || '-'), 25), 222, 40);
+  doc.text(truncarPDF(String(o.forn || '-'), 52), 16, 45);
+  doc.text(truncarPDF(String(o.placas || '-'), 25), 150, 45);
+  doc.text(truncarPDF(String(o.tipo || '-'), 25), 222, 45);
 
   doc.setFont('helvetica','bold');
   doc.setFontSize(8);
@@ -1509,17 +1509,17 @@ function gerarPDFOC(id){
 
   doc.setFont('helvetica','normal');
   doc.setFontSize(9);
-  const descricao = doc.splitTextToSize(String(o.desc || 'Sem descrição informada.'), 188);
-  doc.text(descricao.slice(0, 3), 16, 59);
+  const descricao = doc.splitTextToSize(String(o.desc || 'Sem descrição informada.'), 240);
+  doc.text(descricao.slice(0, 5), 16, 60);
 
   // Caixa do valor
   doc.setFillColor(0, 196, 161);
-  doc.roundedRect(218, 50, 58, 13, 2, 2, 'F');
+  doc.roundedRect(200, 55, 80, 18, 3, 3, 'F');
+  doc.setFontSize(13);
+  doc.text(`VALOR: ${fmt(o.valor)}`, 240, 66, { align:'center' });
   doc.setTextColor(11, 22, 40);
   doc.setFont('helvetica','bold');
-  doc.setFontSize(11);
-  doc.text(`VALOR: ${fmt(o.valor)}`, 247, 58.5, { align:'center' });
-
+  
   // Texto de autorização
   doc.setTextColor(20, 32, 56);
   doc.setFont('helvetica','normal');
@@ -1530,7 +1530,7 @@ function gerarPDFOC(id){
     'Enviar a Nota Fiscal juntamente com o documento de cobrança (PIX ou boleto) para: ajbamtransportes@gmail.com.',
     'Documento gerado eletronicamente pelo sistema TransGest.'
   ];
-  doc.text(texto, 10, 78);
+  doc.text(texto, 10, 88);
 
   // Linha inferior discreta
   doc.setDrawColor(0, 196, 161);
