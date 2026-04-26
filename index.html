@@ -176,9 +176,52 @@ textarea{resize:vertical;min-height:65px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:99px}
 </style>
+<style>
+/* LOGIN */
+.login-wrap{position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-box{background:var(--navy2);border:1px solid var(--border2);border-radius:20px;padding:36px 40px;width:380px;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.login-logo-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.login-title{font-size:17px;font-weight:600;color:var(--text)}
+.login-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.login-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.login-field label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+.login-field input{background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:9px;color:var(--text);font-family:var(--font);font-size:13px;padding:10px 13px;outline:none;transition:border-color .15s;width:100%}
+.login-field input:focus{border-color:var(--accent)}
+.login-btn{width:100%;padding:11px;background:var(--accent);color:#000;font-size:13px;font-weight:600;border:none;border-radius:9px;cursor:pointer;font-family:var(--font);margin-top:6px;transition:opacity .15s}
+.login-btn:hover{opacity:.85}
+.login-err{background:rgba(232,68,90,.12);border:1px solid rgba(232,68,90,.28);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--red);margin-bottom:14px;display:none}
+/* LOGOUT btn */
+.btn-logout{display:flex;align-items:center;gap:7px;width:100%;padding:7px 10px;border-radius:8px;border:1px solid rgba(232,68,90,.25);background:rgba(232,68,90,.07);color:var(--red);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);margin-top:10px;transition:all .15s}
+.btn-logout:hover{background:rgba(232,68,90,.15)}
+</style>
 </head>
 <body>
-<div class="app">
+
+<!-- TELA DE LOGIN -->
+<div class="login-wrap" id="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🚚</div>
+      <div>
+        <div class="login-title">TransGest</div>
+        <div class="login-sub">AJBAM Transportes — Acesso ao Sistema</div>
+      </div>
+    </div>
+    <div class="login-err" id="login-err">E-mail ou senha incorretos.</div>
+    <div class="login-field">
+      <label>E-mail / Login</label>
+      <input type="text" id="login-email" placeholder="usuario@empresa.com" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="login-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Entrar no Sistema →</button>
+  </div>
+</div>
+
+<div class="app" id="app-wrap" style="display:none">
 
 <!-- SIDEBAR -->
 <div class="sidebar">
@@ -206,9 +249,13 @@ textarea{resize:vertical;min-height:65px}
   </nav>
   <div class="sidebar-footer">
     <div class="user-card">
-      <div class="avatar">AD</div>
-      <div><div class="user-name">Administrativo</div><div class="user-role">Gestor do Sistema</div></div>
+      <div class="avatar" id="sb-avatar">AD</div>
+      <div>
+        <div class="user-name" id="sb-nome">Administrativo</div>
+        <div class="user-role" id="sb-perfil">Gestor do Sistema</div>
+      </div>
     </div>
+    <button class="btn-logout" onclick="doLogout()">⏻ Sair do Sistema</button>
   </div>
 </div>
 
@@ -262,9 +309,7 @@ textarea{resize:vertical;min-height:65px}
     + Nova OC
   </button>
 
-  <button class="btn btn-secondary" onclick="gerarPDF()">
-  📄 Testar PDF 
-</button>
+
       </div>
       <div class="table-wrap"><table>
         <thead><tr><th>Nº OC</th><th>Data</th><th>Fornecedor</th><th>Placa(s)</th><th>Tipo</th><th>Valor</th><th>NF</th><th style="width:120px">Ações</th></tr></thead>
@@ -281,6 +326,39 @@ textarea{resize:vertical;min-height:65px}
       <div class="table-wrap"><table>
         <thead><tr><th>OC Vinc.</th><th>Tipo</th><th>Nº NF</th><th>Fornecedor</th><th>Destino</th><th>Valor Total</th><th>Vencimento(s)</th><th>Pgto</th><th style="width:120px">Ações</th></tr></thead>
         <tbody id="tb-nf"></tbody>
+      </table></div>
+    </div>
+
+    <!-- FATURAMENTOS -->
+    <div class="screen" id="screen-faturamentos">
+      <div class="section-header">
+        <div class="section-title">Faturamentos (<span id="fat-count">0</span>)
+          <span style="font-size:10px;font-weight:400;color:var(--text3);margin-left:8px">NFs agrupadas por faturamento do fornecedor</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="fat-aguard-badge" style="font-size:11px;color:var(--amber)"></span>
+          <button class="btn btn-secondary" onclick="openModalNFRapida()">🧾 Lançar NF do Fornecedor</button>
+          <button class="btn btn-primary" onclick="openModalFaturamento()">+ Registrar Faturamento</button>
+        </div>
+      </div>
+
+      <!-- NFs aguardando faturamento -->
+      <div class="card-block" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.06em">⏳ NFs Aguardando Faturamento</div>
+          <span id="nf-aguard-count" style="font-size:11px;color:var(--text3)"></span>
+        </div>
+        <div class="table-wrap" style="margin-bottom:0"><table>
+          <thead><tr><th>Nº NF</th><th>Fornecedor</th><th>OC Vinc.</th><th>Valor</th><th>Emissão</th><th>Dias em Aberto</th><th>Ação</th></tr></thead>
+          <tbody id="tb-nf-aguard"></tbody>
+        </table></div>
+      </div>
+
+      <!-- Faturamentos registrados -->
+      <div class="section-header" style="margin-top:4px"><div class="section-title">Faturamentos Registrados</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Nº Fat.</th><th>Fornecedor</th><th>NFs Incluídas</th><th>Valor Total</th><th>Vencimento</th><th>Forma Pgto</th><th>Status</th><th style="width:120px">Ações</th></tr></thead>
+        <tbody id="tb-fat"></tbody>
       </table></div>
     </div>
 
@@ -482,37 +560,6 @@ textarea{resize:vertical;min-height:65px}
       </table></div>
     </div>
 
-    <!-- FATURAMENTOS -->
-    <div class="screen" id="screen-faturamentos">
-      <div class="section-header">
-        <div class="section-title">Faturamentos (<span id="fat-count">0</span>)
-          <span style="font-size:10px;font-weight:400;color:var(--text3);margin-left:8px">NFs agrupadas por faturamento do fornecedor</span>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span id="fat-aguard-badge" style="font-size:11px;color:var(--amber)"></span>
-          <button class="btn btn-primary" onclick="openModalFaturamento()">+ Registrar Faturamento</button>
-        </div>
-      </div>
-
-      <!-- NFs aguardando faturamento -->
-      <div class="card-block" style="margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:11px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.06em">⏳ NFs Aguardando Faturamento</div>
-          <span id="nf-aguard-count" style="font-size:11px;color:var(--text3)"></span>
-        </div>
-        <div class="table-wrap" style="margin-bottom:0"><table>
-          <thead><tr><th>Nº NF</th><th>Fornecedor</th><th>OC Vinc.</th><th>Valor</th><th>Emissão</th><th>Dias em Aberto</th><th>Ação</th></tr></thead>
-          <tbody id="tb-nf-aguard"></tbody>
-        </table></div>
-      </div>
-
-      <!-- Faturamentos registrados -->
-      <div class="section-header" style="margin-top:4px"><div class="section-title">Faturamentos Registrados</div></div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Nº Fat.</th><th>Fornecedor</th><th>NFs Incluídas</th><th>Valor Total</th><th>Vencimento</th><th>Forma Pgto</th><th>Status</th><th style="width:120px">Ações</th></tr></thead>
-        <tbody id="tb-fat"></tbody>
-      </table></div>
-    </div>
     <!-- PENDENTES -->
     <div class="screen" id="screen-pendentes">
       <div class="section-header"><div class="section-title">OCs Pendentes de Faturamento</div></div>
@@ -525,9 +572,7 @@ textarea{resize:vertical;min-height:65px}
 
   </div>
 </div>
-</div>
-
-<!-- ============================================================ MODAIS ============================================================ -->
+</div><!-- /#app-wrap --> ============================================================ -->
 
 <!-- MODAL OC -->
 <div class="modal-overlay" id="modal-oc">
@@ -537,16 +582,50 @@ textarea{resize:vertical;min-height:65px}
       <div class="form-group"><label>Nº OC</label><input type="text" id="f-oc-num" placeholder="OC-2025-XXXX"/></div>
       <div class="form-group"><label>Data</label><input type="date" id="f-oc-data"/></div>
       <div class="form-group full"><label>Fornecedor</label><input type="text" id="f-oc-forn" placeholder="Nome do fornecedor"/></div>
-      <div class="form-group"><label>Placa(s)</label><input type="text" id="f-oc-placa" placeholder="ABC-1234 / DEF-5678"/></div>
-      <div class="form-group"><label>Valor Total (R$)</label><input type="number" id="f-oc-valor" placeholder="0.00" step="0.01"/></div>
+      <div class="form-group"><label>Valor Total (R$)</label><input type="number" id="f-oc-valor" placeholder="0.00" step="0.01" oninput="ocRateioRecalc()"/></div>
       <div class="form-group"><label>Tipo</label>
         <select id="f-oc-tipo"><option>Manutenção (Serviço)</option><option>Peças</option><option>Serviço + Peças</option><option>Administrativo</option><option>Pessoal</option></select>
       </div>
       <div class="form-group"><label>Rateio?</label>
-        <select id="f-oc-rateio"><option>Não</option><option>Sim — rateado</option></select>
+        <select id="f-oc-rateio" onchange="ocToggleRateio()"><option value="Não">Não</option><option value="Sim">Sim — rateado</option></select>
+      </div>
+
+      <!-- Placa única (sem rateio) -->
+      <div class="form-group" id="oc-placa-simples">
+        <label>Placa</label>
+        <select id="f-oc-placa"><option value="-">Nenhuma (geral)</option></select>
       </div>
       <div class="form-group full"><label>Descrição</label><textarea id="f-oc-desc" placeholder="Descreva o serviço ou material..."></textarea></div>
     </div>
+
+    <!-- Seção de rateio (aparece quando Sim) -->
+    <div id="oc-rateio-wrap" style="display:none;margin-top:4px">
+      <div style="background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.2);border-radius:10px;padding:13px 15px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:10px;font-weight:600;color:var(--purple);text-transform:uppercase;letter-spacing:.06em">🔀 Rateio por Caminhão</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:11px;color:var(--text2)">Nº de caminhões:</label>
+            <select id="oc-rateio-qtd" onchange="ocGerarLinhasRateio()" style="font-size:12px;padding:4px 8px;width:60px">
+              <option value="2">2</option><option value="3">3</option><option value="4">4</option>
+              <option value="5">5</option><option value="6">6</option><option value="7">7</option>
+              <option value="8">8</option><option value="9">9</option><option value="10">10</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:32px 1fr 1fr;gap:8px;margin-bottom:6px">
+          <span></span>
+          <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Placa</span>
+          <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Valor (R$)</span>
+        </div>
+        <div id="oc-rateio-linhas"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:9px;border-top:1px solid rgba(167,139,250,.2)">
+          <span style="font-size:11px;color:var(--text2)">Total rateado:</span>
+          <span id="oc-rateio-soma" style="font-size:12px;font-weight:600;font-family:var(--mono);color:var(--accent)">R$ 0,00</span>
+          <span id="oc-rateio-diff" style="font-size:10px;color:var(--text3);margin-left:8px"></span>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-oc')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-oc" onclick="salvarOC()">💾 Emitir OC</button>
@@ -910,6 +989,52 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </div>
 
+<!-- MODAL NF RÁPIDA (Lançamento direto da tela de Faturamentos) -->
+<div class="modal-overlay" id="modal-nf-rapida">
+  <div class="modal" style="width:580px">
+    <div class="modal-title">🧾 Lançar NF — Aguardando Faturamento do Fornecedor</div>
+    <div style="background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.2);border-radius:8px;padding:9px 13px;margin-bottom:14px;font-size:12px;color:var(--amber)">
+      ⏳ Use este formulário quando o fornecedor envia a NF mas ainda <strong>não faturou</strong>. A nota ficará aguardando até você registrar o faturamento — só então os títulos serão gerados no Contas a Pagar.
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>OC Vinculada</label>
+        <select id="f-nfr-oc"><option value="Sem OC">Sem OC (imposto/outro)</option></select>
+      </div>
+      <div class="form-group"><label>Tipo</label>
+        <select id="f-nfr-tipo"><option>NF de Serviço</option><option>NF de Peças</option><option>NF Serviço + Peças</option><option>Imposto / Taxa</option><option>Outro</option></select>
+      </div>
+      <div class="form-group"><label>Nº NF / Referência</label>
+        <input type="text" id="f-nfr-num" placeholder="12345"/>
+      </div>
+      <div class="form-group"><label>Data de Emissão</label>
+        <input type="date" id="f-nfr-data"/>
+      </div>
+      <div class="form-group full"><label>Fornecedor</label>
+        <input type="text" id="f-nfr-forn" placeholder="Nome do fornecedor"/>
+      </div>
+      <div class="form-group"><label>Destino / Placa</label>
+        <select id="f-nfr-dest">
+          <option value="Estoque">Estoque</option>
+          <option value="Administrativo">Administrativo</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Valor Total da NF (R$)</label>
+        <input type="number" id="f-nfr-valor" placeholder="0.00" step="0.01"/>
+      </div>
+      <div class="form-group full"><label>Observações</label>
+        <textarea id="f-nfr-obs" placeholder="Informações adicionais (prazo estimado de faturamento, condições combinadas, etc.)..."></textarea>
+      </div>
+    </div>
+    <div style="background:rgba(0,196,161,.06);border:1px solid rgba(0,196,161,.18);border-radius:8px;padding:9px 13px;margin-top:4px;font-size:11px;color:var(--accent)">
+      ✅ Após salvar, a NF aparecerá na lista <strong>"NFs Aguardando Faturamento"</strong> acima. Quando o fornecedor faturar (podendo unificar 2 ou mais NFs), clique em <strong>💼 Faturar</strong> para definir vencimento, forma de pagamento e gerar os títulos.
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-nf-rapida')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarNFRapida()">🧾 Lançar NF em Aberto</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONFIRM DELETE -->
 <div class="modal-overlay" id="modal-confirm">
   <div class="modal confirm-modal">
@@ -1093,7 +1218,7 @@ function populateSelects(){
   OCs.forEach(o=>selNFOC.innerHTML+=`<option value="${o.num}">${o.num} — ${o.forn}</option>`);
   // Placas
   const placas=Frota.map(f=>f.placa);
-  ['f-nf-dest','f-saida-placa','f-tit-placa'].forEach(sid=>{
+  ['f-oc-placa','f-nf-dest','f-saida-placa','f-tit-placa'].forEach(sid=>{
     const s=$(sid); if(!s)return;
     const isNfDest=sid==='f-nf-dest';
     s.innerHTML=(isNfDest?'<option value="Estoque">Estoque</option><option value="Administrativo">Administrativo</option>':'<option value="-">Nenhuma (geral)</option>');
@@ -1120,6 +1245,15 @@ window.openModal = function(id, mode, data){
   if(mode==='novo'){
     const editKey={oc:'oc',nf:'nf','titulo':'tit','saida':'saida','entrada-peca':'est','frota':'frota','epi-saida':'episaida','epi-entrada':'epient'}[id.replace('modal-','')];
     if(editKey)editing[editKey]=null;
+    // inicializar OC nova
+    if(id==='modal-oc'){
+      $('f-oc-rateio').value='Não';
+      $('f-oc-valor').value='';
+      $('f-oc-num').value='';
+      $('f-oc-desc').value='';
+      $('f-oc-placa').value='-';
+      ocToggleRateio();
+    }
     // inicializar parcelas ao abrir NF nova
     if(id==='modal-nf'){
       $('f-nf-parcelas').value='1';
@@ -1133,22 +1267,118 @@ window.openModal = function(id, mode, data){
 };
 
 // ======================== CRUD OC ========================
+function ocToggleRateio(){
+  const sim = $('f-oc-rateio').value === 'Sim';
+  $('oc-rateio-wrap').style.display = sim ? 'block' : 'none';
+  $('oc-placa-simples').style.display = sim ? 'none' : '';
+  if(sim) ocGerarLinhasRateio();
+}
+
+function ocGerarLinhasRateio(){
+  const n = parseInt($('oc-rateio-qtd').value) || 2;
+  const total = parseFloat($('f-oc-valor').value) || 0;
+  const base = Math.floor((total / n) * 100) / 100;
+  const resto = Math.round((total - base * n) * 100) / 100;
+  const placas = Frota.map(f => f.placa);
+  const cont = $('oc-rateio-linhas');
+  cont.innerHTML = Array.from({length: n}, (_, i) => {
+    const val = i === n-1 ? (Math.round((base + resto)*100)/100).toFixed(2) : base.toFixed(2);
+    const opts = '<option value="-">— Placa —</option>' + placas.map(p=>`<option value="${p}">${p}</option>`).join('');
+    return `<div style="display:grid;grid-template-columns:32px 1fr 1fr;gap:8px;margin-bottom:7px;align-items:center">
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-align:center">${i+1}</span>
+      <select class="oc-rat-placa" style="font-size:12px;padding:6px 9px">${opts}</select>
+      <input type="number" class="oc-rat-val" value="${val}" step="0.01" min="0" style="font-size:12px;padding:6px 9px" oninput="ocRateioRecalc()"/>
+    </div>`;
+  }).join('');
+  ocRateioRecalc();
+}
+
+function ocRateioRecalc(){
+  if($('f-oc-rateio').value !== 'Sim') return;
+  const total = parseFloat($('f-oc-valor').value) || 0;
+  const vals = [...document.querySelectorAll('.oc-rat-val')].map(i => parseFloat(i.value)||0);
+  const soma = Math.round(vals.reduce((a,b)=>a+b,0)*100)/100;
+  const diff = Math.round((soma - total)*100)/100;
+  const somaEl = $('oc-rateio-soma'), diffEl = $('oc-rateio-diff');
+  somaEl.textContent = 'R$ ' + soma.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  if(Math.abs(diff) < 0.01){
+    somaEl.style.color = 'var(--accent)';
+    diffEl.textContent = '✓ Valores corretos';
+    diffEl.style.color = 'var(--accent)';
+  } else {
+    somaEl.style.color = 'var(--red)';
+    diffEl.textContent = (diff>0?'Excesso':'Falta')+': R$ '+Math.abs(diff).toLocaleString('pt-BR',{minimumFractionDigits:2});
+    diffEl.style.color = 'var(--red)';
+  }
+}
+
 function editarOC(id){
   const o=OCs.find(x=>x.id===id); if(!o)return;
   editing.oc=id;
+  // Popula placas no select simples
+  ocPopulatePlacaSelect();
   $('f-oc-num').value=o.num; $('f-oc-data').value=o.data;
-  $('f-oc-forn').value=o.forn; $('f-oc-placa').value=o.placas;
-  $('f-oc-valor').value=o.valor; $('f-oc-tipo').value=o.tipo;
-  $('f-oc-desc').value=o.desc||'';
+  $('f-oc-forn').value=o.forn; $('f-oc-valor').value=o.valor;
+  $('f-oc-tipo').value=o.tipo; $('f-oc-desc').value=o.desc||'';
+  const temRateio = o.rateio && o.rateio.length > 0;
+  $('f-oc-rateio').value = temRateio ? 'Sim' : 'Não';
+  ocToggleRateio();
+  if(temRateio){
+    $('oc-rateio-qtd').value = String(o.rateio.length);
+    ocGerarLinhasRateio();
+    // Preenche placas e valores salvos
+    setTimeout(()=>{
+      const placaSels = document.querySelectorAll('.oc-rat-placa');
+      const valInps = document.querySelectorAll('.oc-rat-val');
+      o.rateio.forEach((r,i)=>{
+        if(placaSels[i]) placaSels[i].value = r.placa;
+        if(valInps[i]) valInps[i].value = r.valor.toFixed(2);
+      });
+      ocRateioRecalc();
+    }, 50);
+  } else {
+    $('f-oc-placa').value = o.placas || '-';
+  }
   $('modal-oc-title').textContent='Editar Ordem de Compra';
   $('btn-save-oc').textContent='💾 Atualizar';
   $('modal-oc').classList.add('open');
 }
+
+function ocPopulatePlacaSelect(){
+  const sel = $('f-oc-placa'); if(!sel) return;
+  sel.innerHTML = '<option value="-">Nenhuma (geral)</option>';
+  Frota.forEach(f => sel.innerHTML += `<option value="${f.placa}">${f.placa}</option>`);
+}
+
 function salvarOC(){
-  const num=$('f-oc-num').value.trim()||'OC-2025-'+String(OCs.length+26).padStart(4,'0');
+  const num=$('f-oc-num').value.trim()||'OC-'+new Date().getFullYear()+'-'+String(OCs.length+26).padStart(4,'0');
   const data=$('f-oc-data').value||today;
   const forn=$('f-oc-forn').value.trim(); if(!forn){toast('Informe o fornecedor','error');return;}
-  const obj={num,data,forn,placas:$('f-oc-placa').value.trim()||'-',valor:parseFloat($('f-oc-valor').value)||0,tipo:$('f-oc-tipo').value,nf:'Pendente',desc:$('f-oc-desc').value.trim()};
+  const valor=parseFloat($('f-oc-valor').value)||0;
+  const isRateio = $('f-oc-rateio').value === 'Sim';
+
+  let rateio = [];
+  let placas = '-';
+
+  if(isRateio){
+    const placaSels = [...document.querySelectorAll('.oc-rat-placa')];
+    const valInps = [...document.querySelectorAll('.oc-rat-val')];
+    if(!placaSels.length){ toast('Gere as linhas de rateio primeiro','error'); return; }
+    for(let i=0;i<placaSels.length;i++){
+      if(placaSels[i].value==='-'){ toast('Informe a placa do caminhão '+(i+1),'error'); return; }
+      if(!(parseFloat(valInps[i].value)>0)){ toast('Informe o valor do caminhão '+(i+1),'error'); return; }
+      rateio.push({ placa: placaSels[i].value, valor: Math.round(parseFloat(valInps[i].value)*100)/100 });
+    }
+    // Verifica se soma bate
+    const soma = Math.round(rateio.reduce((a,r)=>a+r.valor,0)*100)/100;
+    if(Math.abs(soma - valor) > 0.02){ toast('A soma do rateio (R$ '+soma.toLocaleString('pt-BR',{minimumFractionDigits:2})+') não bate com o valor total','error'); return; }
+    placas = rateio.map(r=>r.placa).join(' / ');
+  } else {
+    placas = $('f-oc-placa').value || '-';
+  }
+
+  const obj={num,data,forn,placas,valor,tipo:$('f-oc-tipo').value,nf:'Pendente',desc:$('f-oc-desc').value.trim(),rateio,isRateio};
+
   if(editing.oc){
     const i=OCs.findIndex(x=>x.id===editing.oc);
     OCs[i]={...OCs[i],...obj};
@@ -1162,6 +1392,7 @@ function salvarOC(){
   $('btn-save-oc').textContent='💾 Emitir OC';
   renderAll();
 }
+
 function excluirOC(id){
   const o=OCs.find(x=>x.id===id);
   confirmDelete(`Excluir OC ${o.num}?`,`Fornecedor: ${o.forn} | Valor: ${fmt(o.valor)}`,()=>{
@@ -1562,11 +1793,13 @@ function renderDashboard(){
 
 function renderOC(){
   $('oc-count').textContent=OCs.length;
-  $('tb-oc').innerHTML=OCs.length?OCs.map(o=>`<tr>
+  $('tb-oc').innerHTML=OCs.length?OCs.map(o=>{
+    const rBadge = o.isRateio ? `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(167,139,250,.14);color:var(--purple);border:1px solid rgba(167,139,250,.25);margin-left:4px">🔀 ${o.rateio.length} caminhões</span>` : '';
+    return `<tr>
     <td class="mono" style="color:var(--accent2);font-size:11px">${o.num}</td>
     <td style="font-size:11px">${o.data}</td>
     <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.forn}">${o.forn}</td>
-    <td class="mono" style="font-size:11px">${o.placas}</td>
+    <td class="mono" style="font-size:11px">${o.placas}${rBadge}</td>
     <td>${chip(o.tipo,'cgr')}</td>
     <td class="mono">${fmt(o.valor)}</td>
     <td>${chipS(o.nf)}</td>
@@ -1576,7 +1809,8 @@ function renderOC(){
     ${acts(`editarOC(${o.id})`,`excluirOC(${o.id})`)}
   </div>
 </td>
-  </tr>`).join(''):'<tr><td colspan="8" class="empty">Nenhuma OC cadastrada</td></tr>';
+  </tr>`;
+  }).join(''):'<tr><td colspan="8" class="empty">Nenhuma OC cadastrada</td></tr>';
 }
 
 function renderNF(){
@@ -1937,23 +2171,65 @@ function editarUsuario(id){
   $('btn-save-usuario').textContent='💾 Atualizar';
   $('modal-usuario').classList.add('open');
 }
-function salvarUsuario(){
+async function salvarUsuario(){
   const nome=$('f-usr-nome').value.trim(); if(!nome){toast('Informe o nome','error');return;}
   const email=$('f-usr-email').value.trim(); if(!email){toast('Informe o e-mail/login','error');return;}
+  const senha=$('f-usr-senha').value.trim();
   const obj={nome,email,perfil:$('f-usr-perfil').value,colabId:$('f-usr-colab').value,status:$('f-usr-status').value,ultimoAcesso:'—',obs:$('f-usr-obs').value.trim()};
+
   if(editing.usuario){
+    // Edição — atualiza apenas dados locais (senha só muda se preenchida)
     const i=Usuarios.findIndex(x=>x.id===editing.usuario);
-    Usuarios[i]={...Usuarios[i],...obj}; editing.usuario=null; toast('Usuário atualizado!');
+    Usuarios[i]={...Usuarios[i],...obj};
+    if(senha){
+      // Atualiza senha no Supabase via Admin API não disponível no client — orienta o admin
+      toast('Dados atualizados! Para alterar a senha, use o painel do Supabase.');
+    } else {
+      toast('Usuário atualizado!');
+    }
+    editing.usuario=null;
   } else {
-    obj.id=nextIdUser++; obj.senha='••••••'; Usuarios.unshift(obj); toast('Usuário criado com sucesso!');
+    // Novo usuário — cria no Supabase
+    if(!senha){ toast('Informe uma senha para o novo usuário','error'); return; }
+
+    const btn = $('btn-save-usuario');
+    btn.textContent = '⏳ Criando...'; btn.disabled = true;
+
+    const { data, error } = await supa.auth.admin ? 
+      // Se tiver acesso admin usa signUp direto
+      { data: null, error: { message: 'use_signup' } } :
+      await supa.auth.signUp({ email, password: senha, options:{ data:{ nome } } });
+
+    // Como não temos service_role, usamos signUp (envia e-mail de confirmação)
+    const { data: sd, error: se } = await supa.auth.signUp({
+      email,
+      password: senha,
+      options: { data: { nome }, emailRedirectTo: window.location.href }
+    });
+
+    btn.textContent = '💾 Criar Usuário'; btn.disabled = false;
+
+    if(se){
+      toast('Erro ao criar no Supabase: ' + se.message, 'error');
+      return;
+    }
+
+    obj.id = nextIdUser++;
+    obj.supaId = sd.user?.id || '';
+    Usuarios.unshift(obj);
+    toast('Usuário criado! Um e-mail de confirmação foi enviado para ' + email + '.');
   }
-  closeModal('modal-usuario'); $('modal-usuario-title').textContent='Novo Usuário'; $('btn-save-usuario').textContent='💾 Criar Usuário';
+
+  closeModal('modal-usuario');
+  $('modal-usuario-title').textContent='Novo Usuário';
+  $('btn-save-usuario').textContent='💾 Criar Usuário';
   editing.usuario=null; renderUsuarios();
 }
+
 function excluirUsuario(id){
   const u=Usuarios.find(x=>x.id===id);
-  confirmDelete('Excluir usuário '+u.nome+'?','O acesso deste usuário será removido.',()=>{
-    Usuarios=Usuarios.filter(x=>x.id!==id); toast('Usuário excluído.'); renderUsuarios();
+  confirmDelete('Excluir usuário '+u.nome+'?','O acesso será removido. Para revogar o login, remova também no painel do Supabase.',()=>{
+    Usuarios=Usuarios.filter(x=>x.id!==id); toast('Usuário removido do sistema. Remova também no Supabase se necessário.'); renderUsuarios();
   });
 }
 
@@ -2048,17 +2324,6 @@ function exportRelFinPDF(){
   toast('PDF gerado com sucesso!');
 }
 // ======================== PDF ========================
-function gerarPDF(){
-  const { jsPDF } = window.jspdf || {};
-  if(!jsPDF){
-    toast('Biblioteca PDF não carregou. Atualize a página e tente de novo.','error');
-    return;
-  }
-  const doc = new jsPDF();
-  doc.setFontSize(16);
-  doc.text('Teste PDF funcionando!', 20, 20);
-  doc.save('teste.pdf');
-}
 
 function gerarPDFOC(id){
   const o = OCs.find(x => x.id === id);
@@ -2431,6 +2696,161 @@ function abrirFatParaNF(nfId){
   }, 60);
 }
 
+// ======================== NF RÁPIDA (Lançamento direto da tela de Faturamentos) ========================
+
+function openModalNFRapida(){
+  // Popula o select de OCs
+  const selOC = $('f-nfr-oc');
+  selOC.innerHTML = '<option value="Sem OC">Sem OC (imposto/outro)</option>';
+  OCs.forEach(o => selOC.innerHTML += `<option value="${o.num}">${o.num} — ${o.forn}</option>`);
+
+  // Popula placas no destino
+  const selDest = $('f-nfr-dest');
+  selDest.innerHTML = '<option value="Estoque">Estoque</option><option value="Administrativo">Administrativo</option>';
+  Frota.forEach(f => selDest.innerHTML += `<option value="${f.placa}">${f.placa}</option>`);
+
+  // Reseta campos
+  $('f-nfr-num').value = '';
+  $('f-nfr-data').value = today;
+  $('f-nfr-forn').value = '';
+  $('f-nfr-valor').value = '';
+  $('f-nfr-obs').value = '';
+  $('f-nfr-tipo').value = 'NF de Serviço';
+  $('f-nfr-oc').value = 'Sem OC';
+  $('f-nfr-dest').value = 'Estoque';
+
+  $('modal-nf-rapida').classList.add('open');
+}
+
+function salvarNFRapida(){
+  const forn = $('f-nfr-forn').value.trim();
+  if(!forn){ toast('Informe o fornecedor','error'); return; }
+  const total = parseFloat($('f-nfr-valor').value) || 0;
+  if(!total){ toast('Informe o valor total da NF','error'); return; }
+
+  const obj = {
+    id: newId('nf'),
+    oc: $('f-nfr-oc').value,
+    tipo: $('f-nfr-tipo').value,
+    num: $('f-nfr-num').value.trim() || 'NF-' + Date.now(),
+    data: $('f-nfr-data').value || today,
+    forn,
+    dest: $('f-nfr-dest').value,
+    valor: total,
+    venc: null,
+    pgto: 'Aguardando Faturamento',
+    obs: $('f-nfr-obs').value.trim(),
+    parcelas: []
+  };
+  NFs.unshift(obj);
+
+  // Atualiza OC vinculada, se houver
+  if(obj.oc && obj.oc !== 'Sem OC'){
+    const oc = OCs.find(x => x.num === obj.oc);
+    if(oc) oc.nf = 'Recebida';
+  }
+
+  closeModal('modal-nf-rapida');
+  toast('NF lançada! Aguardando faturamento do fornecedor. ⏳');
+  renderAll();
+}
+
+// ======================== SUPABASE ========================
+
+const SUPA_URL = 'https://oevzvetthuvnawjuhfeq.supabase.co';
+const SUPA_KEY = 'sb_publishable_rsY8opUVpHRekTRFTKoKiw_EVfBr_rM';
+const { createClient } = supabase;
+const supa = createClient(SUPA_URL, SUPA_KEY);
+
+let usuarioLogado = null;
+
+// ======================== LOGIN / LOGOUT ========================
+
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const senha = document.getElementById('login-senha').value;
+  const errEl = document.getElementById('login-err');
+  const btn = document.querySelector('.login-btn');
+
+  if(!email || !senha){ errEl.textContent='Preencha e-mail e senha.'; errEl.style.display='block'; return; }
+
+  btn.textContent = 'Entrando...';
+  btn.disabled = true;
+
+  const { data, error } = await supa.auth.signInWithPassword({ email, password: senha });
+
+  btn.textContent = 'Entrar no Sistema →';
+  btn.disabled = false;
+
+  if(error){
+    errEl.textContent = 'E-mail ou senha incorretos.';
+    errEl.style.display = 'block';
+    document.getElementById('login-senha').value = '';
+    return;
+  }
+
+  errEl.style.display = 'none';
+  const user = data.user;
+
+  // Busca perfil no array local pelo e-mail
+  const perfil = Usuarios.find(u => u.email.toLowerCase() === email);
+
+  // Atualiza sidebar
+  const nomeExibir = perfil ? perfil.nome : (user.email.split('@')[0]);
+  const perfilExibir = perfil ? perfil.perfil.replace(' (Acesso Total)','') : 'Usuário';
+  const iniciais = nomeExibir.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+
+  document.getElementById('sb-avatar').textContent = iniciais;
+  document.getElementById('sb-nome').textContent = nomeExibir;
+  document.getElementById('sb-perfil').textContent = perfilExibir;
+
+  usuarioLogado = { ...user, nome: nomeExibir, perfil: perfilExibir };
+
+  // Exibe o sistema
+  document.getElementById('login-wrap').style.display = 'none';
+  document.getElementById('app-wrap').style.display = 'flex';
+  renderAll();
+}
+
+async function doLogout(){
+  if(!confirm('Deseja sair do sistema?')) return;
+
+  await supa.auth.signOut();
+  usuarioLogado = null;
+
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-senha').value = '';
+  document.getElementById('login-err').style.display = 'none';
+
+  document.getElementById('app-wrap').style.display = 'none';
+  document.getElementById('login-wrap').style.display = 'flex';
+
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-dashboard').classList.add('active');
+}
+
+// Verifica se já há sessão ativa ao carregar a página
+supa.auth.getSession().then(({ data: { session } }) => {
+  if(session){
+    const email = session.user.email;
+    const perfil = Usuarios.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const nomeExibir = perfil ? perfil.nome : email.split('@')[0];
+    const perfilExibir = perfil ? perfil.perfil.replace(' (Acesso Total)','') : 'Usuário';
+    const iniciais = nomeExibir.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+
+    document.getElementById('sb-avatar').textContent = iniciais;
+    document.getElementById('sb-nome').textContent = nomeExibir;
+    document.getElementById('sb-perfil').textContent = perfilExibir;
+
+    usuarioLogado = { ...session.user, nome: nomeExibir, perfil: perfilExibir };
+
+    document.getElementById('login-wrap').style.display = 'none';
+    document.getElementById('app-wrap').style.display = 'flex';
+    renderAll();
+  }
+});
+
 // ======================== INIT ========================
 
 document.querySelectorAll('input[type=date]').forEach(el=>{
@@ -2438,8 +2858,8 @@ document.querySelectorAll('input[type=date]').forEach(el=>{
 });
 
 populateSelects();
-renderAll();
 toggleP();
+// renderAll() é chamado após o login bem-sucedido
 </script>
 </body>
 </html>
