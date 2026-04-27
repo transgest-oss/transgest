@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -267,6 +267,7 @@ textarea{resize:vertical;min-height:65px}
     <div class="page-title" id="page-title">Dashboard Geral</div>
     <div class="topbar-right">
       <span class="badge-alert" onclick="showScreen('pendentes',null)" id="badge-oc">⚠ OCs sem NF</span>
+      <span class="badge-alert" onclick="showScreen('financeiro',null)" id="badge-fin" style="display:none">💳 Alertas financeiros</span>
       <span class="badge-ok">● Sistema OK</span>
     </div>
   </div>
@@ -281,7 +282,22 @@ textarea{resize:vertical;min-height:65px}
         <div class="stat-card"><div class="stat-label">Títulos Pendentes</div><div class="stat-value" id="dash-titulos">—</div><div class="stat-sub" id="dash-titulos-sub" style="color:var(--amber)"></div></div>
         <div class="stat-card"><div class="stat-label">Itens no Estoque</div><div class="stat-value" id="dash-estoque">—</div><div class="stat-sub" id="dash-estoque-sub" style="color:var(--accent)"></div></div>
       </div>
+      <div class="stats-row stats-5">
+        <div class="stat-card"><div class="stat-label">Pago no mês</div><div class="stat-value" id="dash-pago-mes" style="font-size:17px;color:var(--accent)">—</div><div class="stat-sub" id="dash-pago-mes-sub">Títulos quitados</div></div>
+        <div class="stat-card"><div class="stat-label">Vencidos</div><div class="stat-value" id="dash-vencidos" style="font-size:17px;color:var(--red)">—</div><div class="stat-sub" id="dash-vencidos-sub" style="color:var(--red)">Em atraso</div></div>
+        <div class="stat-card"><div class="stat-label">Vence hoje</div><div class="stat-value" id="dash-vence-hoje" style="font-size:17px;color:var(--amber)">—</div><div class="stat-sub" id="dash-vence-hoje-sub">Prioridade do dia</div></div>
+        <div class="stat-card"><div class="stat-label">Vence em 3 dias</div><div class="stat-value" id="dash-vence-3" style="font-size:17px;color:var(--amber)">—</div><div class="stat-sub" id="dash-vence-3-sub">Atenção próxima</div></div>
+        <div class="stat-card"><div class="stat-label">Vence em 7 dias</div><div class="stat-value" id="dash-vence-7" style="font-size:17px;color:var(--accent2)">—</div><div class="stat-sub" id="dash-vence-7-sub">Planejamento</div></div>
+      </div>
+      <div class="alert-bar" id="dash-fin-alert-bar" style="display:none"></div>
       <div class="alert-bar" id="dash-alert-bar">⚠ Verificando OCs pendentes...</div>
+      <div class="card-block" id="dash-insights-card" style="margin-bottom:16px">
+        <div class="section-header" style="margin-bottom:10px">
+          <div class="section-title">💡 Insights rápidos</div>
+          <button class="btn btn-secondary btn-sm" onclick="showScreen('rel-financeiro',null)">Ver relatório completo</button>
+        </div>
+        <div id="dash-insights" class="stats-row stats-4" style="margin-bottom:0"></div>
+      </div>
       <div class="two-col">
         <div>
           <div class="section-header"><div class="section-title">Frota — Uso do limite mensal</div></div>
@@ -374,8 +390,31 @@ textarea{resize:vertical;min-height:65px}
         </div>
       </div>
       <div class="stats-row stats-4" id="fin-kpis"></div>
+      <div class="filter-bar" id="fin-filter-bar">
+        <label>Período</label>
+        <select id="fin-filtro-periodo" onchange="finFiltroChanged()">
+          <option value="mes">Este mês</option>
+          <option value="todos">Todos</option>
+          <option value="vencidos">Vencidos</option>
+          <option value="proximos7">Próximos 7 dias</option>
+          <option value="personalizado">Personalizado</option>
+        </select>
+        <input type="date" id="fin-filtro-de" onchange="renderFin()" style="display:none"/>
+        <input type="date" id="fin-filtro-ate" onchange="renderFin()" style="display:none"/>
+        <label>Status</label>
+        <select id="fin-filtro-status" onchange="renderFin()">
+          <option value="">Todos</option>
+          <option value="Pendente">Pendente</option>
+          <option value="Pago">Pago</option>
+        </select>
+        <label>Fornecedor</label>
+        <select id="fin-filtro-forn" onchange="renderFin()"><option value="">Todos</option></select>
+        <label>Placa</label>
+        <select id="fin-filtro-placa" onchange="renderFin()"><option value="">Todas</option></select>
+        <button class="btn btn-secondary btn-sm" onclick="resetFinFiltros()">Limpar</button>
+      </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Fornecedor</th><th>Tipo</th><th>NF / Ref.</th><th>Valor</th><th>Vencimento</th><th>Status</th><th style="width:150px">Ações</th></tr></thead>
+        <thead><tr><th>Fornecedor</th><th>Tipo</th><th>NF / Ref.</th><th>Placa</th><th>Valor</th><th>Vencimento</th><th>Status</th><th style="width:150px">Ações</th></tr></thead>
         <tbody id="tb-fin"></tbody>
       </table></div>
     </div>
@@ -870,11 +909,28 @@ textarea{resize:vertical;min-height:65px}
         <select id="f-tit-tipo"><option>Boleto NF</option><option>Imposto ISSQN</option><option>Imposto INSS</option><option>FGTS</option><option>Folha de Pagamento</option><option>Aluguel</option><option>Seguro</option><option>Combustível</option><option>Compromisso Anterior</option><option>Outros</option></select>
       </div>
       <div class="form-group"><label>NF / Referência</label><input type="text" id="f-tit-ref" placeholder="Nº NF, contrato ou descrição"/></div>
-      <div class="form-group"><label>Valor (R$)</label><input type="number" id="f-tit-valor" placeholder="0.00" step="0.01"/></div>
-      <div class="form-group"><label>Data de Emissão / Competência</label><input type="date" id="f-tit-emissao"/></div>
-      <div class="form-group"><label>Vencimento</label><input type="date" id="f-tit-venc"/></div>
+      <div class="form-group"><label>Valor (R$)</label><input type="number" id="f-tit-valor" placeholder="0.00" step="0.01" oninput="titRecorrenteGerar()"/></div>
+      <div class="form-group"><label>Data de Emissão / Competência</label><input type="date" id="f-tit-emissao" onchange="titRecorrenteGerar()"/></div>
+      <div class="form-group"><label>Vencimento</label><input type="date" id="f-tit-venc" onchange="titRecorrenteGerar()"/></div>
       <div class="form-group"><label>Status</label>
         <select id="f-tit-status"><option>Pendente</option><option>Pago</option></select>
+      </div>
+      <div class="form-group full" id="tit-recorrente-box">
+        <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text)">
+          <input type="checkbox" id="f-tit-recorrente" onchange="titRecorrenteToggle()" style="width:auto"/>
+          🔁 Título recorrente / compromisso mensal
+        </label>
+        <div id="tit-recorrente-config" style="display:none;background:rgba(0,112,214,.06);border:1px solid rgba(0,112,214,.20);border-radius:10px;padding:12px 14px;margin-top:8px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div class="form-group" style="gap:5px"><label>Quantidade de recorrências</label><input type="number" id="f-tit-rec-qtd" value="3" min="1" max="60" step="1" onchange="titRecorrenteGerar()" oninput="titRecorrenteGerar()"/></div>
+            <div class="form-group" style="gap:5px"><label>Periodicidade</label><select id="f-tit-rec-periodo" onchange="titRecorrenteGerar()"><option value="mensal">Mensal</option></select></div>
+          </div>
+          <div style="display:grid;grid-template-columns:36px 1fr 1fr 1fr;gap:8px;margin-bottom:6px">
+            <span></span><span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Competência</span><span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Vencimento</span><span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Valor (R$)</span>
+          </div>
+          <div id="tit-recorrente-linhas"></div>
+          <div class="parcela-total-row"><span style="font-size:11px;color:var(--text2)">Total gerado:</span><span id="tit-recorrente-total" class="parcela-diff ok">R$ 0,00</span></div>
+        </div>
       </div>
       <div class="form-group"><label>Placa (se aplicável)</label>
         <select id="f-tit-placa"><option value="-">Nenhuma (geral)</option></select>
@@ -1410,6 +1466,7 @@ window.openModal = function(id, mode, data){
       nfGerarParcelas();
       nfOCChanged(); // reset rateio aviso
     }
+    if(id==='modal-titulo'){ resetTituloModal(); }
   }
 };
 
@@ -1779,25 +1836,94 @@ function editarTitulo(id){
   $('f-tit-emissao').value=o.emissao||today; $('f-tit-venc').value=o.venc;
   $('f-tit-status').value=o.status; $('f-tit-placa').value=o.placa||'-';
   $('f-tit-obs').value=o.obs||'';
+  if($('f-tit-recorrente')) $('f-tit-recorrente').checked=false;
+  if($('tit-recorrente-config')) $('tit-recorrente-config').style.display='none';
+  if($('tit-recorrente-box')) $('tit-recorrente-box').style.display='none';
   $('modal-tit-title').textContent='Editar Título';
   $('btn-save-tit').textContent='💾 Atualizar';
   $('modal-titulo').classList.add('open');
+}
+function resetTituloModal(){
+  editing.tit = null;
+  if($('f-tit-forn')) $('f-tit-forn').value='';
+  if($('f-tit-forn-manual')) $('f-tit-forn-manual').value='';
+  if($('f-tit-tipo')) $('f-tit-tipo').value='Boleto NF';
+  if($('f-tit-ref')) $('f-tit-ref').value='';
+  if($('f-tit-valor')) $('f-tit-valor').value='';
+  if($('f-tit-emissao')) $('f-tit-emissao').value=today;
+  if($('f-tit-venc')) $('f-tit-venc').value=today;
+  if($('f-tit-status')) $('f-tit-status').value='Pendente';
+  if($('f-tit-placa')) $('f-tit-placa').value='-';
+  if($('f-tit-obs')) $('f-tit-obs').value='';
+  if($('tit-recorrente-box')) $('tit-recorrente-box').style.display='';
+  if($('f-tit-recorrente')) $('f-tit-recorrente').checked=false;
+  if($('f-tit-rec-qtd')) $('f-tit-rec-qtd').value='3';
+  if($('tit-recorrente-config')) $('tit-recorrente-config').style.display='none';
+  if($('tit-recorrente-linhas')) $('tit-recorrente-linhas').innerHTML='';
+  if($('tit-recorrente-total')) $('tit-recorrente-total').textContent='R$ 0,00';
+  $('modal-tit-title').textContent='Lançar Título — Contas a Pagar';
+  $('btn-save-tit').textContent='💾 Salvar';
+}
+function titDateAddMonthsISO(dataISO, meses){
+  const base = parseDataLocal(dataISO || today);
+  const diaOriginal = base.getDate();
+  const alvo = new Date(base.getFullYear(), base.getMonth() + meses, 1);
+  const ultimoDia = new Date(alvo.getFullYear(), alvo.getMonth()+1, 0).getDate();
+  alvo.setDate(Math.min(diaOriginal, ultimoDia));
+  return alvo.toISOString().slice(0,10);
+}
+function titRecorrenteToggle(){
+  const ativo = $('f-tit-recorrente') && $('f-tit-recorrente').checked;
+  if($('tit-recorrente-config')) $('tit-recorrente-config').style.display = ativo ? 'block' : 'none';
+  if(ativo) titRecorrenteGerar();
+}
+function titRecorrenteGerar(){
+  if(!$('f-tit-recorrente') || !$('f-tit-recorrente').checked) return;
+  const qtd = Math.max(1, Math.min(60, parseInt($('f-tit-rec-qtd').value)||1));
+  const valorBase = parseFloat($('f-tit-valor').value)||0;
+  const vencBase = $('f-tit-venc').value || today;
+  const compBase = $('f-tit-emissao').value || vencBase;
+  $('tit-recorrente-linhas').innerHTML = Array.from({length:qtd}, (_,i)=>{
+    const comp = titDateAddMonthsISO(compBase, i);
+    const venc = titDateAddMonthsISO(vencBase, i);
+    return `<div class="tit-rec-row" style="display:grid;grid-template-columns:36px 1fr 1fr 1fr;gap:8px;align-items:center;margin-bottom:7px"><span style="font-size:11px;font-weight:600;font-family:var(--mono);color:var(--text3);text-align:center">${i+1}</span><input type="date" class="tit-rec-comp" value="${comp}" style="font-size:12px;padding:6px 9px"/><input type="date" class="tit-rec-venc" value="${venc}" style="font-size:12px;padding:6px 9px"/><input type="number" class="tit-rec-valor" value="${valorBase ? valorBase.toFixed(2) : ''}" step="0.01" min="0" style="font-size:12px;padding:6px 9px" oninput="titRecorrenteTotal()"/></div>`;
+  }).join('');
+  titRecorrenteTotal();
+}
+function titRecorrenteTotal(){
+  const vals = [...document.querySelectorAll('.tit-rec-valor')].map(i=>parseFloat(i.value)||0);
+  if($('tit-recorrente-total')) $('tit-recorrente-total').textContent = fmt(vals.reduce((a,b)=>a+b,0));
 }
 function salvarTitulo(){
   const fornSel=$('f-tit-forn').value.trim(); const fornMan=($('f-tit-forn-manual')||{value:''}).value.trim(); const forn=fornMan||fornSel; if(!forn){toast('Selecione ou informe o fornecedor','error');return;}
   const valor=parseFloat($('f-tit-valor').value)||0; if(!valor){toast('Informe o valor','error');return;}
   const venc=$('f-tit-venc').value; if(!venc){toast('Informe o vencimento','error');return;}
-  const obj={forn,tipo:$('f-tit-tipo').value,ref:$('f-tit-ref').value.trim()||'-',valor,emissao:$('f-tit-emissao').value||today,venc,status:$('f-tit-status').value,placa:$('f-tit-placa').value||'-',obs:$('f-tit-obs').value.trim()};
+  const base={forn,tipo:$('f-tit-tipo').value,ref:$('f-tit-ref').value.trim()||'-',valor,emissao:$('f-tit-emissao').value||today,venc,status:$('f-tit-status').value,placa:$('f-tit-placa').value||'-',obs:$('f-tit-obs').value.trim()};
+  const recorrente = !editing.tit && $('f-tit-recorrente') && $('f-tit-recorrente').checked;
   if(editing.tit){
     const i=Titulos.findIndex(x=>x.id===editing.tit);
-    Titulos[i]={...Titulos[i],...obj};
+    Titulos[i]={...Titulos[i],...base};
     editing.tit=null; toast('Título atualizado!');
+  } else if(recorrente){
+    const rows=[...document.querySelectorAll('.tit-rec-row')];
+    if(!rows.length){toast('Gere as recorrências antes de salvar','error');return;}
+    const grupo = 'REC-' + Date.now();
+    const total = rows.length;
+    const novos = rows.map((row, idx)=>{
+      const valorLinha = parseFloat(row.querySelector('.tit-rec-valor').value)||0;
+      const vencLinha = row.querySelector('.tit-rec-venc').value;
+      const compLinha = row.querySelector('.tit-rec-comp').value || today;
+      if(!valorLinha || !vencLinha) return null;
+      return {...base,id:newId('tit'),valor:valorLinha,venc:vencLinha,emissao:compLinha,ref:`${base.ref} (${idx+1}/${total})`,obs:[base.obs,`Recorrência ${idx+1}/${total}`].filter(Boolean).join(' | '),recorrente:true,recorrenciaGrupo:grupo,recorrenciaParcela:idx+1,recorrenciaTotal:total};
+    });
+    if(novos.some(x=>!x)){toast('Revise vencimentos e valores das recorrências','error');return;}
+    Titulos.unshift(...novos);
+    toast(`${total} título(s) recorrente(s) lançados com sucesso!`);
   } else {
-    obj.id=newId('tit'); Titulos.unshift(obj); toast('Título lançado com sucesso!');
+    base.id=newId('tit'); Titulos.unshift(base); toast('Título lançado com sucesso!');
   }
   closeModal('modal-titulo');
-  $('modal-tit-title').textContent='Lançar Título — Contas a Pagar';
-  $('btn-save-tit').textContent='💾 Salvar';
+  resetTituloModal();
   editing.tit=null; renderAll();
 }
 function excluirTitulo(id){
@@ -2016,40 +2142,151 @@ function excluirEPISaida(id){
 }
 
 // ======================== RENDERS ========================
+function parseDataLocal(dataISO){
+  if(!dataISO) return null;
+  const partes = String(dataISO).split('-').map(Number);
+  if(partes.length !== 3 || partes.some(isNaN)) return new Date(dataISO);
+  return new Date(partes[0], partes[1]-1, partes[2]);
+}
+function diasAte(dataISO){
+  const alvo = parseDataLocal(dataISO);
+  if(!alvo) return 999999;
+  const hoje = new Date();
+  const baseHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  return Math.round((alvo - baseHoje) / 86400000);
+}
+function mesmoMesAtual(dataISO){
+  const d = parseDataLocal(dataISO);
+  if(!d) return false;
+  const h = new Date();
+  return d.getFullYear() === h.getFullYear() && d.getMonth() === h.getMonth();
+}
 function renderDashboard(){
-  const gastTotal=Frota.reduce((a,f)=>a+f.gasto,0);
+  const gastTotal=Frota.reduce((a,f)=>a+(Number(f.gasto)||0),0);
   const pendentes=Titulos.filter(t=>t.status==='Pendente');
-  const pendVal=pendentes.reduce((a,t)=>a+t.valor,0);
+  const pagos=Titulos.filter(t=>t.status==='Pago');
+  const pendVal=pendentes.reduce((a,t)=>a+(Number(t.valor)||0),0);
+  const pagoMes=pagos.filter(t=>mesmoMesAtual(t.venc)).reduce((a,t)=>a+(Number(t.valor)||0),0);
+  const vencidos=pendentes.filter(t=>diasAte(t.venc)<0);
+  const venceHoje=pendentes.filter(t=>diasAte(t.venc)===0);
+  const vence3=pendentes.filter(t=>{const d=diasAte(t.venc);return d>=0&&d<=3;});
+  const vence7=pendentes.filter(t=>{const d=diasAte(t.venc);return d>=0&&d<=7;});
+  const valorVencidos=vencidos.reduce((a,t)=>a+(Number(t.valor)||0),0);
+  const valorHoje=venceHoje.reduce((a,t)=>a+(Number(t.valor)||0),0);
+  const valor3=vence3.reduce((a,t)=>a+(Number(t.valor)||0),0);
+  const valor7=vence7.reduce((a,t)=>a+(Number(t.valor)||0),0);
   const ocsP=OCs.filter(o=>o.nf==='Pendente'||o.nf==='Parcialmente Recebida');
+
   $('dash-gasto').textContent=fmt(gastTotal);
   $('dash-ocs').textContent=OCs.length;
   $('dash-ocs-sub').textContent=ocsP.length+' sem NF';
   $('dash-titulos').textContent=fmt(pendVal);
   $('dash-titulos-sub').textContent=pendentes.length+' títulos pendentes';
-  const totalProdsSaldo = Produtos.reduce((a,p)=>a+p.qtdEstoque,0);
+  $('dash-pago-mes').textContent=fmt(pagoMes);
+  $('dash-pago-mes-sub').textContent=pagos.filter(t=>mesmoMesAtual(t.venc)).length+' títulos pagos no mês';
+  $('dash-vencidos').textContent=fmt(valorVencidos);
+  $('dash-vencidos-sub').textContent=vencidos.length+' título'+(vencidos.length!==1?'s':'')+' em atraso';
+  $('dash-vence-hoje').textContent=fmt(valorHoje);
+  $('dash-vence-hoje-sub').textContent=venceHoje.length+' vencimento'+(venceHoje.length!==1?'s':'')+' hoje';
+  $('dash-vence-3').textContent=fmt(valor3);
+  $('dash-vence-3-sub').textContent=vence3.length+' título'+(vence3.length!==1?'s':'')+' até 3 dias';
+  $('dash-vence-7').textContent=fmt(valor7);
+  $('dash-vence-7-sub').textContent=vence7.length+' título'+(vence7.length!==1?'s':'')+' até 7 dias';
+
+  const totalProdsSaldo = Produtos.reduce((a,p)=>a+(Number(p.qtdEstoque)||0),0);
   $('dash-estoque').textContent=totalProdsSaldo.toLocaleString('pt-BR',{maximumFractionDigits:0});
-  const baixoEstoque = Produtos.filter(p=>p.minimo>0&&p.qtdEstoque<=p.minimo).length;
+  const baixoEstoque = Produtos.filter(p=>(Number(p.minimo)||0)>0&&(Number(p.qtdEstoque)||0)<=Number(p.minimo)).length;
   $('dash-estoque-sub').textContent=Produtos.length+' produtos'+(baixoEstoque>0?' | ⚠️ '+baixoEstoque+' abaixo do mínimo':'');
   $('badge-oc').textContent='⚠ '+ocsP.length+' OC'+(ocsP.length!==1?'s':'')+' sem NF';
+  const badgeFin = $('badge-fin');
+  if(badgeFin){
+    if(vencidos.length>0){
+      badgeFin.style.display='inline-flex';
+      badgeFin.textContent='🔴 '+vencidos.length+' conta'+(vencidos.length!==1?'s':'')+' vencida'+(vencidos.length!==1?'s':'');
+    } else if(venceHoje.length>0){
+      badgeFin.style.display='inline-flex';
+      badgeFin.textContent='🟡 '+venceHoje.length+' vence'+(venceHoje.length!==1?'m':'')+' hoje';
+    } else if(vence3.length>0){
+      badgeFin.style.display='inline-flex';
+      badgeFin.textContent='🟠 '+vence3.length+' vence'+(vence3.length!==1?'m':'')+' em 3 dias';
+    } else {
+      badgeFin.style.display='none';
+    }
+  }
+
+  if(vencidos.length>0){
+    const nomes=vencidos.slice(0,3).map(t=>t.forn).join(', ');
+    $('dash-fin-alert-bar').style.display='flex';
+    $('dash-fin-alert-bar').innerHTML=`🚨 Existem <strong>${vencidos.length}</strong> título(s) vencido(s), totalizando <strong>${fmt(valorVencidos)}</strong>. Principais: <strong>${nomes}</strong>. <strong style="cursor:pointer;text-decoration:underline;margin-left:6px" onclick="showScreen('financeiro',null)">Abrir financeiro →</strong>`;
+  } else if(venceHoje.length>0){
+    $('dash-fin-alert-bar').style.display='flex';
+    $('dash-fin-alert-bar').innerHTML=`⚠ Hoje vence <strong>${fmt(valorHoje)}</strong> em ${venceHoje.length} título(s). <strong style="cursor:pointer;text-decoration:underline;margin-left:6px" onclick="showScreen('financeiro',null)">Abrir financeiro →</strong>`;
+  } else {
+    $('dash-fin-alert-bar').style.display='none';
+  }
+
   if(ocsP.length>0){
     const nomes=ocsP.slice(0,3).map(o=>o.forn).join(', ');
+    $('dash-alert-bar').style.display='flex';
     $('dash-alert-bar').innerHTML=`⚠ OCs aguardando faturamento: <strong>${nomes}</strong>. <strong style="cursor:pointer;text-decoration:underline;margin-left:6px" onclick="showScreen('pendentes',null)">Ver detalhes →</strong>`;
   } else {
     $('dash-alert-bar').style.display='none';
   }
+
+  // Insights rápidos do financeiro/frota (mês atual; se não houver dados no mês, usa todo o histórico)
+  const titulosValidos = Titulos.filter(t => t.status !== 'Cancelado');
+  let titulosInsight = titulosValidos.filter(t => mesmoMesAtual(t.venc));
+  const periodoInsight = titulosInsight.length ? 'no mês' : 'geral';
+  if(!titulosInsight.length) titulosInsight = titulosValidos;
+
+  const topPor = (arr, campo, labelFn) => {
+    const mapa = {};
+    arr.forEach(t => {
+      const chave = labelFn ? labelFn(t) : (t[campo] || 'Não informado');
+      if(!chave || chave === '-') return;
+      mapa[chave] = (mapa[chave] || 0) + (Number(t.valor) || 0);
+    });
+    return Object.entries(mapa).sort((a,b)=>b[1]-a[1])[0] || null;
+  };
+  const topFornecedor = topPor(titulosInsight, 'forn');
+  const topPlaca = topPor(titulosInsight, 'placa');
+  const topCategoria = topPor(titulosInsight, 'cat', t => CL[t.cat] || t.cat || 'Não informado');
+  const maiorPendente = [...Titulos]
+    .filter(t => t.status === 'Pendente')
+    .sort((a,b)=>(Number(b.valor)||0)-(Number(a.valor)||0))[0] || null;
+
+  const safeAttr = v => String(v || '-').replace(/"/g,'&quot;');
+  const insightCard = (icone, titulo, valor, sub, cor) => `
+    <div class="stat-card" style="padding:13px 14px">
+      <div class="stat-label">${icone} ${titulo}</div>
+      <div class="stat-value" style="font-size:16px;color:${cor||'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${safeAttr(valor)}">${valor || '-'}</div>
+      <div class="stat-sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${safeAttr(sub || 'Sem dados suficientes')}">${sub || 'Sem dados suficientes'}</div>
+    </div>`;
+
+  const insightsEl = $('dash-insights');
+  if(insightsEl){
+    insightsEl.innerHTML =
+      insightCard('🏢','Maior fornecedor', topFornecedor ? topFornecedor[0] : '-', topFornecedor ? `${fmt(topFornecedor[1])} ${periodoInsight}` : 'Sem títulos lançados', 'var(--accent2)') +
+      insightCard('🚚','Placa mais cara', topPlaca ? topPlaca[0] : '-', topPlaca ? `${fmt(topPlaca[1])} ${periodoInsight}` : 'Sem gasto por placa', 'var(--amber)') +
+      insightCard('🏷️','Categoria líder', topCategoria ? topCategoria[0] : '-', topCategoria ? `${fmt(topCategoria[1])} ${periodoInsight}` : 'Sem categorias lançadas', 'var(--purple)') +
+      insightCard('⚠️','Maior pendente', maiorPendente ? fmt(maiorPendente.valor) : '-', maiorPendente ? `${maiorPendente.forn || 'Fornecedor'} • vence ${formatarDataBR(maiorPendente.venc)}` : 'Nenhuma pendência', 'var(--red)');
+  }
+
   let df='';
-  [...Frota].sort((a,b)=>b.gasto-a.gasto).slice(0,8).forEach(f=>{
-    const pct=Math.min(100,Math.round(f.gasto/f.limite*100));
+  [...Frota].sort((a,b)=>(Number(b.gasto)||0)-(Number(a.gasto)||0)).slice(0,8).forEach(f=>{
+    const limite=Number(f.limite)||0;
+    const gasto=Number(f.gasto)||0;
+    const pct=limite>0?Math.min(100,Math.round(gasto/limite*100)):0;
     const cls=pct>85?'danger':pct>65?'warn':'';
-    df+=`<tr><td class="mono" style="color:var(--accent)">${f.placa}</td><td class="mono">${fmt(f.gasto)}</td><td class="mono" style="color:var(--text3)">${fmt(f.limite)}</td><td style="min-width:90px"><div class="progress-bar-wrap"><div class="progress-bar ${cls}" style="width:${pct}%"></div></div><span style="font-size:10px;color:var(--text3)">${pct}%</span></td></tr>`;
+    df+=`<tr><td class="mono" style="color:var(--accent)">${f.placa}</td><td class="mono">${fmt(gasto)}</td><td class="mono" style="color:var(--text3)">${fmt(limite)}</td><td style="min-width:90px"><div class="progress-bar-wrap"><div class="progress-bar ${cls}" style="width:${pct}%"></div></div><span style="font-size:10px;color:var(--text3)">${pct}%</span></td></tr>`;
   });
   $('tb-dash-frota').innerHTML=df||'<tr><td colspan="4" class="empty">Sem dados</td></tr>';
   let dv='';
-  [...Titulos].filter(t=>t.status==='Pendente').sort((a,b)=>new Date(a.venc)-new Date(b.venc)).slice(0,7).forEach(t=>{
-    const days=Math.round((new Date(t.venc)-new Date())/86400000);
+  [...Titulos].filter(t=>t.status==='Pendente').sort((a,b)=>parseDataLocal(a.venc)-parseDataLocal(b.venc)).slice(0,8).forEach(t=>{
+    const days=diasAte(t.venc);
     const sc=days<0?'cr':days<=3?'ca':'cb';
     const label=days<0?`${Math.abs(days)}d atraso`:days===0?'Hoje':`${days}d`;
-    dv+=`<tr><td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.forn}</td><td class="mono">${fmt(t.valor)}</td><td style="font-size:11px">${t.venc}</td><td>${chip(label,sc)}</td></tr>`;
+    dv+=`<tr><td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.forn}">${t.forn}</td><td class="mono">${fmt(t.valor)}</td><td style="font-size:11px">${formatarDataBR(t.venc)}</td><td>${chip(label,sc)}</td></tr>`;
   });
   $('tb-dash-venc').innerHTML=dv||'<tr><td colspan="4" class="empty">Sem vencimentos</td></tr>';
 }
@@ -2095,21 +2332,97 @@ function renderNF(){
   }).join(''):'<tr><td colspan="9" class="empty">Nenhuma NF lançada</td></tr>';
 }
 
-function renderFin(){
-  $('fin-count').textContent=Titulos.length;
-  const pend=Titulos.filter(t=>t.status==='Pendente');
-  const pago=Titulos.filter(t=>t.status==='Pago');
-  const pendVal=pend.reduce((a,t)=>a+t.valor,0);
-  const pagoVal=pago.reduce((a,t)=>a+t.valor,0);
+function parseISODateLocal(v){
+  if(!v) return null;
+  const p=String(v).split('-').map(Number);
+  if(p.length!==3 || !p[0] || !p[1] || !p[2]) return null;
+  return new Date(p[0],p[1]-1,p[2]);
+}
+function isoDateLocal(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function startOfMonthLocal(d){return new Date(d.getFullYear(),d.getMonth(),1);}
+function endOfMonthLocal(d){return new Date(d.getFullYear(),d.getMonth()+1,0);}
+function addDaysLocal(d,n){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()+n);return x;}
+function sameOrAfterDate(a,b){return a && b && a.getTime()>=b.getTime();}
+function sameOrBeforeDate(a,b){return a && b && a.getTime()<=b.getTime();}
+function diasAte(venc){
+  const v=parseISODateLocal(venc), h=new Date();
+  if(!v) return 0;
+  const hoje=new Date(h.getFullYear(),h.getMonth(),h.getDate());
+  return Math.round((v-hoje)/86400000);
+}
+function finPopulateFiltros(){
+  const sf=$('fin-filtro-forn'), sp=$('fin-filtro-placa');
+  if(!sf || !sp) return;
+  const curF=sf.value, curP=sp.value;
+  const forns=[...new Set(Titulos.map(t=>t.forn).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const placas=[...new Set(Titulos.map(t=>t.placa).filter(p=>p && p!=='-'))].sort();
+  sf.innerHTML='<option value="">Todos</option>'+forns.map(f=>`<option value="${f}">${f}</option>`).join('');
+  sp.innerHTML='<option value="">Todas</option>'+placas.map(p=>`<option value="${p}">${p}</option>`).join('');
+  if(forns.includes(curF)) sf.value=curF;
+  if(placas.includes(curP)) sp.value=curP;
+}
+function finFiltroChanged(){
+  const periodo=$('fin-filtro-periodo')?.value || 'mes';
+  const show=periodo==='personalizado';
+  const de=$('fin-filtro-de'), ate=$('fin-filtro-ate');
+  if(de) de.style.display=show?'':'none';
+  if(ate) ate.style.display=show?'':'none';
+  if(show && de && ate && (!de.value || !ate.value)){
+    const h=new Date(); de.value=isoDateLocal(startOfMonthLocal(h)); ate.value=isoDateLocal(endOfMonthLocal(h));
+  }
+  renderFin();
+}
+function resetFinFiltros(){
+  if($('fin-filtro-periodo')) $('fin-filtro-periodo').value='mes';
+  if($('fin-filtro-status')) $('fin-filtro-status').value='';
+  if($('fin-filtro-forn')) $('fin-filtro-forn').value='';
+  if($('fin-filtro-placa')) $('fin-filtro-placa').value='';
+  finFiltroChanged();
+}
+function getTitulosFinanceiroFiltrados(){
+  const periodo=$('fin-filtro-periodo')?.value || 'mes';
+  const status=$('fin-filtro-status')?.value || '';
+  const forn=$('fin-filtro-forn')?.value || '';
+  const placa=$('fin-filtro-placa')?.value || '';
   const hoje=new Date();
-  const vence7=pend.filter(t=>{const d=Math.round((new Date(t.venc)-hoje)/86400000);return d>=0&&d<=7;}).reduce((a,t)=>a+t.valor,0);
-  const venceHoje=pend.filter(t=>Math.round((new Date(t.venc)-hoje)/86400000)===0).reduce((a,t)=>a+t.valor,0);
+  const h=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate());
+  let de=null, ate=null;
+  if(periodo==='mes'){ de=startOfMonthLocal(h); ate=endOfMonthLocal(h); }
+  if(periodo==='proximos7'){ de=h; ate=addDaysLocal(h,7); }
+  if(periodo==='personalizado'){ de=parseISODateLocal($('fin-filtro-de')?.value); ate=parseISODateLocal($('fin-filtro-ate')?.value); }
+  return Titulos.filter(t=>{
+    const v=parseISODateLocal(t.venc);
+    if(status && t.status!==status) return false;
+    if(forn && t.forn!==forn) return false;
+    if(placa && t.placa!==placa) return false;
+    if(periodo==='vencidos') return t.status==='Pendente' && v && v<h;
+    if(de && v && !sameOrAfterDate(v,de)) return false;
+    if(ate && v && !sameOrBeforeDate(v,ate)) return false;
+    return true;
+  });
+}
+function renderFin(){
+  if(!$('fin-count')) return;
+  finPopulateFiltros();
+  const lista=getTitulosFinanceiroFiltrados();
+  $('fin-count').textContent=`${lista.length}/${Titulos.length}`;
+  const pend=lista.filter(t=>t.status==='Pendente');
+  const pago=lista.filter(t=>t.status==='Pago');
+  const pendVal=pend.reduce((a,t)=>a+(parseFloat(t.valor)||0),0);
+  const pagoVal=pago.reduce((a,t)=>a+(parseFloat(t.valor)||0),0);
+  const vencidos=pend.filter(t=>diasAte(t.venc)<0);
+  const vence7=pend.filter(t=>{const d=diasAte(t.venc);return d>=0&&d<=7;}).reduce((a,t)=>a+(parseFloat(t.valor)||0),0);
+  const venceHoje=pend.filter(t=>diasAte(t.venc)===0).reduce((a,t)=>a+(parseFloat(t.valor)||0),0);
   $('fin-kpis').innerHTML=
-    `<div class="stat-card"><div class="stat-label">Total Pendente</div><div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(pendVal)}</div><div class="stat-sub">${pend.length} títulos</div></div>`+
-    `<div class="stat-card"><div class="stat-label">Vence Hoje</div><div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(venceHoje)}</div></div>`+
-    `<div class="stat-card"><div class="stat-label">Vence em 7 dias</div><div class="stat-value" style="font-size:17px;color:var(--amber)">${fmt(vence7)}</div></div>`+
-    `<div class="stat-card"><div class="stat-label">Pago este mês</div><div class="stat-value" style="font-size:17px;color:var(--accent)">${fmt(pagoVal)}</div><div class="stat-sub">${pago.length} títulos</div></div>`;
-  $('tb-fin').innerHTML=Titulos.length?[...Titulos].sort((a,b)=>new Date(a.venc)-new Date(b.venc)).map(t=>{
+    `<div class="stat-card"><div class="stat-label">Pendente filtrado</div><div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(pendVal)}</div><div class="stat-sub">${pend.length} títulos</div></div>`+
+    `<div class="stat-card"><div class="stat-label">Vencidos</div><div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(vencidos.reduce((a,t)=>a+(parseFloat(t.valor)||0),0))}</div><div class="stat-sub">${vencidos.length} títulos</div></div>`+
+    `<div class="stat-card"><div class="stat-label">Vence em 7 dias</div><div class="stat-value" style="font-size:17px;color:var(--amber)">${fmt(vence7)}</div><div class="stat-sub">inclui hoje: ${fmt(venceHoje)}</div></div>`+
+    `<div class="stat-card"><div class="stat-label">Pago filtrado</div><div class="stat-value" style="font-size:17px;color:var(--accent)">${fmt(pagoVal)}</div><div class="stat-sub">${pago.length} títulos</div></div>`;
+  $('tb-fin').innerHTML=lista.length?[...lista].sort((a,b)=>parseISODateLocal(a.venc)-parseISODateLocal(b.venc)).map(t=>{
+    const d=diasAte(t.venc);
+    const vencInfo=t.status==='Pendente' ? (d<0?`<span style="color:var(--red);font-size:10px">${Math.abs(d)}d atraso</span>`:d===0?`<span style="color:var(--red);font-size:10px">vence hoje</span>`:d<=7?`<span style="color:var(--amber);font-size:10px">em ${d}d</span>`:`<span style="color:var(--text3);font-size:10px">em ${d}d</span>`) : `<span style="color:var(--accent);font-size:10px">pago</span>`;
     const pgBtn=t.status==='Pendente'
       ?`<button class="btn btn-save btn-sm" onclick="marcarPago(${t.id})" style="font-size:10px">✓ Pagar</button>`
       :`<span style="font-size:11px;color:var(--accent)">✓ Quitado</span>`;
@@ -2117,12 +2430,13 @@ function renderFin(){
       <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.forn}">${t.forn}</td>
       <td>${chip(t.tipo,'cgr')}</td>
       <td class="mono" style="font-size:11px">${t.ref}</td>
+      <td class="mono" style="font-size:11px;color:var(--accent2)">${t.placa||'-'}</td>
       <td class="mono">${fmt(t.valor)}</td>
-      <td style="font-size:11px">${t.venc}</td>
+      <td style="font-size:11px">${formatarDataBR(t.venc)}<br>${vencInfo}</td>
       <td>${chipS(t.status)}</td>
       <td><div class="action-btns">${pgBtn}<button class="btn btn-edit btn-sm" onclick="editarTitulo(${t.id})">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirTitulo(${t.id})">🗑️</button></div></td>
     </tr>`;
-  }).join(''):'<tr><td colspan="7" class="empty">Nenhum título lançado</td></tr>';
+  }).join(''):'<tr><td colspan="8" class="empty">Nenhum título encontrado com esses filtros.</td></tr>';
 }
 
 function renderEstoque(){
@@ -3361,12 +3675,12 @@ function saidaProdutoChanged(){
 
 // ======================== SUPABASE ========================
 
-// ======================== SUPABASE ========================
-
 const SUPA_URL = 'https://oevzvetthuvnawjuhfeq.supabase.co';
 const SUPA_KEY = 'sb_publishable_rsY8opUVpHRekTRFTKoKiw_EVfBr_rM';
 const { createClient } = supabase;
 const supa = createClient(SUPA_URL, SUPA_KEY);
+
+let usuarioLogado = null;
 
 // ======================== LOGIN / LOGOUT ========================
 
