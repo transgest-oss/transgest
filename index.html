@@ -12,7 +12,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --navy:#E8EEF4;--navy2:#FFFFFF;
+  --navy:#D0D8E0;--navy2:#FFFFFF;
   --accent:#00957A;--accent2:#0070D6;--amber:#C87800;--red:#C8203A;--purple:#7C5CDA;--orange:#C85A00;
   --text:#1A2332;--text2:#3D5470;--text3:#7A90A8;
   --border:rgba(0,0,0,0.10);--border2:rgba(0,0,0,0.15);
@@ -23,18 +23,18 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
 .app{display:flex;height:100vh;overflow:hidden}
 
 /* SIDEBAR */
-.sidebar{width:224px;min-width:224px;background:#FFFFFF;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;box-shadow:2px 0 8px rgba(0,0,0,0.06)}
+.sidebar{width:238px;min-width:238px;background:#FFFFFF;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;box-shadow:2px 0 8px rgba(0,0,0,0.06)}
 .logo{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
 .logo-mark{display:flex;align-items:center;gap:10px}
 .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
 .logo-text{font-size:14px;font-weight:600;color:var(--text);line-height:1.2}
 .logo-sub{font-size:10px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-top:1px}
 .nav{padding:10px 0;flex:1}
-.nav-section{padding:10px 18px 4px;font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;font-weight:500}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .15s;user-select:none}
+.nav-section{padding:10px 18px 4px;font-size:11.5px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;font-weight:500}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 18px;font-size:14.5px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .15s;user-select:none}
 .nav-item:hover{background:var(--card);color:var(--text)}
 .nav-item.active{background:rgba(0,149,122,.10);color:var(--accent);border-left-color:var(--accent)}
-.nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
 .sidebar-footer{padding:14px 18px;border-top:1px solid var(--border)}
 .user-card{display:flex;align-items:center;gap:10px}
 .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#4158D0,#C850C0);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
@@ -58,13 +58,13 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
 .stats-4{grid-template-columns:repeat(4,1fr)}
 .stats-5{grid-template-columns:repeat(5,1fr)}
 .stat-card{background:#FFFFFF;border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
-.stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.stat-label{font-size:11.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
 .stat-value{font-size:21px;font-weight:600;color:var(--text);font-family:var(--mono)}
 .stat-sub{font-size:11px;color:var(--text3);margin-top:3px}
 
 /* SECTION */
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;gap:10px}
-.section-title{font-size:11px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:.07em}
+.section-title{font-size:12.5px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:.07em}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:8px 15px;font-size:12px;font-weight:500;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);transition:all .15s;white-space:nowrap}
@@ -81,13 +81,13 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
 /* TABLE */
 .table-wrap{background:#FFFFFF;border:1px solid var(--border);border-radius:12px;overflow:auto;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
 table{width:100%;border-collapse:collapse}
-thead th{background:#F5F8FB;padding:9px 11px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap}
+thead th{background:#F5F8FB;padding:9px 11px;text-align:left;font-size:11.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap}
 tbody td{padding:9px 11px;font-size:12px;color:var(--text);border-bottom:1px solid var(--border);vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover td{background:#F0F4F8}
 
 /* CHIPS */
-.chip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;font-family:var(--mono);white-space:nowrap}
+.chip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600;font-family:var(--mono);white-space:nowrap}
 .cg{background:rgba(0,149,122,.12);color:#006B57;border:1px solid rgba(0,149,122,.30)}
 .ca{background:rgba(200,120,0,.12);color:#8B5000;border:1px solid rgba(200,120,0,.30)}
 .cr{background:rgba(200,32,58,.12);color:#8B0018;border:1px solid rgba(200,32,58,.30)}
@@ -102,7 +102,7 @@ tbody tr:hover td{background:#F0F4F8}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-group.full{grid-column:1/-1}
-label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+label{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 input,select,textarea{background:#F5F8FB;border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;padding:9px 12px;outline:none;transition:border-color .15s;width:100%}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);background:#FFFFFF}
 select option{background:#FFFFFF;color:var(--text)}
@@ -150,7 +150,7 @@ textarea{resize:vertical;min-height:65px}
 
 
 /* LOGO IMAGE */
-.logo-img{width:170px;object-fit:contain;mix-blend-mode:multiply}
+.logo-img{width:200px;object-fit:contain;mix-blend-mode:multiply}
 .sidebar .logo-mark{gap:0}
 
 /* PRINT OC HALF A4 PORTRAIT */
@@ -240,6 +240,8 @@ textarea{resize:vertical;min-height:65px}
     <div class="nav-item" onclick="showScreen('frota',this)"><span class="nav-icon">🚚</span> Frota</div>
     <div class="nav-item" onclick="showScreen('epi',this)"><span class="nav-icon">🦺</span> EPIs</div>
     <div class="nav-section" style="margin-top:6px">Cadastros</div>
+    <div class="nav-item" onclick="showScreen('fornecedores',this)"><span class="nav-icon">🏭</span> Fornecedores</div>
+    <div class="nav-item" onclick="showScreen('produtos',this)"><span class="nav-icon">🔩</span> Produtos</div>
     <div class="nav-item" onclick="showScreen('colaboradores',this)"><span class="nav-icon">👥</span> Colaboradores</div>
     <div class="nav-item" onclick="showScreen('usuarios',this)"><span class="nav-icon">🔐</span> Usuários</div>
     <div class="nav-section" style="margin-top:6px">Relatórios</div>
@@ -388,13 +390,31 @@ textarea{resize:vertical;min-height:65px}
         </div>
       </div>
       <div class="table-wrap" style="margin-bottom:16px"><table>
-        <thead><tr><th>Código</th><th>Peça / Descrição</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th><th>Última Entrada</th><th style="width:120px">Ações</th></tr></thead>
+        <thead><tr><th>Código</th><th>Produto / Categoria</th><th>Estoque (un. saída)</th><th>Un. Compra / Fator</th><th>Valor Unit. Compra</th><th>Total Estimado</th><th>Ações</th></tr></thead>
         <tbody id="tb-estoque"></tbody>
       </table></div>
       <div class="section-header"><div class="section-title">Histórico de Saídas (<span id="saidas-count">0</span>)</div></div>
       <div class="table-wrap"><table>
         <thead><tr><th>Data</th><th>Peça</th><th>Qtd</th><th>Placa Destino</th><th>Responsável</th><th>OC Ref.</th><th style="width:120px">Ações</th></tr></thead>
         <tbody id="tb-saidas"></tbody>
+      </table></div>
+    </div>
+
+    <!-- SCREEN PRODUTOS -->
+    <div class="screen" id="screen-produtos">
+      <div class="section-header">
+        <div class="section-title">Cadastro de Produtos (<span id="prod-count">0</span>)</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="prod-busca" placeholder="🔍 Buscar produto..." style="font-size:12px;padding:7px 11px;width:220px" oninput="renderProdutos()"/>
+          <button class="btn btn-primary" onclick="openModalProduto('novo')">+ Novo Produto</button>
+        </div>
+      </div>
+      <div style="background:rgba(0,112,214,.07);border:1px solid rgba(0,112,214,.2);border-radius:10px;padding:10px 15px;margin-bottom:14px;font-size:12px;color:var(--accent2)">
+        💡 O estoque é sempre controlado na <strong>unidade de saída</strong>. Na entrada, você informa a quantidade na <strong>unidade de compra</strong> e o sistema converte automaticamente. Ex: compra 1 barril → fator 200 → entra 200 litros no estoque. Saída: informa quantos litros saíram.
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Código</th><th>Nome do Produto</th><th>Categoria</th><th>Un. Compra</th><th>Un. Saída (estoque)</th><th>Fator</th><th>Estoque (un. saída)</th><th style="width:120px">Ações</th></tr></thead>
+        <tbody id="tb-produtos"></tbody>
       </table></div>
     </div>
 
@@ -585,9 +605,102 @@ textarea{resize:vertical;min-height:65px}
       </table></div>
     </div>
 
+    <!-- SCREEN FORNECEDORES -->
+    <div class="screen" id="screen-fornecedores">
+      <div class="section-header">
+        <div class="section-title">Cadastro de Fornecedores</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="forn-busca" placeholder="🔍 Buscar fornecedor..." style="font-size:12px;padding:7px 11px;width:220px" oninput="renderFornecedores()"/>
+          <button class="btn btn-primary" onclick="openModalFornecedor('novo')">+ Novo Fornecedor</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Razão Social / Nome</th><th>CNPJ/CPF</th><th>Telefone</th><th>E-mail</th><th>Categoria</th><th>Status</th><th style="width:120px">Ações</th></tr></thead>
+        <tbody id="tb-fornecedores"></tbody>
+      </table></div>
+    </div>
+
   </div>
 </div>
 </div><!-- /#app-wrap --> ============================================================ -->
+
+<!-- MODAL FORNECEDOR -->
+<div class="modal-overlay" id="modal-fornecedor">
+  <div class="modal" style="width:580px">
+    <div class="modal-title">🏭 <span id="modal-forn-title">Novo Fornecedor</span></div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Razão Social / Nome</label><input type="text" id="f-forn-nome" placeholder="Nome do fornecedor ou empresa"/></div>
+      <div class="form-group"><label>CNPJ / CPF</label><input type="text" id="f-forn-cnpj" placeholder="00.000.000/0001-00"/></div>
+      <div class="form-group"><label>Telefone / WhatsApp</label><input type="text" id="f-forn-tel" placeholder="(00) 00000-0000"/></div>
+      <div class="form-group"><label>E-mail</label><input type="text" id="f-forn-email" placeholder="contato@fornecedor.com"/></div>
+      <div class="form-group"><label>Categoria</label>
+        <select id="f-forn-cat">
+          <option>Manutenção (Serviço)</option>
+          <option>Peças e Autopeças</option>
+          <option>Combustível e Lubrificantes</option>
+          <option>Pneus e Borracharia</option>
+          <option>Funilaria e Pintura</option>
+          <option>Elétrica Automotiva</option>
+          <option>EPI e Segurança</option>
+          <option>Administrativo / Geral</option>
+          <option>Órgão Público / Imposto</option>
+          <option>Outros</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select id="f-forn-status"><option>Ativo</option><option>Inativo</option></select>
+      </div>
+      <div class="form-group"><label>Contato / Responsável</label><input type="text" id="f-forn-contato" placeholder="Nome do responsável"/></div>
+      <div class="form-group"><label>PIX / Banco</label><input type="text" id="f-forn-pix" placeholder="Chave PIX ou dados bancários"/></div>
+      <div class="form-group full"><label>Endereço</label><input type="text" id="f-forn-end" placeholder="Rua, número, cidade"/></div>
+      <div class="form-group full"><label>Observações</label><textarea id="f-forn-obs" placeholder="Informações adicionais, condições de pagamento, prazo..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-fornecedor')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-forn" onclick="salvarFornecedor()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRODUTO -->
+<div class="modal-overlay" id="modal-produto">
+  <div class="modal" style="width:600px">
+    <div class="modal-title">🔩 <span id="modal-prod-title">Novo Produto</span></div>
+    <div style="background:rgba(0,112,214,.07);border:1px solid rgba(0,112,214,.2);border-radius:8px;padding:9px 13px;margin-bottom:16px;font-size:12px;color:var(--accent2)">
+      ℹ️ O estoque é controlado na <strong>unidade de saída</strong>. O fator de conversão é: quantas unidades de saída cabem em 1 unidade de compra.<br>
+      Ex: 1 barril = 200 litros → Un. Compra: <em>barril</em> | Un. Saída: <em>litro</em> | Fator: <em>200</em>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Nome do Produto</label><input type="text" id="f-prod-nome" placeholder="Ex: Óleo Motor 15W40"/></div>
+      <div class="form-group"><label>Código</label><input type="text" id="f-prod-cod" placeholder="PROD-XXX"/></div>
+      <div class="form-group"><label>Categoria</label>
+        <select id="f-prod-cat">
+          <option>Lubrificantes</option>
+          <option>Filtros</option>
+          <option>Freios</option>
+          <option>Elétrica</option>
+          <option>Pneus e Borracha</option>
+          <option>Transmissão</option>
+          <option>Motor</option>
+          <option>EPIs e Segurança</option>
+          <option>Outros</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Unidade de Compra</label><input type="text" id="f-prod-uncompra" placeholder="Ex: barril, caixa, galão, peça"/></div>
+      <div class="form-group"><label>Unidade de Saída (estoque)</label><input type="text" id="f-prod-unsaida" placeholder="Ex: litro, unidade, kg"/></div>
+      <div class="form-group"><label>Fator de Conversão</label>
+        <input type="number" id="f-prod-fator" placeholder="Ex: 200" step="0.001" min="0.001" value="1"/>
+      </div>
+      <div class="form-group"><label>Estoque Mínimo (un. saída)</label><input type="number" id="f-prod-minimo" placeholder="Ex: 50" step="0.01" min="0" value="0"/></div>
+      <div class="form-group"><label>Valor Unitário de Compra (R$)</label><input type="number" id="f-prod-valor" placeholder="0,00" step="0.01"/></div>
+      <div class="form-group full"><label>Observações</label><textarea id="f-prod-obs" placeholder="Marca, especificações técnicas, etc."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-produto')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-prod" onclick="salvarProduto()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL OC -->
 <div class="modal-overlay" id="modal-oc">
@@ -596,7 +709,7 @@ textarea{resize:vertical;min-height:65px}
     <div class="form-grid">
       <div class="form-group"><label>Nº OC</label><input type="text" id="f-oc-num" placeholder="OC-2025-XXXX"/></div>
       <div class="form-group"><label>Data</label><input type="date" id="f-oc-data"/></div>
-      <div class="form-group full"><label>Fornecedor</label><input type="text" id="f-oc-forn" placeholder="Nome do fornecedor"/></div>
+      <div class="form-group full"><label>Fornecedor</label><select id="f-oc-forn"><option value="">— Selecione o fornecedor —</option></select></div>
       <div class="form-group"><label>Valor Total (R$)</label><input type="number" id="f-oc-valor" placeholder="0.00" step="0.01" oninput="ocRateioRecalc()"/></div>
       <div class="form-group"><label>Tipo <button onclick="openModal('modal-tipos-oc','novo')" style="font-size:10px;color:var(--accent2);background:none;border:none;cursor:pointer;padding:0 0 0 6px;font-family:var(--font)">⚙️ Gerenciar</button></label>
         <select id="f-oc-tipo"><option>Manutenção (Serviço)</option><option>Peças</option><option>Serviço + Peças</option><option>Administrativo</option><option>Pessoal</option></select>
@@ -661,7 +774,7 @@ textarea{resize:vertical;min-height:65px}
       </div>
       <div class="form-group"><label>Nº NF / Referência</label><input type="text" id="f-nf-num" placeholder="12345"/></div>
       <div class="form-group"><label>Data Emissão</label><input type="date" id="f-nf-data"/></div>
-      <div class="form-group full"><label>Fornecedor</label><input type="text" id="f-nf-forn" placeholder="Nome do fornecedor"/></div>
+      <div class="form-group full"><label>Fornecedor</label><select id="f-nf-forn"><option value="">— Selecione o fornecedor —</option></select></div>
       <!-- Aviso de OC rateada (aparece automaticamente) -->
       <div class="form-group full" id="nf-rateio-aviso" style="display:none;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:12px 14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -747,7 +860,12 @@ textarea{resize:vertical;min-height:65px}
       ℹ️ Você pode lançar boletos de NF, impostos, folha de pagamento, compromissos anteriores ou qualquer título manualmente.
     </div>
     <div class="form-grid">
-      <div class="form-group full"><label>Fornecedor / Descrição</label><input type="text" id="f-tit-forn" placeholder="Nome, empresa ou descrição do compromisso"/></div>
+      <div class="form-group full"><label>Fornecedor / Descrição</label>
+        <div style="display:flex;gap:8px">
+          <select id="f-tit-forn" style="flex:1"><option value="">— Selecione o fornecedor —</option></select>
+          <input type="text" id="f-tit-forn-manual" placeholder="Ou digite livremente..." style="flex:1" oninput="if(this.value)document.getElementById('f-tit-forn').value=''"/>
+        </div>
+      </div>
       <div class="form-group"><label>Tipo</label>
         <select id="f-tit-tipo"><option>Boleto NF</option><option>Imposto ISSQN</option><option>Imposto INSS</option><option>FGTS</option><option>Folha de Pagamento</option><option>Aluguel</option><option>Seguro</option><option>Combustível</option><option>Compromisso Anterior</option><option>Outros</option></select>
       </div>
@@ -772,11 +890,12 @@ textarea{resize:vertical;min-height:65px}
 
 <!-- MODAL SAIDA PEÇA -->
 <div class="modal-overlay" id="modal-saida">
-  <div class="modal">
-    <div class="modal-title">↗ <span id="modal-saida-title">Saída de Peça do Estoque</span></div>
+  <div class="modal" style="width:560px">
+    <div class="modal-title">↗ <span id="modal-saida-title">Saída de Estoque</span></div>
     <div class="form-grid">
-      <div class="form-group full"><label>Peça</label><select id="f-saida-peca"></select></div>
-      <div class="form-group"><label>Quantidade</label><input type="number" id="f-saida-qtd" placeholder="1" value="1" min="1"/></div>
+      <div class="form-group full"><label>Produto</label><select id="f-saida-peca" onchange="saidaProdutoChanged()"><option value="">— Selecione o produto —</option></select></div>
+      <div id="saida-estoque-info" style="display:none;grid-column:1/-1;background:rgba(0,112,214,.06);border:1px solid rgba(0,112,214,.2);border-radius:8px;padding:8px 13px;font-size:12px;color:var(--accent2)"></div>
+      <div class="form-group"><label>Qtd. (<span id="saida-unsaida-label">un.</span>)</label><input type="number" id="f-saida-qtd" placeholder="1" value="1" step="0.001" min="0.001"/></div>
       <div class="form-group"><label>Placa Destino</label><select id="f-saida-placa"></select></div>
       <div class="form-group"><label>OC Referência (opcional)</label><input type="text" id="f-saida-oc" placeholder="OC-2025-XXXX"/></div>
       <div class="form-group"><label>Responsável</label><input type="text" id="f-saida-resp" placeholder="Nome do mecânico"/></div>
@@ -791,13 +910,17 @@ textarea{resize:vertical;min-height:65px}
 
 <!-- MODAL ENTRADA PEÇA -->
 <div class="modal-overlay" id="modal-entrada-peca">
-  <div class="modal">
-    <div class="modal-title">📦 <span id="modal-ep-title">Entrada de Peça no Estoque</span></div>
+  <div class="modal" style="width:580px">
+    <div class="modal-title">📦 <span id="modal-ep-title">Entrada de Estoque</span></div>
     <div class="form-grid">
-      <div class="form-group full"><label>Peça / Descrição</label><input type="text" id="f-ep-desc" placeholder="Ex: Filtro de Óleo Mann W712"/></div>
-      <div class="form-group"><label>Código</label><input type="text" id="f-ep-cod" placeholder="EST-XXX"/></div>
-      <div class="form-group"><label>Quantidade</label><input type="number" id="f-ep-qtd" min="1"/></div>
-      <div class="form-group"><label>Valor Unitário (R$)</label><input type="number" id="f-ep-valor" step="0.01"/></div>
+      <div class="form-group full">
+        <label>Produto</label>
+        <select id="f-ep-prod" onchange="epProdutoChanged()"><option value="">— Selecione o produto —</option></select>
+      </div>
+      <div id="ep-conv-info" style="display:none;grid-column:1/-1;background:rgba(0,149,122,.07);border:1px solid rgba(0,149,122,.25);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--accent)"></div>
+      <div class="form-group"><label>Qtd. de Compra (<span id="ep-uncompra-label">un.</span>)</label><input type="number" id="f-ep-qtd-compra" placeholder="1" step="0.001" min="0" oninput="epRecalcSaida()"/></div>
+      <div class="form-group"><label>= Qtd. Convertida (<span id="ep-unsaida-label">un.</span>)</label><input type="number" id="f-ep-qtd-saida" placeholder="0" step="0.001" min="0" style="background:#f0faf7" readonly/></div>
+      <div class="form-group"><label>Valor Unit. de Compra (R$)</label><input type="number" id="f-ep-valor" step="0.01" placeholder="0,00"/></div>
       <div class="form-group"><label>NF de Origem</label><input type="text" id="f-ep-nf" placeholder="Nº NF"/></div>
       <div class="form-group"><label>Data de Entrada</label><input type="date" id="f-ep-data"/></div>
     </div>
@@ -1054,7 +1177,7 @@ textarea{resize:vertical;min-height:65px}
         <input type="date" id="f-nfr-data"/>
       </div>
       <div class="form-group full"><label>Fornecedor</label>
-        <input type="text" id="f-nfr-forn" placeholder="Nome do fornecedor"/>
+        <select id="f-nfr-forn"><option value="">— Selecione o fornecedor —</option></select>
       </div>
       <div class="form-group"><label>Destino / Placa</label>
         <select id="f-nfr-dest">
@@ -1136,6 +1259,19 @@ const $ = id => document.getElementById(id);
 const today = new Date().toISOString().split('T')[0];
 
 // ======================== DADOS ========================
+let Fornecedores = [
+  {id:1,nome:'Mecânica Central',cnpj:'12.345.678/0001-90',tel:'(11) 99100-1111',email:'contato@mecanicacentral.com',cat:'Manutenção (Serviço)',status:'Ativo',contato:'João Mecânico',pix:'12345678000190',end:'Rua das Oficinas, 100 - SP',obs:''},
+  {id:2,nome:'Auto Peças Silva',cnpj:'98.765.432/0001-10',tel:'(11) 99200-2222',email:'vendas@pecassilva.com',cat:'Peças e Autopeças',status:'Ativo',contato:'Carlos Silva',pix:'98765432000110',end:'Av. das Autopeças, 250 - SP',obs:''},
+  {id:3,nome:'Borracharia Rocha',cnpj:'11.222.333/0001-44',tel:'(11) 99300-3333',email:'borracharia@rocha.com',cat:'Pneus e Borracharia',status:'Ativo',contato:'Pedro Rocha',pix:'borracharia@rocha.com',end:'Rua dos Pneus, 55 - SP',obs:''},
+  {id:4,nome:'Diesel Sul',cnpj:'55.666.777/0001-88',tel:'(11) 99400-4444',email:'diesel@sul.com',cat:'Combustível e Lubrificantes',status:'Ativo',contato:'Marcos Diesel',pix:'diesel@sul.com',end:'Rodovia Anhanguera km 40 - SP',obs:''},
+  {id:5,nome:'Elétrica Rápida',cnpj:'33.444.555/0001-66',tel:'(11) 99500-5555',email:'eletrica@rapida.com',cat:'Elétrica Automotiva',status:'Ativo',contato:'Ana Eletricista',pix:'33444555000166',end:'Rua da Eletricidade, 8 - SP',obs:''},
+  {id:6,nome:'Funilaria Central',cnpj:'77.888.999/0001-22',tel:'(11) 99600-6666',email:'funilaria@central.com',cat:'Funilaria e Pintura',status:'Ativo',contato:'Roberto Funileiro',pix:'77888999000122',end:'Rua da Funilaria, 30 - SP',obs:''},
+  {id:7,nome:'Auto Peças SP',cnpj:'22.333.444/0001-55',tel:'(11) 99700-7777',email:'atendimento@pecasp.com',cat:'Peças e Autopeças',status:'Ativo',contato:'Fernanda Peças',pix:'22333444000155',end:'Av. Paulista, 1000 - SP',obs:''},
+  {id:8,nome:'Mecânica JB',cnpj:'66.777.888/0001-99',tel:'(11) 99800-8888',email:'mecanicajb@email.com',cat:'Manutenção (Serviço)',status:'Ativo',contato:'José Bruno',pix:'mecanicajb@email.com',end:'Rua dos Mecânicos, 77 - SP',obs:''},
+  {id:9,nome:'Receita Federal',cnpj:'00.394.460/0572-14',tel:'146',email:'',cat:'Órgão Público / Imposto',status:'Ativo',contato:'',pix:'',end:'',obs:'DARF, INSS, impostos federais'},
+];
+let nextFornId = 10;
+
 let OCs = [
   {id:1,num:'OC-2025-0001',data:'2025-04-02',forn:'Mecânica Central',placas:'ABC-1234',valor:3200,tipo:'Manutenção (Serviço)',nf:'Pendente',nfsEsperadas:1,desc:'Revisão geral motor'},
   {id:2,num:'OC-2025-0002',data:'2025-04-05',forn:'Auto Peças Silva',placas:'DEF-5678',valor:1450,tipo:'Peças',nf:'Recebida',nfsEsperadas:1,desc:'Filtros e pastilhas'},
@@ -1163,6 +1299,19 @@ let Titulos = [
   {id:6,forn:'Funilaria Central',tipo:'Boleto NF',ref:'98012',valor:1800,emissao:'2025-04-14',venc:'2025-04-22',status:'Pendente',placa:'PQR-1122',obs:''},
   {id:7,forn:'ISSQN Prefeitura',tipo:'Imposto ISSQN',ref:'ABR/2025',valor:1200,emissao:'2025-04-01',venc:'2025-04-10',status:'Pago',placa:'-',obs:''},
 ];
+let Produtos = [
+  // Estrutura: id, cod, nome, cat, unCompra, unSaida, fator (qtd unSaida por 1 unCompra), qtdEstoque (em unSaida), minimo, valorUnitCompra, obs
+  // Fator: 1 barril = 200 litros → fator=200. Se 1 peça = 1 peça → fator=1
+  {id:1,cod:'PROD-001',nome:'Óleo Motor 15W40',cat:'Lubrificantes',unCompra:'barril 200L',unSaida:'litro',fator:200,qtdEstoque:600,minimo:100,valorUnitCompra:980.00,obs:''},
+  {id:2,cod:'PROD-002',nome:'Filtro de Óleo Mann W712',cat:'Filtros',unCompra:'peça',unSaida:'peça',fator:1,qtdEstoque:8,minimo:5,valorUnitCompra:45.00,obs:''},
+  {id:3,cod:'PROD-003',nome:'Pastilha de Freio Dianteira',cat:'Freios',unCompra:'jogo',unSaida:'jogo',fator:1,qtdEstoque:4,minimo:2,valorUnitCompra:180.00,obs:''},
+  {id:4,cod:'PROD-004',nome:'Correia Dentada',cat:'Motor',unCompra:'peça',unSaida:'peça',fator:1,qtdEstoque:2,minimo:1,valorUnitCompra:320.00,obs:''},
+  {id:5,cod:'PROD-005',nome:'Lâmpada Farol H7',cat:'Elétrica',unCompra:'peça',unSaida:'peça',fator:1,qtdEstoque:12,minimo:4,valorUnitCompra:28.00,obs:''},
+];
+let nextProdId = 6;
+
+// Estoque agora é derivado de Produtos (qtdEstoque em unSaida)
+// Mantemos Estoque[] como alias para compatibilidade (mapeado de Produtos)
 let Estoque = [
   {id:1,cod:'EST-001',desc:'Filtro de Óleo Mann W712',qtd:8,unit:45.00,ultima:'2025-04-08'},
   {id:2,cod:'EST-002',desc:'Pastilha de Freio Dianteira',qtd:4,unit:180.00,ultima:'2025-04-05'},
@@ -1271,7 +1420,7 @@ const modal_icon={oc:'modal-oc-icon',nf:'modal-nf-icon',tit:'modal-tit-icon',sai
 const modal_title={oc:'modal-oc-title',nf:'modal-nf-title',tit:'modal-tit-title'};
 
 // ======================== NAVEGAÇÃO ========================
-const titles={dashboard:'Dashboard Geral',oc:'Ordens de Compra',nf:'Notas Fiscais',faturamentos:'Faturamentos',financeiro:'Contas a Pagar',estoque:'Estoque de Peças',frota:'Gestão de Frota',epi:'Controle de EPIs','rel-gastos':'Relatório — Gastos por Placa','rel-financeiro':'Relatório Financeiro por Período',pendentes:'OCs Pendentes de Faturamento',colaboradores:'Cadastro de Colaboradores',usuarios:'Usuários do Sistema'};
+const titles={dashboard:'Dashboard Geral',oc:'Ordens de Compra',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',nf:'Notas Fiscais',faturamentos:'Faturamentos',financeiro:'Contas a Pagar',estoque:'Estoque de Peças',frota:'Gestão de Frota',epi:'Controle de EPIs','rel-gastos':'Relatório — Gastos por Placa','rel-financeiro':'Relatório Financeiro por Período',pendentes:'OCs Pendentes de Faturamento',colaboradores:'Cadastro de Colaboradores',usuarios:'Usuários do Sistema'};
 function showScreen(id,el){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1298,10 +1447,21 @@ function populateSelects(){
     s.innerHTML=(isNfDest?'<option value="Estoque">Estoque</option><option value="Administrativo">Administrativo</option>':'<option value="-">Nenhuma (geral)</option>');
     placas.forEach(p=>s.innerHTML+=`<option value="${p}">${p}</option>`);
   });
-  // Peças para saída
-  const sp=$('f-saida-peca');
-  sp.innerHTML='';
-  Estoque.forEach(e=>sp.innerHTML+=`<option value="${e.desc}">${e.desc} (Qtd: ${e.qtd})</option>`);
+  // Fornecedores nos selects
+  const fornsAtivos = Fornecedores.filter(f=>f.status==='Ativo');
+  ['f-oc-forn','f-nf-forn','f-nfr-forn','f-tit-forn','f-fat-forn'].forEach(sid=>{
+    const s=$(sid); if(!s)return;
+    const curVal = s.value;
+    if(sid==='f-fat-forn'){
+      s.innerHTML='<option value="">— Selecione o fornecedor —</option>';
+    } else {
+      s.innerHTML='<option value="">— Selecione o fornecedor —</option>';
+    }
+    fornsAtivos.forEach(f=>s.innerHTML+=`<option value="${f.nome}">${f.nome}</option>`);
+    if(curVal) s.value=curVal;
+  });
+  // Produtos para selects de entrada e saída
+  populateProdutoSelects();
   // EPIs para saída
   const se=$('f-episaida-epi');
   se.innerHTML='';
@@ -1421,7 +1581,7 @@ function editarOC(id){
   // Popula placas no select simples
   ocPopulatePlacaSelect();
   $('f-oc-num').value=o.num; $('f-oc-data').value=o.data;
-  $('f-oc-forn').value=o.forn; $('f-oc-valor').value=o.valor;
+  $('f-oc-forn').value=o.forn||''; $('f-oc-valor').value=o.valor;
   $('f-oc-tipo').value=o.tipo; $('f-oc-desc').value=o.desc||'';
   const temRateio = o.rateio && o.rateio.length > 0;
   $('f-oc-rateio').value = temRateio ? 'Sim' : 'Não';
@@ -1456,7 +1616,7 @@ function ocPopulatePlacaSelect(){
 function salvarOC(){
   const num=$('f-oc-num').value.trim()||'OC-'+new Date().getFullYear()+'-'+String(OCs.length+26).padStart(4,'0');
   const data=$('f-oc-data').value||today;
-  const forn=$('f-oc-forn').value.trim(); if(!forn){toast('Informe o fornecedor','error');return;}
+  const forn=$('f-oc-forn').value.trim(); if(!forn){toast('Selecione o fornecedor','error');return;}
   const valor=parseFloat($('f-oc-valor').value)||0;
   const isRateio = $('f-oc-rateio').value === 'Sim';
 
@@ -1585,7 +1745,7 @@ function editarNF(id){
   editing.nf=id; populateSelects();
   $('f-nf-oc').value=o.oc; $('f-nf-tipo').value=o.tipo;
   $('f-nf-num').value=o.num; $('f-nf-data').value=o.data||today;
-  $('f-nf-forn').value=o.forn; $('f-nf-dest').value=o.dest;
+  $('f-nf-forn').value=o.forn||''; $('f-nf-dest').value=o.dest;
   $('f-nf-valor').value=o.valor;
   $('f-nf-obs').value=o.obs||'';
   nfOCChanged(); // exibe aviso de rateio se OC for rateada
@@ -1600,7 +1760,7 @@ function editarNF(id){
 }
 
 function salvarNF(){
-  const forn=$('f-nf-forn').value.trim(); if(!forn){toast('Informe o fornecedor','error');return;}
+  const forn=$('f-nf-forn').value.trim(); if(!forn){toast('Selecione o fornecedor','error');return;}
   const total=parseFloat($('f-nf-valor').value)||0;
   if(!total){toast('Informe o valor total da NF','error');return;}
 
@@ -1704,7 +1864,7 @@ function excluirNF(id){
 function editarTitulo(id){
   const o=Titulos.find(x=>x.id===id); if(!o)return;
   editing.tit=id; populateSelects();
-  $('f-tit-forn').value=o.forn; $('f-tit-tipo').value=o.tipo;
+  $('f-tit-forn').value=o.forn||''; if($('f-tit-forn-manual'))$('f-tit-forn-manual').value=''; $('f-tit-tipo').value=o.tipo;
   $('f-tit-ref').value=o.ref; $('f-tit-valor').value=o.valor;
   $('f-tit-emissao').value=o.emissao||today; $('f-tit-venc').value=o.venc;
   $('f-tit-status').value=o.status; $('f-tit-placa').value=o.placa||'-';
@@ -1714,7 +1874,7 @@ function editarTitulo(id){
   $('modal-titulo').classList.add('open');
 }
 function salvarTitulo(){
-  const forn=$('f-tit-forn').value.trim(); if(!forn){toast('Informe o fornecedor/descrição','error');return;}
+  const fornSel=$('f-tit-forn').value.trim(); const fornMan=($('f-tit-forn-manual')||{value:''}).value.trim(); const forn=fornMan||fornSel; if(!forn){toast('Selecione ou informe o fornecedor','error');return;}
   const valor=parseFloat($('f-tit-valor').value)||0; if(!valor){toast('Informe o valor','error');return;}
   const venc=$('f-tit-venc').value; if(!venc){toast('Informe o vencimento','error');return;}
   const obj={forn,tipo:$('f-tit-tipo').value,ref:$('f-tit-ref').value.trim()||'-',valor,emissao:$('f-tit-emissao').value||today,venc,status:$('f-tit-status').value,placa:$('f-tit-placa').value||'-',obs:$('f-tit-obs').value.trim()};
@@ -1752,19 +1912,35 @@ function editarEstoque(id){
   $('modal-entrada-peca').classList.add('open');
 }
 function salvarEntradaPeca(){
-  const desc=$('f-ep-desc').value.trim(); if(!desc){toast('Informe a descrição da peça','error');return;}
-  const obj={cod:$('f-ep-cod').value.trim()||'EST-'+String(Estoque.length+6).padStart(3,'0'),desc,qtd:parseInt($('f-ep-qtd').value)||0,unit:parseFloat($('f-ep-valor').value)||0,ultima:$('f-ep-data').value||today,nf:$('f-ep-nf').value.trim()};
-  if(editing.est){
-    const i=Estoque.findIndex(x=>x.id===editing.est);
-    Estoque[i]={...Estoque[i],...obj};
-    editing.est=null; toast('Peça atualizada!');
-  } else {
-    obj.id=newId('est'); Estoque.unshift(obj); toast('Peça adicionada ao estoque!');
-  }
+  const prodId = parseInt($('f-ep-prod').value);
+  const p = Produtos.find(x=>x.id===prodId);
+  if(!p){ toast('Selecione um produto','error'); return; }
+
+  const qtdCompra = parseFloat($('f-ep-qtd-compra').value)||0;
+  if(qtdCompra<=0){ toast('Informe a quantidade de compra','error'); return; }
+
+  // Converte: qtd em unCompra × fator = qtd em unSaida que entra no estoque
+  const qtdSaida = qtdCompra * p.fator;
+
+  // Atualiza o estoque do produto (em unSaida)
+  p.qtdEstoque += qtdSaida;
+  if(p.valorUnitCompra === 0 && parseFloat($('f-ep-valor').value)>0)
+    p.valorUnitCompra = parseFloat($('f-ep-valor').value);
+
+  // Registra no histórico de entradas (Estoque[] legacy — usamos para exibir entradas)
+  const entrada = {
+    id: newId('est'), prodId: p.id, cod: p.cod, desc: p.nome,
+    qtdCompra, unCompra: p.unCompra, qtdSaida, unSaida: p.unSaida, fator: p.fator,
+    unit: parseFloat($('f-ep-valor').value)||p.valorUnitCompra,
+    nf: $('f-ep-nf').value.trim(), ultima: $('f-ep-data').value||today
+  };
+  Estoque.unshift(entrada);
+
+  toast(`✅ Entrada: ${qtdCompra} ${p.unCompra} → ${qtdSaida.toLocaleString('pt-BR',{maximumFractionDigits:3})} ${p.unSaida} adicionados ao estoque`);
   closeModal('modal-entrada-peca');
-  $('modal-ep-title').textContent='Entrada de Peça no Estoque';
-  $('btn-save-ep').textContent='💾 Confirmar Entrada';
-  editing.est=null; renderEstoque();
+  $('f-ep-prod').value=''; $('f-ep-qtd-compra').value=''; $('f-ep-qtd-saida').value='';
+  $('ep-conv-info').style.display='none';
+  populateSelects(); renderProdutos(); renderEstoque();
 }
 function excluirEstoque(id){
   const o=Estoque.find(x=>x.id===id);
@@ -1777,26 +1953,54 @@ function excluirEstoque(id){
 function editarSaida(id){
   const o=Saidas.find(x=>x.id===id); if(!o)return;
   editing.saida=id; populateSelects();
-  $('f-saida-peca').value=o.peca; $('f-saida-qtd').value=o.qtd;
-  $('f-saida-placa').value=o.placa; $('f-saida-oc').value=o.oc;
-  $('f-saida-resp').value=o.resp; $('f-saida-data').value=o.data;
-  $('modal-saida-title').textContent='Editar Saída de Peça';
+  // Select by prodId if available, else by name match
+  const s=$('f-saida-peca');
+  if(o.prodId){ s.value=o.prodId; }
+  else {
+    const p=Produtos.find(x=>x.nome===o.peca);
+    if(p) s.value=p.id;
+  }
+  saidaProdutoChanged();
+  $('f-saida-qtd').value=o.qtd; $('f-saida-placa').value=o.placa;
+  $('f-saida-oc').value=o.oc; $('f-saida-resp').value=o.resp; $('f-saida-data').value=o.data;
+  $('modal-saida-title').textContent='Editar Saída';
   $('btn-save-saida').textContent='💾 Atualizar';
   $('modal-saida').classList.add('open');
 }
 function salvarSaida(){
-  const obj={peca:$('f-saida-peca').value,qtd:parseInt($('f-saida-qtd').value)||1,placa:$('f-saida-placa').value,oc:$('f-saida-oc').value.trim()||'-',resp:$('f-saida-resp').value.trim()||'-',data:$('f-saida-data').value||today};
+  const prodId = parseInt($('f-saida-peca').value);
+  const p = Produtos.find(x=>x.id===prodId);
+  if(!p){ toast('Selecione um produto','error'); return; }
+
+  const qtd = parseFloat($('f-saida-qtd').value)||0;
+  if(qtd<=0){ toast('Informe a quantidade','error'); return; }
+  if(qtd > p.qtdEstoque){ toast(`Estoque insuficiente! Disponível: ${p.qtdEstoque.toLocaleString('pt-BR',{maximumFractionDigits:3})} ${p.unSaida}`,'error'); return; }
+
+  const obj = {
+    prodId: p.id, peca: p.nome, unSaida: p.unSaida,
+    qtd, placa: $('f-saida-placa').value,
+    oc: $('f-saida-oc').value.trim()||'-',
+    resp: $('f-saida-resp').value.trim()||'-',
+    data: $('f-saida-data').value||today
+  };
+
   if(editing.saida){
-    const i=Saidas.findIndex(x=>x.id===editing.saida);
-    Saidas[i]={...Saidas[i],...obj};
-    editing.saida=null; toast('Saída atualizada!');
+    // Se editar, devolve a qtd anterior e desconta a nova
+    const old = Saidas.find(x=>x.id===editing.saida);
+    if(old && old.prodId===prodId) p.qtdEstoque += (old.qtd - qtd);
+    else p.qtdEstoque -= qtd;
+    const i = Saidas.findIndex(x=>x.id===editing.saida);
+    Saidas[i] = {...Saidas[i], ...obj};
+    editing.saida = null; toast('Saída atualizada!');
   } else {
-    obj.id=newId('saida'); Saidas.unshift(obj); toast('Saída registrada!');
+    p.qtdEstoque -= qtd; // desconta em unSaida
+    obj.id = newId('saida'); Saidas.unshift(obj);
+    toast(`✅ Saída: ${qtd.toLocaleString('pt-BR',{maximumFractionDigits:3})} ${p.unSaida} de ${p.nome}`);
   }
   closeModal('modal-saida');
-  $('modal-saida-title').textContent='Saída de Peça do Estoque';
+  $('modal-saida-title').textContent='Saída de Estoque';
   $('btn-save-saida').textContent='💾 Registrar Saída';
-  editing.saida=null; renderEstoque();
+  editing.saida=null; populateSelects(); renderProdutos(); renderEstoque();
 }
 function excluirSaida(id){
   confirmDelete('Excluir este registro de saída?','',()=>{
@@ -1912,8 +2116,10 @@ function renderDashboard(){
   $('dash-ocs-sub').textContent=ocsP.length+' sem NF';
   $('dash-titulos').textContent=fmt(pendVal);
   $('dash-titulos-sub').textContent=pendentes.length+' títulos pendentes';
-  $('dash-estoque').textContent=Estoque.reduce((a,e)=>a+e.qtd,0);
-  $('dash-estoque-sub').textContent=Estoque.length+' tipos de peças';
+  const totalProdsSaldo = Produtos.reduce((a,p)=>a+p.qtdEstoque,0);
+  $('dash-estoque').textContent=totalProdsSaldo.toLocaleString('pt-BR',{maximumFractionDigits:0});
+  const baixoEstoque = Produtos.filter(p=>p.minimo>0&&p.qtdEstoque<=p.minimo).length;
+  $('dash-estoque-sub').textContent=Produtos.length+' produtos'+(baixoEstoque>0?' | ⚠️ '+baixoEstoque+' abaixo do mínimo':'');
   $('badge-oc').textContent='⚠ '+ocsP.length+' OC'+(ocsP.length!==1?'s':'')+' sem NF';
   if(ocsP.length>0){
     const nomes=ocsP.slice(0,3).map(o=>o.forn).join(', ');
@@ -2010,21 +2216,33 @@ function renderFin(){
 }
 
 function renderEstoque(){
-  $('est-count').textContent=Estoque.length;
+  // Tabela de estoque atual (baseada em Produtos)
+  const prods = Produtos;
+  $('est-count').textContent = prods.length;
+  const tb = $('tb-estoque');
+  if(tb){
+    tb.innerHTML = prods.length ? prods.map(p=>{
+      const baixo = p.minimo>0 && p.qtdEstoque<=p.minimo;
+      const qtdFmt = p.qtdEstoque.toLocaleString('pt-BR',{maximumFractionDigits:3});
+      return `<tr>
+        <td class="mono" style="color:var(--accent2);font-size:11px">${p.cod}</td>
+        <td><strong>${p.nome}</strong><br><span style="font-size:10px;color:var(--text3)">${p.cat}</span></td>
+        <td class="mono" style="font-weight:600;color:${baixo?'var(--red)':'var(--text)'}">
+          ${qtdFmt} ${p.unSaida}${baixo?' ⚠️':''}
+        </td>
+        <td style="font-size:11px;color:var(--text3)">Compra: ${p.unCompra}<br>Fator: ${p.fator}×</td>
+        <td class="mono">${fmt(p.valorUnitCompra)}</td>
+        <td class="mono">${fmt(p.qtdEstoque * (p.valorUnitCompra/p.fator))}</td>
+        <td><button class="btn btn-edit btn-sm" onclick="openModalProduto('editar',${p.id})">✏️ Produto</button></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" class="empty">Nenhum produto cadastrado. Vá em Cadastros → Produtos.</td></tr>';
+  }
+  // Tabela histórico de saídas
   $('saidas-count').textContent=Saidas.length;
-  $('tb-estoque').innerHTML=Estoque.length?Estoque.map(e=>`<tr>
-    <td class="mono" style="color:var(--accent2);font-size:11px">${e.cod}</td>
-    <td>${e.desc}</td>
-    <td class="mono">${e.qtd}</td>
-    <td class="mono">${fmt(e.unit)}</td>
-    <td class="mono">${fmt(e.qtd*e.unit)}</td>
-    <td style="font-size:11px;color:var(--text3)">${e.ultima}</td>
-    <td>${acts(`editarEstoque(${e.id})`,`excluirEstoque(${e.id})`)}</td>
-  </tr>`).join(''):'<tr><td colspan="7" class="empty">Estoque vazio</td></tr>';
   $('tb-saidas').innerHTML=Saidas.length?Saidas.map(s=>`<tr>
     <td style="font-size:11px">${s.data}</td>
     <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.peca}</td>
-    <td class="mono">${s.qtd}</td>
+    <td class="mono">${(s.qtd||0).toLocaleString('pt-BR',{maximumFractionDigits:3})} ${s.unSaida||''}</td>
     <td class="mono" style="color:var(--accent)">${s.placa}</td>
     <td>${s.resp}</td>
     <td class="mono" style="color:var(--accent2);font-size:11px">${s.oc}</td>
@@ -2208,9 +2426,10 @@ function renderPendentes(){
 }
 
 function renderAll(){
+  if(typeof renderProdutos==='function') renderProdutos();
   renderDashboard(); renderOC(); renderNF(); renderFin();
   renderEstoque(); renderFrota(); renderEPI(); renderRelGastos(); renderPendentes();
-  renderColab(); renderUsuarios(); renderFaturamentos();
+  renderColab(); renderUsuarios(); renderFaturamentos(); renderFornecedores();
 }
 
 // ======================== RELATÓRIO FINANCEIRO ========================
@@ -2675,7 +2894,11 @@ function gerarPDFOC(id){
     doc.text(l, W/2, 118 + i*6, {align:'center'});
   });
 
-  doc.save(o.num + '.pdf');
+  // Nome do arquivo: NUMERO_OC + FORNECEDOR + PLACA
+  const nomeForn = (o.forn||'SEM_FORN').replace(/[^a-zA-Z0-9À-ÿ\s]/g,'').trim().replace(/\s+/g,'_');
+  const nomePlaca = (o.placas||'-').replace(/[^a-zA-Z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+  const nomeArq = `${o.num}_${nomeForn}_${nomePlaca}.pdf`;
+  doc.save(nomeArq);
 }
 
 function formatarDataBR(dataISO){
@@ -2979,7 +3202,7 @@ function openModalNFRapida(){
   // Reseta campos
   $('f-nfr-num').value = '';
   $('f-nfr-data').value = today;
-  $('f-nfr-forn').value = '';
+  if($('f-nfr-forn')) $('f-nfr-forn').value = '';
   $('f-nfr-valor').value = '';
   $('f-nfr-obs').value = '';
   $('f-nfr-tipo').value = 'NF de Serviço';
@@ -2991,7 +3214,7 @@ function openModalNFRapida(){
 
 function salvarNFRapida(){
   const forn = $('f-nfr-forn').value.trim();
-  if(!forn){ toast('Informe o fornecedor','error'); return; }
+  if(!forn || forn === ''){ toast('Selecione o fornecedor','error'); return; }
   const total = parseFloat($('f-nfr-valor').value) || 0;
   if(!total){ toast('Informe o valor total da NF','error'); return; }
 
@@ -3020,6 +3243,229 @@ function salvarNFRapida(){
   closeModal('modal-nf-rapida');
   toast('NF lançada! Aguardando faturamento do fornecedor. ⏳');
   renderAll();
+}
+
+
+// ======================== CRUD FORNECEDORES ========================
+
+function openModalFornecedor(mode, id){
+  editing._forn = id || null;
+  if(mode === 'novo'){
+    $('f-forn-nome').value=''; $('f-forn-cnpj').value=''; $('f-forn-tel').value='';
+    $('f-forn-email').value=''; $('f-forn-cat').value='Manutenção (Serviço)';
+    $('f-forn-status').value='Ativo'; $('f-forn-contato').value='';
+    $('f-forn-pix').value=''; $('f-forn-end').value=''; $('f-forn-obs').value='';
+    $('modal-forn-title').textContent='Novo Fornecedor';
+    $('btn-save-forn').textContent='💾 Salvar';
+  } else {
+    const o = Fornecedores.find(x=>x.id===id); if(!o)return;
+    $('f-forn-nome').value=o.nome||''; $('f-forn-cnpj').value=o.cnpj||'';
+    $('f-forn-tel').value=o.tel||''; $('f-forn-email').value=o.email||'';
+    $('f-forn-cat').value=o.cat||''; $('f-forn-status').value=o.status||'Ativo';
+    $('f-forn-contato').value=o.contato||''; $('f-forn-pix').value=o.pix||'';
+    $('f-forn-end').value=o.end||''; $('f-forn-obs').value=o.obs||'';
+    $('modal-forn-title').textContent='Editar Fornecedor';
+    $('btn-save-forn').textContent='💾 Atualizar';
+  }
+  $('modal-fornecedor').classList.add('open');
+}
+
+function salvarFornecedor(){
+  const nome = $('f-forn-nome').value.trim();
+  if(!nome){ toast('Informe o nome do fornecedor','error'); return; }
+  // Verificar duplicidade (exceto na edição do próprio registro)
+  const dup = Fornecedores.find(f => f.nome.toLowerCase()===nome.toLowerCase() && f.id !== editing._forn);
+  if(dup){ toast('Já existe um fornecedor com este nome!','error'); return; }
+
+  const obj = {
+    nome, cnpj:$('f-forn-cnpj').value.trim(), tel:$('f-forn-tel').value.trim(),
+    email:$('f-forn-email').value.trim(), cat:$('f-forn-cat').value,
+    status:$('f-forn-status').value, contato:$('f-forn-contato').value.trim(),
+    pix:$('f-forn-pix').value.trim(), end:$('f-forn-end').value.trim(),
+    obs:$('f-forn-obs').value.trim()
+  };
+
+  if(editing._forn){
+    const i = Fornecedores.findIndex(x=>x.id===editing._forn);
+    Fornecedores[i] = {...Fornecedores[i], ...obj};
+    editing._forn = null; toast('Fornecedor atualizado!');
+  } else {
+    obj.id = nextFornId++;
+    Fornecedores.push(obj); toast('Fornecedor cadastrado! ✅');
+  }
+  closeModal('modal-fornecedor');
+  populateSelects();
+  renderFornecedores();
+}
+
+function excluirFornecedor(id){
+  const o = Fornecedores.find(x=>x.id===id);
+  // Verificar uso em OCs, NFs, etc.
+  const emUso = OCs.some(x=>x.forn===o.nome) || NFs.some(x=>x.forn===o.nome);
+  if(emUso){
+    toast('Este fornecedor está em uso em OCs ou NFs e não pode ser excluído.','error');
+    return;
+  }
+  confirmDelete(`Excluir fornecedor "${o.nome}"?`,'Esta ação não pode ser desfeita.',()=>{
+    Fornecedores = Fornecedores.filter(x=>x.id!==id);
+    populateSelects(); renderFornecedores(); toast('Fornecedor excluído.');
+  });
+}
+
+function renderFornecedores(){
+  const busca = ($('forn-busca')||{value:''}).value.toLowerCase();
+  const lista = Fornecedores.filter(f =>
+    !busca || f.nome.toLowerCase().includes(busca) ||
+    (f.cnpj||'').includes(busca) || (f.cat||'').toLowerCase().includes(busca)
+  );
+  const tb = $('tb-fornecedores'); if(!tb) return;
+  if(!lista.length){ tb.innerHTML=`<tr><td colspan="7" class="empty">Nenhum fornecedor encontrado.</td></tr>`; return; }
+  tb.innerHTML = lista.map(f=>`<tr>
+    <td><strong>${f.nome}</strong>${f.contato?`<br><span style="font-size:10px;color:var(--text3)">${f.contato}</span>`:''}</td>
+    <td class="mono" style="font-size:11px">${f.cnpj||'-'}</td>
+    <td style="font-size:11px">${f.tel||'-'}</td>
+    <td style="font-size:11px">${f.email||'-'}</td>
+    <td><span class="chip cgr">${f.cat||'-'}</span></td>
+    <td>${f.status==='Ativo'?'<span class="chip cg">Ativo</span>':'<span class="chip cr">Inativo</span>'}</td>
+    <td>${acts(`openModalFornecedor('editar',${f.id})`,`excluirFornecedor(${f.id})`)}</td>
+  </tr>`).join('');
+}
+
+
+// ======================== CRUD PRODUTOS ========================
+
+function openModalProduto(mode, id){
+  editing._prod = id || null;
+  if(mode === 'novo'){
+    $('f-prod-nome').value=''; $('f-prod-cod').value=''; $('f-prod-cat').value='Lubrificantes';
+    $('f-prod-uncompra').value='peça'; $('f-prod-unsaida').value='peça';
+    $('f-prod-fator').value='1'; $('f-prod-minimo').value='0';
+    $('f-prod-valor').value=''; $('f-prod-obs').value='';
+    $('modal-prod-title').textContent='Novo Produto';
+    $('btn-save-prod').textContent='💾 Salvar';
+  } else {
+    const o = Produtos.find(x=>x.id===id); if(!o)return;
+    $('f-prod-nome').value=o.nome; $('f-prod-cod').value=o.cod;
+    $('f-prod-cat').value=o.cat; $('f-prod-uncompra').value=o.unCompra;
+    $('f-prod-unsaida').value=o.unSaida; $('f-prod-fator').value=o.fator;
+    $('f-prod-minimo').value=o.minimo; $('f-prod-valor').value=o.valorUnitCompra;
+    $('f-prod-obs').value=o.obs||'';
+    $('modal-prod-title').textContent='Editar Produto';
+    $('btn-save-prod').textContent='💾 Atualizar';
+  }
+  $('modal-produto').classList.add('open');
+}
+
+function salvarProduto(){
+  const nome = $('f-prod-nome').value.trim();
+  if(!nome){ toast('Informe o nome do produto','error'); return; }
+  const dup = Produtos.find(p=>p.nome.toLowerCase()===nome.toLowerCase() && p.id!==editing._prod);
+  if(dup){ toast('Já existe um produto com este nome!','error'); return; }
+  const fator = parseFloat($('f-prod-fator').value)||1;
+  if(fator<=0){ toast('Fator de conversão deve ser maior que zero','error'); return; }
+
+  const obj = {
+    nome, cod:$('f-prod-cod').value.trim()||'PROD-'+String(nextProdId).padStart(3,'0'),
+    cat:$('f-prod-cat').value, unCompra:$('f-prod-uncompra').value.trim()||'unidade',
+    unSaida:$('f-prod-unsaida').value.trim()||'unidade', fator,
+    minimo:parseFloat($('f-prod-minimo').value)||0,
+    valorUnitCompra:parseFloat($('f-prod-valor').value)||0, obs:$('f-prod-obs').value.trim()
+  };
+
+  if(editing._prod){
+    const i = Produtos.findIndex(x=>x.id===editing._prod);
+    Produtos[i] = {...Produtos[i], ...obj};
+    editing._prod = null; toast('Produto atualizado! ✅');
+  } else {
+    obj.id = nextProdId++; obj.qtdEstoque = 0;
+    Produtos.push(obj); toast('Produto cadastrado! ✅');
+  }
+  closeModal('modal-produto');
+  populateSelects();
+  renderProdutos();
+  renderEstoque();
+}
+
+function excluirProduto(id){
+  const o = Produtos.find(x=>x.id===id);
+  if(o.qtdEstoque > 0){ toast(`Este produto tem ${o.qtdEstoque} ${o.unSaida}(s) em estoque. Zere o estoque antes de excluir.`,'error'); return; }
+  confirmDelete(`Excluir produto "${o.nome}"?`,'Esta ação não pode ser desfeita.',()=>{
+    Produtos = Produtos.filter(x=>x.id!==id);
+    populateSelects(); renderProdutos(); renderEstoque(); toast('Produto excluído.');
+  });
+}
+
+function renderProdutos(){
+  const busca = ($('prod-busca')||{value:''}).value.toLowerCase();
+  const lista = Produtos.filter(p=>
+    !busca || p.nome.toLowerCase().includes(busca) ||
+    (p.cod||'').toLowerCase().includes(busca) || (p.cat||'').toLowerCase().includes(busca)
+  );
+  const tb = $('tb-produtos'); if(!tb) return;
+  $('prod-count').textContent = Produtos.length;
+  if(!lista.length){ tb.innerHTML=`<tr><td colspan="8" class="empty">Nenhum produto cadastrado.</td></tr>`; return; }
+  tb.innerHTML = lista.map(p=>{
+    const baixo = p.qtdEstoque <= p.minimo && p.minimo > 0;
+    return `<tr>
+      <td class="mono" style="font-size:11px">${p.cod}</td>
+      <td><strong>${p.nome}</strong>${p.obs?`<br><span style="font-size:10px;color:var(--text3)">${p.obs}</span>`:''}</td>
+      <td><span class="chip cgr">${p.cat}</span></td>
+      <td style="font-size:12px">${p.unCompra}</td>
+      <td style="font-size:12px">${p.unSaida} <span style="font-size:10px;color:var(--text3)">(fator ${p.fator})</span></td>
+      <td class="mono" style="font-size:12px;text-align:center">${p.fator}×</td>
+      <td class="mono" style="font-size:13px;font-weight:600;color:${baixo?'var(--red)':'var(--text)'}">${p.qtdEstoque.toLocaleString('pt-BR',{maximumFractionDigits:3})} ${p.unSaida}${baixo?' ⚠️':''}</td>
+      <td>${acts(`openModalProduto('editar',${p.id})`,`excluirProduto(${p.id})`)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Preenche select de produtos nos modais de entrada/saída
+function populateProdutoSelects(){
+  ['f-ep-prod','f-saida-peca'].forEach(sid=>{
+    const s=$(sid); if(!s) return;
+    const curVal = s.value;
+    s.innerHTML = '<option value="">— Selecione o produto —</option>';
+    Produtos.forEach(p=>s.innerHTML+=`<option value="${p.id}">${p.nome} [${p.qtdEstoque.toLocaleString('pt-BR',{maximumFractionDigits:3})} ${p.unSaida}]</option>`);
+    if(curVal) s.value=curVal;
+  });
+}
+
+// Callbacks ao selecionar produto na entrada
+function epProdutoChanged(){
+  const id = parseInt($('f-ep-prod').value);
+  const p = Produtos.find(x=>x.id===id);
+  const info = $('ep-conv-info');
+  if(!p){ info.style.display='none'; $('ep-uncompra-label').textContent='un.'; $('ep-unsaida-label').textContent='un.'; return; }
+  $('ep-uncompra-label').textContent = p.unCompra;
+  $('ep-unsaida-label').textContent = p.unSaida;
+  if(p.fator !== 1){
+    info.style.display='block';
+    info.innerHTML=`🔄 1 <strong>${p.unCompra}</strong> = <strong>${p.fator}</strong> ${p.unSaida} | Estoque atual: <strong>${p.qtdEstoque.toLocaleString('pt-BR',{maximumFractionDigits:3})} ${p.unSaida}</strong>`;
+  } else {
+    info.style.display='none';
+  }
+  if(p.valorUnitCompra) $('f-ep-valor').value = p.valorUnitCompra.toFixed(2);
+  epRecalcSaida();
+}
+
+function epRecalcSaida(){
+  const id = parseInt($('f-ep-prod').value);
+  const p = Produtos.find(x=>x.id===id);
+  const qtdCompra = parseFloat($('f-ep-qtd-compra').value)||0;
+  $('f-ep-qtd-saida').value = p ? (qtdCompra * p.fator).toLocaleString('pt-BR',{maximumFractionDigits:3}) : '0';
+}
+
+// Callback ao selecionar produto na saída
+function saidaProdutoChanged(){
+  const id = parseInt($('f-saida-peca').value);
+  const p = Produtos.find(x=>x.id===id);
+  const info = $('saida-estoque-info');
+  if(!p){ info.style.display='none'; $('saida-unsaida-label').textContent='un.'; return; }
+  $('saida-unsaida-label').textContent = p.unSaida;
+  info.style.display='block';
+  const baixo = p.qtdEstoque <= p.minimo && p.minimo > 0;
+  info.innerHTML=`📦 Estoque atual: <strong style="color:${baixo?'var(--red)':'var(--accent)'}">${p.qtdEstoque.toLocaleString('pt-BR',{maximumFractionDigits:3})} ${p.unSaida}</strong>${p.minimo>0?` | Mínimo: ${p.minimo} ${p.unSaida}`:''}`;
+  $('f-saida-qtd').value = '1';
 }
 
 // ======================== SUPABASE ========================
