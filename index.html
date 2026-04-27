@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1259,117 +1259,27 @@ const $ = id => document.getElementById(id);
 const today = new Date().toISOString().split('T')[0];
 
 // ======================== DADOS ========================
-let Fornecedores = [
-  {id:1,nome:'Mecânica Central',cnpj:'12.345.678/0001-90',tel:'(11) 99100-1111',email:'contato@mecanicacentral.com',cat:'Manutenção (Serviço)',status:'Ativo',contato:'João Mecânico',pix:'12345678000190',end:'Rua das Oficinas, 100 - SP',obs:''},
-  {id:2,nome:'Auto Peças Silva',cnpj:'98.765.432/0001-10',tel:'(11) 99200-2222',email:'vendas@pecassilva.com',cat:'Peças e Autopeças',status:'Ativo',contato:'Carlos Silva',pix:'98765432000110',end:'Av. das Autopeças, 250 - SP',obs:''},
-  {id:3,nome:'Borracharia Rocha',cnpj:'11.222.333/0001-44',tel:'(11) 99300-3333',email:'borracharia@rocha.com',cat:'Pneus e Borracharia',status:'Ativo',contato:'Pedro Rocha',pix:'borracharia@rocha.com',end:'Rua dos Pneus, 55 - SP',obs:''},
-  {id:4,nome:'Diesel Sul',cnpj:'55.666.777/0001-88',tel:'(11) 99400-4444',email:'diesel@sul.com',cat:'Combustível e Lubrificantes',status:'Ativo',contato:'Marcos Diesel',pix:'diesel@sul.com',end:'Rodovia Anhanguera km 40 - SP',obs:''},
-  {id:5,nome:'Elétrica Rápida',cnpj:'33.444.555/0001-66',tel:'(11) 99500-5555',email:'eletrica@rapida.com',cat:'Elétrica Automotiva',status:'Ativo',contato:'Ana Eletricista',pix:'33444555000166',end:'Rua da Eletricidade, 8 - SP',obs:''},
-  {id:6,nome:'Funilaria Central',cnpj:'77.888.999/0001-22',tel:'(11) 99600-6666',email:'funilaria@central.com',cat:'Funilaria e Pintura',status:'Ativo',contato:'Roberto Funileiro',pix:'77888999000122',end:'Rua da Funilaria, 30 - SP',obs:''},
-  {id:7,nome:'Auto Peças SP',cnpj:'22.333.444/0001-55',tel:'(11) 99700-7777',email:'atendimento@pecasp.com',cat:'Peças e Autopeças',status:'Ativo',contato:'Fernanda Peças',pix:'22333444000155',end:'Av. Paulista, 1000 - SP',obs:''},
-  {id:8,nome:'Mecânica JB',cnpj:'66.777.888/0001-99',tel:'(11) 99800-8888',email:'mecanicajb@email.com',cat:'Manutenção (Serviço)',status:'Ativo',contato:'José Bruno',pix:'mecanicajb@email.com',end:'Rua dos Mecânicos, 77 - SP',obs:''},
-  {id:9,nome:'Receita Federal',cnpj:'00.394.460/0572-14',tel:'146',email:'',cat:'Órgão Público / Imposto',status:'Ativo',contato:'',pix:'',end:'',obs:'DARF, INSS, impostos federais'},
-];
-let nextFornId = 10;
-
-let OCs = [
-  {id:1,num:'OC-2025-0001',data:'2025-04-02',forn:'Mecânica Central',placas:'ABC-1234',valor:3200,tipo:'Manutenção (Serviço)',nf:'Pendente',nfsEsperadas:1,desc:'Revisão geral motor'},
-  {id:2,num:'OC-2025-0002',data:'2025-04-05',forn:'Auto Peças Silva',placas:'DEF-5678',valor:1450,tipo:'Peças',nf:'Recebida',nfsEsperadas:1,desc:'Filtros e pastilhas'},
-  {id:3,num:'OC-2025-0003',data:'2025-04-08',forn:'Borracharia Rocha',placas:'GHI-9012',valor:680,tipo:'Manutenção (Serviço)',nf:'Pendente',nfsEsperadas:1,desc:'Troca de pneus'},
-  {id:4,num:'OC-2025-0004',data:'2025-04-10',forn:'Diesel Sul',placas:'ABC-1234 / JKL-3456',valor:2900,tipo:'Serviço + Peças',nf:'Recebida',nfsEsperadas:2,desc:'Manutenção preventiva'},
-  {id:5,num:'OC-2025-0005',data:'2025-04-12',forn:'Elétrica Rápida',placas:'MNO-7890',valor:520,tipo:'Manutenção (Serviço)',nf:'Pendente',nfsEsperadas:1,desc:'Reparo elétrico faróis'},
-  {id:6,num:'OC-2025-0006',data:'2025-04-14',forn:'Funilaria Central',placas:'PQR-1122',valor:1800,tipo:'Manutenção (Serviço)',nf:'Recebida',nfsEsperadas:1,desc:'Funilaria para-choque'},
-  {id:7,num:'OC-2025-0007',data:'2025-04-16',forn:'Auto Peças SP',placas:'DEF-5678',valor:870,tipo:'Peças',nf:'Pendente',nfsEsperadas:1,desc:'Correia dentada'},
-  {id:8,num:'OC-2025-0008',data:'2025-04-18',forn:'Mecânica JB',placas:'STU-4455',valor:2400,tipo:'Serviço + Peças',nf:'Parcialmente Recebida',nfsEsperadas:2,desc:'Troca de embreagem + peças'},
-];
-let NFs = [
-  {id:1,oc:'OC-2025-0002',tipo:'NF de Peças',num:'45231',forn:'Auto Peças Silva',dest:'DEF-5678',valor:1450,venc:'2025-04-28',pgto:'Pendente',obs:''},
-  {id:2,oc:'OC-2025-0004',tipo:'NF Serviço + Peças',num:'12089',forn:'Diesel Sul',dest:'ABC-1234',valor:1600,venc:'2025-04-15',pgto:'Pago',obs:''},
-  {id:3,oc:'OC-2025-0004',tipo:'NF de Peças',num:'12090',forn:'Diesel Sul',dest:'JKL-3456',valor:1300,venc:'2025-04-15',pgto:'Pago',obs:''},
-  {id:4,oc:'OC-2025-0006',tipo:'NF de Serviço',num:'98012',forn:'Funilaria Central',dest:'PQR-1122',valor:1800,venc:'2025-04-22',pgto:'Pendente',obs:''},
-  {id:5,oc:'Sem OC',tipo:'Imposto / Taxa',num:'INSS-ABR',forn:'Receita Federal',dest:'Administrativo',valor:4200,venc:'2025-04-20',pgto:'Pendente',obs:''},
-  {id:6,oc:'OC-2025-0008',tipo:'NF de Serviço',num:'77301',forn:'Mecânica JB',dest:'STU-4455',valor:1100,venc:'2025-05-05',pgto:'Pendente',obs:'Aguardando NF de peças'},
-];
-let Titulos = [
-  {id:1,forn:'Mecânica Central',tipo:'Boleto NF',ref:'OC-2025-0001',valor:3200,emissao:'2025-04-02',venc:'2025-04-25',status:'Pendente',placa:'ABC-1234',obs:''},
-  {id:2,forn:'Auto Peças Silva',tipo:'Boleto NF',ref:'45231',valor:1450,emissao:'2025-04-05',venc:'2025-04-28',status:'Pendente',placa:'DEF-5678',obs:''},
-  {id:3,forn:'Receita Federal',tipo:'Imposto INSS',ref:'INSS-ABR',valor:4200,emissao:'2025-04-01',venc:'2025-04-20',status:'Pendente',placa:'-',obs:'INSS competência Abril'},
-  {id:4,forn:'Folha de Pagamento',tipo:'Folha de Pagamento',ref:'ABR/2025',valor:18500,emissao:'2025-04-01',venc:'2025-04-05',status:'Pago',placa:'-',obs:''},
-  {id:5,forn:'FGTS',tipo:'FGTS',ref:'ABR/2025',valor:2800,emissao:'2025-04-01',venc:'2025-04-07',status:'Pago',placa:'-',obs:''},
-  {id:6,forn:'Funilaria Central',tipo:'Boleto NF',ref:'98012',valor:1800,emissao:'2025-04-14',venc:'2025-04-22',status:'Pendente',placa:'PQR-1122',obs:''},
-  {id:7,forn:'ISSQN Prefeitura',tipo:'Imposto ISSQN',ref:'ABR/2025',valor:1200,emissao:'2025-04-01',venc:'2025-04-10',status:'Pago',placa:'-',obs:''},
-];
-let Produtos = [
-  // Estrutura: id, cod, nome, cat, unCompra, unSaida, fator (qtd unSaida por 1 unCompra), qtdEstoque (em unSaida), minimo, valorUnitCompra, obs
-  // Fator: 1 barril = 200 litros → fator=200. Se 1 peça = 1 peça → fator=1
-  {id:1,cod:'PROD-001',nome:'Óleo Motor 15W40',cat:'Lubrificantes',unCompra:'barril 200L',unSaida:'litro',fator:200,qtdEstoque:600,minimo:100,valorUnitCompra:980.00,obs:''},
-  {id:2,cod:'PROD-002',nome:'Filtro de Óleo Mann W712',cat:'Filtros',unCompra:'peça',unSaida:'peça',fator:1,qtdEstoque:8,minimo:5,valorUnitCompra:45.00,obs:''},
-  {id:3,cod:'PROD-003',nome:'Pastilha de Freio Dianteira',cat:'Freios',unCompra:'jogo',unSaida:'jogo',fator:1,qtdEstoque:4,minimo:2,valorUnitCompra:180.00,obs:''},
-  {id:4,cod:'PROD-004',nome:'Correia Dentada',cat:'Motor',unCompra:'peça',unSaida:'peça',fator:1,qtdEstoque:2,minimo:1,valorUnitCompra:320.00,obs:''},
-  {id:5,cod:'PROD-005',nome:'Lâmpada Farol H7',cat:'Elétrica',unCompra:'peça',unSaida:'peça',fator:1,qtdEstoque:12,minimo:4,valorUnitCompra:28.00,obs:''},
-];
-let nextProdId = 6;
-
-// Estoque agora é derivado de Produtos (qtdEstoque em unSaida)
-// Mantemos Estoque[] como alias para compatibilidade (mapeado de Produtos)
-let Estoque = [
-  {id:1,cod:'EST-001',desc:'Filtro de Óleo Mann W712',qtd:8,unit:45.00,ultima:'2025-04-08'},
-  {id:2,cod:'EST-002',desc:'Pastilha de Freio Dianteira',qtd:4,unit:180.00,ultima:'2025-04-05'},
-  {id:3,cod:'EST-003',desc:'Correia Dentada',qtd:2,unit:320.00,ultima:'2025-03-22'},
-  {id:4,cod:'EST-004',desc:'Lâmpada Farol H7',qtd:12,unit:28.00,ultima:'2025-04-10'},
-  {id:5,cod:'EST-005',desc:'Óleo Motor 15W40 (18L)',qtd:3,unit:210.00,ultima:'2025-04-01'},
-];
-let Saidas = [
-  {id:1,data:'2025-04-10',peca:'Filtro de Óleo Mann W712',qtd:2,placa:'ABC-1234',resp:'José Mecânico',oc:'OC-2025-0001'},
-  {id:2,data:'2025-04-12',peca:'Pastilha de Freio Dianteira',qtd:1,placa:'DEF-5678',resp:'José Mecânico',oc:'OC-2025-0002'},
-  {id:3,data:'2025-04-14',peca:'Óleo Motor 15W40 (18L)',qtd:1,placa:'GHI-9012',resp:'Marco Mecânico',oc:'-'},
-];
-let Frota = [
-  {id:1,placa:'ABC-1234',modelo:'Scania R450',ano:2019,motoristas:'Carlos Silva / João Pereira',limite:5000,gasto:3200},
-  {id:2,placa:'DEF-5678',modelo:'Volvo FH 500',ano:2020,motoristas:'Pedro Santos',limite:5000,gasto:4100},
-  {id:3,placa:'GHI-9012',modelo:'Mercedes Actros',ano:2018,motoristas:'Marcos Lima',limite:5000,gasto:1680},
-  {id:4,placa:'JKL-3456',modelo:'Scania G360',ano:2017,motoristas:'Antônio Ramos',limite:5000,gasto:2900},
-  {id:5,placa:'MNO-7890',modelo:'Volvo VM 270',ano:2021,motoristas:'Rodrigo Alves',limite:5000,gasto:520},
-  {id:6,placa:'PQR-1122',modelo:'Mercedes 2544',ano:2016,motoristas:'Fernando Reis',limite:5000,gasto:1890},
-  {id:7,placa:'STU-3344',modelo:'Scania P360',ano:2018,motoristas:'Bruno Carvalho',limite:5000,gasto:740},
-  {id:8,placa:'VWX-5566',modelo:'Volvo FH 460',ano:2019,motoristas:'Rafael Moura',limite:5000,gasto:3100},
-  {id:9,placa:'YZA-7788',modelo:'Mercedes 2646',ano:2020,motoristas:'Leandro Cruz',limite:5000,gasto:620},
-  {id:10,placa:'BCD-9900',modelo:'Scania R500',ano:2022,motoristas:'Diego Ferreira',limite:5000,gasto:1450},
-  {id:11,placa:'EFG-1133',modelo:'Volvo FMX 440',ano:2021,motoristas:'Matheus Gomes',limite:5000,gasto:890},
-  {id:12,placa:'HIJ-2244',modelo:'Mercedes Actros 2645',ano:2019,motoristas:'Gustavo Nunes',limite:5000,gasto:2200},
-  {id:13,placa:'KLM-3355',modelo:'Scania G410',ano:2020,motoristas:'Roberto Costa / Paulo Lima',limite:5000,gasto:3800},
-  {id:14,placa:'NOP-4466',modelo:'Volvo FM 370',ano:2018,motoristas:'Eduardo Melo',limite:5000,gasto:1100},
-];
-let EPIEstoque = [
-  {id:1,epi:'Capacete de Segurança',ca:'CA-26506',qtd:12,validade:'2027-01-01'},
-  {id:2,epi:'Colete Refletivo',ca:'CA-39211',qtd:20,validade:'2026-06-30'},
-  {id:3,epi:'Luva de Proteção',ca:'CA-14288',qtd:35,validade:'2025-12-31'},
-  {id:4,epi:'Botina de Segurança',ca:'CA-31415',qtd:8,validade:'2026-08-15'},
-  {id:5,epi:'Óculos de Proteção',ca:'CA-19034',qtd:15,validade:'2026-03-20'},
-  {id:6,epi:'Protetor Auricular',ca:'CA-10211',qtd:50,validade:'2026-12-31'},
-];
-let EPIEntregas = [
-  {id:1,colab:'Carlos Silva',epi:'Capacete de Segurança',qtd:1,data:'2025-04-01',troca:'2026-04-01'},
-  {id:2,colab:'João Pereira',epi:'Colete Refletivo',qtd:2,data:'2025-04-01',troca:'2025-10-01'},
-  {id:3,colab:'Pedro Santos',epi:'Botina de Segurança',qtd:1,data:'2025-03-15',troca:'2026-03-15'},
-  {id:4,colab:'Marcos Lima',epi:'Luva de Proteção',qtd:3,data:'2025-04-10',troca:'2025-07-10'},
-];
-
-
-let Colaboradores = [
-  {id:1,nome:'Carlos Silva',cpf:'123.456.789-00',rg:'12.345.678-9',cargo:'Motorista',setor:'Operacional',admissao:'2020-03-01',tel:'(11) 99999-1111',email:'carlos@empresa.com',cnh:'E',cnhVenc:'2027-03-01',status:'Ativo',obs:''},
-  {id:2,nome:'João Pereira',cpf:'987.654.321-00',rg:'98.765.432-1',cargo:'Motorista',setor:'Operacional',admissao:'2019-06-15',tel:'(11) 99999-2222',email:'joao@empresa.com',cnh:'E',cnhVenc:'2026-06-15',status:'Ativo',obs:''},
-  {id:3,nome:'Pedro Santos',cpf:'111.222.333-44',rg:'11.222.333-4',cargo:'Mecânico',setor:'Manutenção',admissao:'2021-01-10',tel:'(11) 99999-3333',email:'pedro@empresa.com',cnh:'B',cnhVenc:'2028-01-10',status:'Ativo',obs:''},
-  {id:4,nome:'Marcos Lima',cpf:'555.666.777-88',rg:'55.666.777-8',cargo:'Auxiliar Logístico',setor:'Logística',admissao:'2022-07-20',tel:'(11) 99999-4444',email:'marcos@empresa.com',cnh:'',cnhVenc:'',status:'Ativo',obs:''},
-];
-let Usuarios = [
-  {id:1,nome:'Administrativo Master',email:'admin@ajbam.com.br',senha:'••••••',perfil:'Gestor (Acesso Total)',colabId:'',status:'Ativo',ultimoAcesso:'2026-04-24',obs:'Conta principal do sistema'},
-  {id:2,nome:'Financeiro AJBAM',email:'financeiro@ajbam.com.br',senha:'••••••',perfil:'Financeiro',colabId:'',status:'Ativo',ultimoAcesso:'2026-04-23',obs:''},
-];
-let nextIdColab = 5, nextIdUser = 3;
+// Produção: sem dados de demonstração hardcoded.
+// O estado do sistema é carregado/salvo no Supabase (tabela transgest_state).
+let Fornecedores = [];
+let OCs = [];
+let NFs = [];
+let Titulos = [];
+let Produtos = [];
+let Estoque = [];
+let Saidas = [];
+let Frota = [];
+let EPIEstoque = [];
+let EPIEntregas = [];
+let Colaboradores = [];
+let Usuarios = [];
 let Faturamentos = [];
+
+let nextFornId = 1;
+let nextProdId = 1;
+let nextIdColab = 1, nextIdUser = 1;
 let nextFatId = 1;
-let nextId = {oc:8,nf:6,tit:8,est:6,saida:4,frota:15,episaida:5,epient:7};
+let nextId = {oc:1,nf:1,tit:1,est:1,saida:1,frota:1,episaida:1,epient:1};
 function newId(k){return nextId[k]++;}
 
 // ======================== HELPERS ========================
@@ -2433,26 +2343,7 @@ function renderAll(){
 }
 
 // ======================== RELATÓRIO FINANCEIRO ========================
-const DADOS_FIN=[
-  {forn:'Mecânica Central',cat:'manutencao',ref:'OC-001',valor:3200,venc:'2025-04-25',placa:'ABC-1234',status:'Pendente'},
-  {forn:'Auto Peças Silva',cat:'pecas',ref:'NF-45231',valor:1450,venc:'2025-04-28',placa:'DEF-5678',status:'Pendente'},
-  {forn:'Receita Federal',cat:'impostos',ref:'INSS-ABR',valor:4200,venc:'2025-04-20',placa:'-',status:'Pendente'},
-  {forn:'Folha Pagamento',cat:'pessoal',ref:'ABR/2025',valor:18500,venc:'2025-04-05',placa:'-',status:'Pago'},
-  {forn:'FGTS',cat:'pessoal',ref:'ABR/2025',valor:2800,venc:'2025-04-07',placa:'-',status:'Pago'},
-  {forn:'Borracharia Rocha',cat:'manutencao',ref:'OC-003',valor:680,venc:'2025-04-18',placa:'GHI-9012',status:'Pago'},
-  {forn:'Diesel Sul',cat:'manutencao',ref:'OC-004',valor:1600,venc:'2025-04-15',placa:'ABC-1234',status:'Pago'},
-  {forn:'Diesel Sul',cat:'pecas',ref:'OC-004',valor:1300,venc:'2025-04-15',placa:'JKL-3456',status:'Pago'},
-  {forn:'Elétrica Rápida',cat:'manutencao',ref:'OC-005',valor:520,venc:'2025-05-02',placa:'MNO-7890',status:'Pendente'},
-  {forn:'ISSQN Prefeitura',cat:'impostos',ref:'ABR/2025',valor:1200,venc:'2025-04-10',placa:'-',status:'Pago'},
-  {forn:'Locação Equip.',cat:'admin',ref:'LOC-042',valor:950,venc:'2025-04-30',placa:'-',status:'Pendente'},
-  {forn:'Mecânica Central',cat:'manutencao',ref:'OC-006',valor:2100,venc:'2025-03-20',placa:'DEF-5678',status:'Pago'},
-  {forn:'Auto Peças SP',cat:'pecas',ref:'NF-78910',valor:870,venc:'2025-03-15',placa:'GHI-9012',status:'Pago'},
-  {forn:'Receita Federal',cat:'impostos',ref:'INSS-MAR',valor:4200,venc:'2025-03-20',placa:'-',status:'Pago'},
-  {forn:'Folha Pagamento',cat:'pessoal',ref:'MAR/2025',valor:18500,venc:'2025-03-05',placa:'-',status:'Pago'},
-  {forn:'Funilaria Rápida',cat:'manutencao',ref:'OC-007',valor:1800,venc:'2025-02-18',placa:'PQR-1122',status:'Pago'},
-  {forn:'Auto Peças Silva',cat:'pecas',ref:'NF-22100',valor:640,venc:'2025-02-25',placa:'ABC-1234',status:'Pago'},
-  {forn:'Folha Pagamento',cat:'pessoal',ref:'FEV/2025',valor:18500,venc:'2025-02-05',placa:'-',status:'Pago'},
-];
+const DADOS_FIN=[];
 
 let CH={};
 function dc(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
@@ -3470,12 +3361,12 @@ function saidaProdutoChanged(){
 
 // ======================== SUPABASE ========================
 
+// ======================== SUPABASE ========================
+
 const SUPA_URL = 'https://oevzvetthuvnawjuhfeq.supabase.co';
 const SUPA_KEY = 'sb_publishable_rsY8opUVpHRekTRFTKoKiw_EVfBr_rM';
 const { createClient } = supabase;
 const supa = createClient(SUPA_URL, SUPA_KEY);
-
-let usuarioLogado = null;
 
 // ======================== LOGIN / LOGOUT ========================
 
@@ -3543,6 +3434,128 @@ async function doLogout(){
   document.getElementById('screen-dashboard').classList.add('active');
 }
 
+// ======================== PERSISTÊNCIA SUPABASE (PRODUÇÃO) ========================
+const TRANSGEST_STATE_ID = 'default';
+let _stateLoaded = false;
+let _savingState = false;
+
+function getAppState(){
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    Fornecedores, OCs, NFs, Titulos, Produtos, Estoque, Saidas, Frota,
+    EPIEstoque, EPIEntregas, Colaboradores, Usuarios, Faturamentos,
+    counters: { nextFornId, nextProdId, nextIdColab, nextIdUser, nextFatId, nextId }
+  };
+}
+
+function applyAppState(state){
+  state = state || {};
+  Fornecedores = Array.isArray(state.Fornecedores) ? state.Fornecedores : [];
+  OCs = Array.isArray(state.OCs) ? state.OCs : [];
+  NFs = Array.isArray(state.NFs) ? state.NFs : [];
+  Titulos = Array.isArray(state.Titulos) ? state.Titulos : [];
+  Produtos = Array.isArray(state.Produtos) ? state.Produtos : [];
+  Estoque = Array.isArray(state.Estoque) ? state.Estoque : [];
+  Saidas = Array.isArray(state.Saidas) ? state.Saidas : [];
+  Frota = Array.isArray(state.Frota) ? state.Frota : [];
+  EPIEstoque = Array.isArray(state.EPIEstoque) ? state.EPIEstoque : [];
+  EPIEntregas = Array.isArray(state.EPIEntregas) ? state.EPIEntregas : [];
+  Colaboradores = Array.isArray(state.Colaboradores) ? state.Colaboradores : [];
+  Usuarios = Array.isArray(state.Usuarios) ? state.Usuarios : [];
+  Faturamentos = Array.isArray(state.Faturamentos) ? state.Faturamentos : [];
+
+  const c = state.counters || {};
+  nextFornId = c.nextFornId || proximoId(Fornecedores);
+  nextProdId = c.nextProdId || proximoId(Produtos);
+  nextIdColab = c.nextIdColab || proximoId(Colaboradores);
+  nextIdUser = c.nextIdUser || proximoId(Usuarios);
+  nextFatId = c.nextFatId || proximoId(Faturamentos);
+  nextId = c.nextId || {
+    oc: proximoId(OCs), nf: proximoId(NFs), tit: proximoId(Titulos),
+    est: proximoId(Estoque), saida: proximoId(Saidas), frota: proximoId(Frota),
+    episaida: proximoId(EPIEntregas), epient: proximoId(EPIEstoque)
+  };
+}
+
+function proximoId(lista){
+  const maior = (lista || []).reduce((m, item) => Math.max(m, Number(item.id) || 0), 0);
+  return maior + 1;
+}
+
+async function loadAppState(){
+  const { data, error } = await supa
+    .from('transgest_state')
+    .select('state')
+    .eq('id', TRANSGEST_STATE_ID)
+    .maybeSingle();
+
+  if(error){
+    toast('Erro ao carregar dados do Supabase: ' + error.message, 'error');
+    console.error(error);
+    return false;
+  }
+
+  applyAppState(data && data.state ? data.state : {});
+  _stateLoaded = true;
+  populateSelects();
+  return true;
+}
+
+async function saveAppState(silent=false){
+  if(!_stateLoaded || _savingState) return;
+  _savingState = true;
+  const payload = getAppState();
+  const { error } = await supa
+    .from('transgest_state')
+    .upsert({ id: TRANSGEST_STATE_ID, state: payload, updated_at: new Date().toISOString() });
+  _savingState = false;
+
+  if(error){
+    toast('Erro ao salvar no Supabase: ' + error.message, 'error');
+    console.error(error);
+    return false;
+  }
+  if(!silent) toast('Salvo no Supabase com garantia ✅');
+  return true;
+}
+
+function salvarDepois(fnName){
+  const original = window[fnName];
+  if(typeof original !== 'function') return;
+  window[fnName] = async function(...args){
+    const ret = original.apply(this, args);
+    if(ret && typeof ret.then === 'function') await ret;
+    await saveAppState(true);
+    return ret;
+  };
+}
+
+[
+  'salvarOC','salvarNF','salvarTitulo','salvarSaida','salvarFrota',
+  'salvarEPIEntrada','salvarEPISaida','salvarColab','salvarUsuario',
+  'salvarFornecedor','salvarProduto','salvarFaturamento','salvarNFRapida',
+  'marcarPago'
+].forEach(salvarDepois);
+
+const _confirmDeleteOriginal = confirmDelete;
+confirmDelete = function(msg, detail, fn){
+  return _confirmDeleteOriginal(msg, detail, async function(){
+    const ret = fn && fn();
+    if(ret && typeof ret.then === 'function') await ret;
+    await saveAppState(true);
+  });
+};
+
+const _doLoginOriginal = doLogin;
+doLogin = async function(){
+  await _doLoginOriginal();
+  if(usuarioLogado){
+    await loadAppState();
+    renderAll();
+  }
+};
+
 // Verifica se já há sessão ativa ao carregar a página
 supa.auth.getSession().then(({ data: { session } }) => {
   if(session){
@@ -3560,7 +3573,7 @@ supa.auth.getSession().then(({ data: { session } }) => {
 
     document.getElementById('login-wrap').style.display = 'none';
     document.getElementById('app-wrap').style.display = 'flex';
-    renderAll();
+    loadAppState().then(() => renderAll());
   }
 });
 
