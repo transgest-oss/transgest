@@ -79,6 +79,25 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
 .action-btns{display:flex;gap:5px;flex-wrap:nowrap}
 .tr-cancelada td{opacity:.68;text-decoration:none;background:rgba(200,32,58,.035)!important}
 .btn-muted{background:rgba(0,0,0,.06);color:var(--text2);border:1px solid var(--border2)}
+.oc-visual-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px 0;flex-wrap:wrap}
+.oc-filter-tabs{display:flex;gap:4px;background:#FFFFFF;border:1px solid var(--border);border-radius:12px;padding:4px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.oc-filter-tab{border:none;background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;border-radius:9px;padding:7px 12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.oc-filter-tab:hover{background:#F0F4F8;color:var(--text)}
+.oc-filter-tab.on{background:rgba(0,149,122,.12);color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.oc-filter-tab.danger.on{background:rgba(200,32,58,.10);color:var(--red)}
+.oc-legend{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--text3);flex-wrap:wrap}
+.oc-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+.oc-dot.green{background:var(--accent)}
+.oc-dot.red{background:var(--red)}
+.oc-status-card{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;border:1px solid transparent}
+.oc-status-card.ativa{background:rgba(0,149,122,.10);color:#006B57;border-color:rgba(0,149,122,.26)}
+.oc-status-card.cancelada{background:rgba(200,32,58,.10);color:var(--red);border-color:rgba(200,32,58,.30)}
+.oc-num-wrap{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.oc-cancel-tag{font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:2px 6px;background:rgba(200,32,58,.10);color:var(--red);border:1px solid rgba(200,32,58,.22);font-weight:700}
+.oc-motivo{font-size:10.5px;color:var(--red);margin-top:3px;line-height:1.25;max-width:260px;white-space:normal}
+.tr-cancelada td{opacity:.76;text-decoration:none;background:rgba(200,32,58,.045)!important}
+.tr-cancelada:hover td{background:rgba(200,32,58,.075)!important}
+.oc-card-mobile-hint{font-size:11px;color:var(--text3)}
 
 /* TABLE */
 .table-wrap{background:#FFFFFF;border:1px solid var(--border);border-radius:12px;overflow:auto;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
@@ -331,8 +350,20 @@ textarea{resize:vertical;min-height:65px}
 
 
       </div>
+      <div class="oc-visual-toolbar">
+        <div class="oc-filter-tabs" aria-label="Filtro de status das OCs">
+          <button class="oc-filter-tab on" id="oc-filter-todas" onclick="setFiltroOC('todas')">Todas</button>
+          <button class="oc-filter-tab" id="oc-filter-ativas" onclick="setFiltroOC('ativas')">Ativas</button>
+          <button class="oc-filter-tab danger" id="oc-filter-canceladas" onclick="setFiltroOC('canceladas')">Canceladas</button>
+        </div>
+        <div class="oc-legend">
+          <span><span class="oc-dot green"></span>Ativa</span>
+          <span><span class="oc-dot red"></span>Cancelada</span>
+          <span class="oc-card-mobile-hint">Linhas canceladas ficam destacadas e sem edição.</span>
+        </div>
+      </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Nº OC</th><th>Data</th><th>Fornecedor</th><th>Placa(s)</th><th>Tipo</th><th>Valor</th><th>NF</th><th style="width:120px">Ações</th></tr></thead>
+        <thead><tr><th>Nº OC</th><th>Data</th><th>Fornecedor</th><th>Placa(s)</th><th>Tipo</th><th>Valor</th><th>Status</th><th>NF</th><th style="width:170px">Ações</th></tr></thead>
         <tbody id="tb-oc"></tbody>
       </table></div>
     </div>
@@ -1424,6 +1455,7 @@ let Colaboradores = [];
 let Usuarios = [];
 let Faturamentos = [];
 let HistoricoOC = [];
+let filtroOCAtual = 'todas';
 
 let nextFornId = 1;
 let nextProdId = 1;
@@ -2593,29 +2625,61 @@ function renderDashboard(){
   $('tb-dash-venc').innerHTML=dv||'<tr><td colspan="4" class="empty">Sem vencimentos</td></tr>';
 }
 
+function setFiltroOC(filtro){
+  filtroOCAtual = filtro || 'todas';
+  ['todas','ativas','canceladas'].forEach(f=>{
+    const el=$('oc-filter-'+f);
+    if(el) el.classList.toggle('on', filtroOCAtual===f);
+  });
+  renderOC();
+}
+
+function badgeStatusOC(cancelada){
+  return cancelada
+    ? '<span class="oc-status-card cancelada">🚫 Cancelada</span>'
+    : '<span class="oc-status-card ativa">● Ativa</span>';
+}
+
 function renderOC(){
   const ativas = OCs.filter(o=>o.status!=='Cancelada').length;
   const canceladas = OCs.length - ativas;
-  $('oc-count').textContent = canceladas ? `${ativas} ativas / ${OCs.length} total` : OCs.length;
-  $('tb-oc').innerHTML=OCs.length?OCs.map(o=>{
-    if(!o.status) o.status='Ativa';
+  $('oc-count').textContent = canceladas ? `${ativas} ativas / ${canceladas} canceladas / ${OCs.length} total` : OCs.length;
+
+  ['todas','ativas','canceladas'].forEach(f=>{
+    const el=$('oc-filter-'+f);
+    if(el) el.classList.toggle('on', filtroOCAtual===f);
+  });
+
+  let lista = OCs.map(o=>{ if(!o.status) o.status='Ativa'; return o; });
+  if(filtroOCAtual==='ativas') lista = lista.filter(o=>o.status!=='Cancelada');
+  if(filtroOCAtual==='canceladas') lista = lista.filter(o=>o.status==='Cancelada');
+
+  const vazio = filtroOCAtual==='ativas'
+    ? 'Nenhuma OC ativa encontrada'
+    : filtroOCAtual==='canceladas'
+      ? 'Nenhuma OC cancelada encontrada'
+      : 'Nenhuma OC cadastrada';
+
+  $('tb-oc').innerHTML=lista.length?lista.map(o=>{
     const cancelada = o.status === 'Cancelada';
     const rBadge = o.isRateio ? `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(167,139,250,.14);color:var(--purple);border:1px solid rgba(167,139,250,.25);margin-left:4px">🔀 ${o.rateio.length} caminhões</span>` : '';
-    const motivo = cancelada && o.motivoCancelamento ? `<div style="font-size:10px;color:var(--red);margin-top:2px">Motivo: ${o.motivoCancelamento}</div>` : '';
+    const motivo = cancelada && o.motivoCancelamento ? `<div class="oc-motivo">Motivo: ${o.motivoCancelamento}</div>` : '';
+    const num = `<div class="oc-num-wrap"><span>${o.num}</span>${cancelada?'<span class="oc-cancel-tag">Cancelada</span>':''}</div>`;
     const botoes = cancelada
       ? `<button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button><button class="btn btn-muted btn-sm" onclick="verHistoricoOC(${o.id})">🕘 Histórico</button>`
       : `<button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button><button class="btn btn-edit btn-sm" onclick="editarOC(${o.id})">✏️</button><button class="btn btn-amber btn-sm" onclick="cancelarOC(${o.id})">🚫 Cancelar</button><button class="btn btn-muted btn-sm" onclick="verHistoricoOC(${o.id})">🕘</button>`;
-    return `<tr class="${cancelada?'tr-cancelada':''}">
-    <td class="mono" style="color:var(--accent2);font-size:11px">${o.num}</td>
+    return `<tr class="${cancelada?'tr-cancelada':''}" data-status="${cancelada?'cancelada':'ativa'}">
+    <td class="mono" style="color:var(--accent2);font-size:11px">${num}</td>
     <td style="font-size:11px">${o.data}</td>
-    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.forn}">${o.forn}${motivo}</td>
+    <td style="max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.forn}">${o.forn}${motivo}</td>
     <td class="mono" style="font-size:11px">${o.placas}${rBadge}</td>
     <td>${chip(o.tipo,'cgr')}</td>
     <td class="mono">${fmt(o.valor)}</td>
+    <td>${badgeStatusOC(cancelada)}</td>
     <td>${chipS(cancelada ? 'Cancelada' : o.nf)}</td>
     <td><div class="action-btns">${botoes}</div></td>
   </tr>`;
-  }).join(''):'<tr><td colspan="8" class="empty">Nenhuma OC cadastrada</td></tr>';
+  }).join(''):`<tr><td colspan="9" class="empty">${vazio}</td></tr>`;
 }
 
 function renderNF(){
