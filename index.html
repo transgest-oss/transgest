@@ -2494,32 +2494,24 @@ function renderDashboard(){
     $('dash-alert-bar').style.display='none';
   }
 
-  // Insights rápidos operacionais (mês atual)
-  // Agora focado no que mais ajuda a operação: volume de OCs, placa mais demandante e pendências.
-  const ocsValidas = OCs.filter(o => o && o.num);
-  const ocsMes = ocsValidas.filter(o => mesmoMesAtual(o.data));
-  const ocsBaseInsight = ocsMes;
-  const periodoInsight = 'no mês';
+  // Insights rápidos operacionais de OCs (mês atual)
+  const ocsMes = OCs.filter(o => mesmoMesAtual(o.data));
+  const totalOCsMes = ocsMes.length;
+  const valorOCsMes = ocsMes.reduce((acc,o)=>acc+(Number(o.valor)||0),0);
+  const ocsPendentesNF = OCs.filter(o => o.nf !== 'Recebida');
 
-  const placasDaOC = (o) => {
-    if(o && o.isRateio && Array.isArray(o.rateio) && o.rateio.length){
-      return [...new Set(o.rateio.map(r => r.placa).filter(p => p && p !== '-'))];
-    }
-    return String(o.placas || '')
-      .split('/')
-      .map(p => p.trim())
-      .filter(p => p && p !== '-');
-  };
-
-  const contagemPorPlaca = {};
-  ocsBaseInsight.forEach(o => {
-    placasDaOC(o).forEach(placa => {
-      contagemPorPlaca[placa] = (contagemPorPlaca[placa] || 0) + 1;
+  const placaMap = {};
+  ocsMes.forEach(o => {
+    const placas = o.isRateio && Array.isArray(o.rateio)
+      ? o.rateio.map(r => r.placa)
+      : String(o.placas || '').split(',');
+    placas.forEach(p => {
+      const placa = String(p || '').trim();
+      if(!placa || placa === '-' || placa.toLowerCase() === 'nenhuma') return;
+      placaMap[placa] = (placaMap[placa] || 0) + 1;
     });
   });
-  const placaMaisOC = Object.entries(contagemPorPlaca).sort((a,b)=>b[1]-a[1])[0] || null;
-  const valorOCsMes = ocsBaseInsight.reduce((acc,o)=>acc+(Number(o.valor)||0),0);
-  const ocsPendentesMes = ocsBaseInsight.filter(o=>o.nf==='Pendente'||o.nf==='Parcialmente Recebida').length;
+  const topPlacaOC = Object.entries(placaMap).sort((a,b)=>b[1]-a[1])[0] || null;
 
   const safeAttr = v => String(v || '-').replace(/"/g,'&quot;');
   const insightCard = (icone, titulo, valor, sub, cor) => `
@@ -2532,10 +2524,10 @@ function renderDashboard(){
   const insightsEl = $('dash-insights');
   if(insightsEl){
     insightsEl.innerHTML =
-      insightCard('📄','OCs emitidas no mês', String(ocsMes.length), ocsMes.length===1?'1 ordem emitida no mês':`${ocsMes.length} ordens emitidas no mês`, 'var(--accent2)') +
-      insightCard('🚚','Placa que mais abriu OC', placaMaisOC ? placaMaisOC[0] : '-', placaMaisOC ? `${placaMaisOC[1]} OC${placaMaisOC[1]!==1?'s':''} ${periodoInsight}` : 'Sem OCs com placa no mês', 'var(--amber)') +
-      insightCard('💰','Valor total das OCs', ocsMes.length ? fmt(valorOCsMes) : '-', ocsMes.length ? `Somatório das OCs ${periodoInsight}` : 'Sem OCs emitidas no mês', 'var(--accent)') +
-      insightCard('⚠️','OCs pendentes de NF', String(ocsPendentesMes), ocsPendentesMes===1?'1 OC aguardando NF no mês':`${ocsPendentesMes} OCs aguardando NF no mês`, 'var(--red)');
+      insightCard('📄','OCs emitidas no mês', totalOCsMes, totalOCsMes === 1 ? '1 ordem emitida no mês atual' : `${totalOCsMes} ordens emitidas no mês atual`, 'var(--accent2)') +
+      insightCard('🚚','Placa que mais abriu OC', topPlacaOC ? topPlacaOC[0] : '-', topPlacaOC ? `${topPlacaOC[1]} OC${topPlacaOC[1]!==1?'s':''} no mês atual` : 'Sem OCs por placa no mês', 'var(--amber)') +
+      insightCard('💰','Valor total das OCs no mês', fmt(valorOCsMes), totalOCsMes ? `Somando ${totalOCsMes} OC${totalOCsMes!==1?'s':''}` : 'Sem OCs emitidas no mês', 'var(--accent)') +
+      insightCard('⚠️','OCs pendentes de NF', ocsPendentesNF.length, ocsPendentesNF.length === 1 ? '1 OC aguardando NF' : `${ocsPendentesNF.length} OCs aguardando NF`, 'var(--red)');
   }
 
   let df='';
