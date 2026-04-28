@@ -2494,27 +2494,32 @@ function renderDashboard(){
     $('dash-alert-bar').style.display='none';
   }
 
-  // Insights rápidos do financeiro/frota (mês atual; se não houver dados no mês, usa todo o histórico)
-  const titulosValidos = Titulos.filter(t => t.status !== 'Cancelado');
-  let titulosInsight = titulosValidos.filter(t => mesmoMesAtual(t.venc));
-  const periodoInsight = titulosInsight.length ? 'no mês' : 'geral';
-  if(!titulosInsight.length) titulosInsight = titulosValidos;
+  // Insights rápidos operacionais (mês atual)
+  // Agora focado no que mais ajuda a operação: volume de OCs, placa mais demandante e pendências.
+  const ocsValidas = OCs.filter(o => o && o.num);
+  const ocsMes = ocsValidas.filter(o => mesmoMesAtual(o.data));
+  const ocsBaseInsight = ocsMes;
+  const periodoInsight = 'no mês';
 
-  const topPor = (arr, campo, labelFn) => {
-    const mapa = {};
-    arr.forEach(t => {
-      const chave = labelFn ? labelFn(t) : (t[campo] || 'Não informado');
-      if(!chave || chave === '-') return;
-      mapa[chave] = (mapa[chave] || 0) + (Number(t.valor) || 0);
-    });
-    return Object.entries(mapa).sort((a,b)=>b[1]-a[1])[0] || null;
+  const placasDaOC = (o) => {
+    if(o && o.isRateio && Array.isArray(o.rateio) && o.rateio.length){
+      return [...new Set(o.rateio.map(r => r.placa).filter(p => p && p !== '-'))];
+    }
+    return String(o.placas || '')
+      .split('/')
+      .map(p => p.trim())
+      .filter(p => p && p !== '-');
   };
-  const topFornecedor = topPor(titulosInsight, 'forn');
-  const topPlaca = topPor(titulosInsight, 'placa');
-  const topCategoria = topPor(titulosInsight, 'cat', t => CL[t.cat] || t.cat || 'Não informado');
-  const maiorPendente = [...Titulos]
-    .filter(t => t.status === 'Pendente')
-    .sort((a,b)=>(Number(b.valor)||0)-(Number(a.valor)||0))[0] || null;
+
+  const contagemPorPlaca = {};
+  ocsBaseInsight.forEach(o => {
+    placasDaOC(o).forEach(placa => {
+      contagemPorPlaca[placa] = (contagemPorPlaca[placa] || 0) + 1;
+    });
+  });
+  const placaMaisOC = Object.entries(contagemPorPlaca).sort((a,b)=>b[1]-a[1])[0] || null;
+  const valorOCsMes = ocsBaseInsight.reduce((acc,o)=>acc+(Number(o.valor)||0),0);
+  const ocsPendentesMes = ocsBaseInsight.filter(o=>o.nf==='Pendente'||o.nf==='Parcialmente Recebida').length;
 
   const safeAttr = v => String(v || '-').replace(/"/g,'&quot;');
   const insightCard = (icone, titulo, valor, sub, cor) => `
@@ -2527,10 +2532,10 @@ function renderDashboard(){
   const insightsEl = $('dash-insights');
   if(insightsEl){
     insightsEl.innerHTML =
-      insightCard('🏢','Maior fornecedor', topFornecedor ? topFornecedor[0] : '-', topFornecedor ? `${fmt(topFornecedor[1])} ${periodoInsight}` : 'Sem títulos lançados', 'var(--accent2)') +
-      insightCard('🚚','Placa mais cara', topPlaca ? topPlaca[0] : '-', topPlaca ? `${fmt(topPlaca[1])} ${periodoInsight}` : 'Sem gasto por placa', 'var(--amber)') +
-      insightCard('🏷️','Categoria líder', topCategoria ? topCategoria[0] : '-', topCategoria ? `${fmt(topCategoria[1])} ${periodoInsight}` : 'Sem categorias lançadas', 'var(--purple)') +
-      insightCard('⚠️','Maior pendente', maiorPendente ? fmt(maiorPendente.valor) : '-', maiorPendente ? `${maiorPendente.forn || 'Fornecedor'} • vence ${formatarDataBR(maiorPendente.venc)}` : 'Nenhuma pendência', 'var(--red)');
+      insightCard('📄','OCs emitidas no mês', String(ocsMes.length), ocsMes.length===1?'1 ordem emitida no mês':`${ocsMes.length} ordens emitidas no mês`, 'var(--accent2)') +
+      insightCard('🚚','Placa que mais abriu OC', placaMaisOC ? placaMaisOC[0] : '-', placaMaisOC ? `${placaMaisOC[1]} OC${placaMaisOC[1]!==1?'s':''} ${periodoInsight}` : 'Sem OCs com placa no mês', 'var(--amber)') +
+      insightCard('💰','Valor total das OCs', ocsMes.length ? fmt(valorOCsMes) : '-', ocsMes.length ? `Somatório das OCs ${periodoInsight}` : 'Sem OCs emitidas no mês', 'var(--accent)') +
+      insightCard('⚠️','OCs pendentes de NF', String(ocsPendentesMes), ocsPendentesMes===1?'1 OC aguardando NF no mês':`${ocsPendentesMes} OCs aguardando NF no mês`, 'var(--red)');
   }
 
   let df='';
