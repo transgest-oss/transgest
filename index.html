@@ -3389,241 +3389,121 @@ function gerarPDFOC(id){
   const { jsPDF } = window.jspdf || {};
   if(!jsPDF){ toast('Biblioteca PDF não carregou. Atualize a página.','error'); return; }
 
-  // A5 retrato: 148mm x 210mm
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
-  const W = 148, M = 5;
+  // A5 horizontal: 210mm x 148mm
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a5' });
+  const W = 210, H = 148, M = 5;
+  const verde = [20,55,34], ouro = [170,125,42], vinho = [120,26,22];
 
-  // ── Fundo branco ──
-  doc.setFillColor(255,255,255);
-  doc.rect(0,0,W,210,'F');
-
-  // ── Linha verde topo ──
-  doc.setFillColor(26,71,42);
-  doc.rect(0,0,W,1.5,'F');
-
-  // ── Logo AJBAM (sem imagem - texto estilizado) ──
-  doc.setFillColor(26,71,42);
-  doc.roundedRect(M, 3, 32, 14, 1.5, 1.5, 'F');
-  doc.setTextColor(180,140,40);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(11);
-  doc.text('AJBAM', M+16, 10, {align:'center'});
-  doc.setTextColor(220,200,170);
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(4);
-  doc.text('SOLUÇÕES EM TRANSPORTES', M+16, 14, {align:'center'});
-
-  // ── Dados empresa ──
-  const ex = 42;
-  doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(25,25,25);
-  doc.text('AJBAM SOLUÇÕES EM TRANSPORTES LTDA', ex, 7);
-  doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(60,60,60);
-  doc.text('BR 282, KM 356', ex, 10.5);
-  doc.text('Campos Novos - SC  89620-000', ex, 13.5);
-  doc.text('Contato: (49) 99834-8264', ex, 16.5);
-
-  // ── Caixa ORDEM DE COMPRA ──
-  doc.setFillColor(26,71,42);
-  doc.roundedRect(100, 3, 40, 9, 1, 1, 'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
-  doc.text('ORDEM DE COMPRA', 120, 8.5, {align:'center'});
-  // Badge OC
-  doc.setFillColor(0,100,0);
-  doc.roundedRect(137, 3, 8, 9, 0.5, 0.5, 'F');
-  doc.setTextColor(255,255,255); doc.setFontSize(5.5);
-  doc.text('OC', 141, 8.5, {align:'center'});
-
-  // ── Número OC ──
-  doc.setDrawColor(200,200,200); doc.setLineWidth(0.3);
-  doc.roundedRect(100, 14, 45, 6.5, 0.8, 0.8, 'D');
-  doc.setTextColor(80,80,80); doc.setFont('helvetica','normal'); doc.setFontSize(5);
-  doc.text('N°', 103, 18);
-  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(26,71,42);
-  doc.text(String(o.num||''), 122.5, 18.5, {align:'center'});
-
-  // ── Data / Página ──
-  doc.setDrawColor(200,200,200); doc.setLineWidth(0.25);
-  doc.roundedRect(100, 22, 45, 5.5, 0.8, 0.8, 'D');
-  doc.setFont('helvetica','normal'); doc.setFontSize(4.5); doc.setTextColor(100,100,100);
-  doc.text('DATA DE EMISSÃO', 102, 25.5);
-  doc.setTextColor(30,30,30); doc.setFontSize(5.5);
-  doc.text(formatarDataBR(o.data||new Date().toISOString().slice(0,10)), 120, 25.5, {align:'center'});
-  doc.setTextColor(100,100,100); doc.setFontSize(4.5);
-  doc.text('PÁGINA', 135, 25.5);
-  doc.setTextColor(30,30,30); doc.setFontSize(5.5);
-  doc.text('1/1', 144, 25.5, {align:'right'});
-
-  // ── Linha divisória ──
-  doc.setDrawColor(26,71,42); doc.setLineWidth(0.5);
-  doc.line(M, 30, W-M, 30);
-
-  // ── FORNECEDOR ──
-  let y = 32;
-  doc.setDrawColor(180,180,180); doc.setLineWidth(0.25);
-  doc.roundedRect(M, y, 65, 33, 1, 1, 'D');
-  doc.setFillColor(26,71,42);
-  doc.roundedRect(M, y, 65, 5.5, 1, 1, 'F'); doc.rect(M, y+2.5, 65, 3, 'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(5.5);
-  doc.text('FORNECEDOR', M+2.5, y+3.8);
-
-  const forn = (typeof Fornecedores !== 'undefined' ? Fornecedores : []).find(f=>f.nome===o.forn)||{};
-  const dlb = (lbl,val,rx,ry) => {
-    doc.setFont('helvetica','bold'); doc.setFontSize(4.8); doc.setTextColor(70,70,70);
-    doc.text(lbl+':', rx, ry);
-    doc.setFont('helvetica','normal'); doc.setTextColor(25,25,25); doc.setFontSize(5);
-    const t = doc.splitTextToSize(String(val||'-'), 42);
-    doc.text(t[0], rx+18, ry);
+  const txt = v => String(v || '').trim() || '-';
+  const dataBR = v => (typeof formatarDataBR === 'function' ? formatarDataBR(v) : txt(v));
+  const moeda = v => (typeof fmt === 'function' ? fmt(Number(v)||0) : ('R$ ' + (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2})));
+  const oneLine = (s, max) => {
+    s = txt(s);
+    return s.length > max ? s.slice(0, max - 3) + '...' : s;
   };
-  dlb('Nome/Razão Social', o.forn||'-',       M+2, y+10);
-  dlb('CNPJ',             forn.cnpj||'-',    M+2, y+15);
-  dlb('Endereço',         forn.endereco||'-', M+2, y+20);
-  dlb('Telefone',         forn.telefone||'-', M+2, y+25);
-  dlb('E-mail',           forn.email||'-',   M+2, y+30);
 
-  // ── ENTREGA ──
-  doc.setDrawColor(180,180,180); doc.setLineWidth(0.25);
-  doc.roundedRect(73, y, 70, 33, 1, 1, 'D');
-  doc.setFillColor(26,71,42);
-  doc.roundedRect(73, y, 70, 5.5, 1, 1, 'F'); doc.rect(73, y+2.5, 70, 3, 'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(5.5);
-  doc.text('ENTREGA', 76, y+3.8);
-  doc.setFont('helvetica','bold'); doc.setFontSize(5.5); doc.setTextColor(25,25,25);
-  doc.text('AJBAM SOLUÇÕES EM TRANSPORTES LTDA', 75, y+10);
-  doc.setFont('helvetica','normal'); doc.setFontSize(5.5);
-  doc.text('BR 282, KM 356', 75, y+14.5);
-  doc.text('Campos Novos - SC  89620-000', 75, y+18.5);
-  doc.setFont('helvetica','bold'); doc.text('Contato:', 75, y+23);
-  doc.setFont('helvetica','normal'); doc.text(' (49) 99834-8264', 87, y+23);
+  doc.setFillColor(255,255,255);
+  doc.rect(0,0,W,H,'F');
 
-  // ── CONDIÇÕES ──
-  y = 67;
-  doc.setDrawColor(180,180,180); doc.setLineWidth(0.25);
-  doc.roundedRect(M, y, 138, 14, 1, 1, 'D');
-  const cols = ['CONDIÇÃO DE\nPAGAMENTO','FRETE','MOEDA','EMISSOR','TIPO DE\nCOMPRA'];
-  const vals = [o.cond||'28 DDL', o.frete||'CIF', o.moeda||'R$', o.emissor||'Administrativo', o.tipoCompra||'Material'];
-  const cw = 138/5;
-  cols.forEach((lbl,i) => {
-    const cx2 = M + cw*i + cw/2;
-    if(i>0){ doc.setDrawColor(200,200,200); doc.setLineWidth(0.15); doc.line(M+cw*i, y, M+cw*i, y+14); }
-    doc.setFont('helvetica','bold'); doc.setFontSize(4.5); doc.setTextColor(80,80,80);
-    const pts = lbl.split('\n');
-    if(pts.length===2){ doc.text(pts[0],cx2,y+4.5,{align:'center'}); doc.text(pts[1],cx2,y+7.5,{align:'center'}); }
-    else { doc.text(lbl,cx2,y+6,{align:'center'}); }
-    doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(25,25,25);
-    doc.text(String(vals[i]),cx2,y+11.5,{align:'center'});
-  });
+  // Borda externa dourada arredondada
+  doc.setDrawColor(...ouro);
+  doc.setLineWidth(0.45);
+  doc.roundedRect(3,3,W-6,H-6,3,3,'D');
 
-  // ── TABELA ITENS ──
-  y = 84;
-  const cws = [8,16,51,11,12,18,18];
-  const hdrs = ['ITEM','CÓDIGO','DESCRIÇÃO DO PRODUTO / SERVIÇO','UNID.','QUANT.','VALOR UNIT. (R$)','VALOR TOTAL (R$)'];
-  // Cabeçalho
-  doc.setFillColor(26,71,42);
-  doc.roundedRect(M,y,134,5.5,0.8,0.8,'F'); doc.rect(M,y+2.5,134,3,'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(4.5);
-  let lx = M;
-  hdrs.forEach((h,i) => { doc.text(h, lx+cws[i]/2, y+3.5, {align:'center'}); lx+=cws[i]; });
-  // linhas verticais cabeçalho
-  lx = M; doc.setDrawColor(255,255,255); doc.setLineWidth(0.15);
-  cws.forEach((w,i) => { lx+=w; if(i<cws.length-1) doc.line(lx,y,lx,y+5.5); });
-
-  const itens = Array.isArray(o.itens) ? o.itens : [];
-  let ry2 = y+5.5; const rh = 9;
-  if(!itens.length){
-    doc.setFillColor(250,250,250); doc.rect(M,ry2,134,rh,'F');
-    doc.setDrawColor(220,220,220); doc.setLineWidth(0.2); doc.rect(M,ry2,134,rh,'D');
-    doc.setTextColor(160,160,160); doc.setFontSize(5.5); doc.setFont('helvetica','normal');
-    doc.text('Nenhum item cadastrado', M+67, ry2+5.5, {align:'center'});
-    ry2 += rh;
+  // Logo real da tela
+  const logoEl = document.querySelector('.logo-img');
+  const logoSrc = logoEl ? logoEl.src : '';
+  if(logoSrc){
+    try { doc.addImage(logoSrc, 'JPEG', 8, 8, 100, 23); }
+    catch(e){ try { doc.addImage(logoSrc, 'PNG', 8, 8, 100, 23); } catch(e2){} }
   } else {
-    itens.forEach((it,idx) => {
-      const bg = idx%2===0 ? [255,255,255] : [248,250,248];
-      doc.setFillColor(...bg); doc.rect(M,ry2,134,rh,'F');
-      doc.setDrawColor(220,220,220); doc.setLineWidth(0.2); doc.rect(M,ry2,134,rh,'D');
-      doc.setTextColor(25,25,25); doc.setFont('helvetica','normal'); doc.setFontSize(5.5);
-      const vs = [
-        String(idx+1),
-        String(it.codigo||it.cod||'-'),
-        String(it.desc||it.descricao||'-'),
-        String(it.unid||'UN'),
-        String(it.quant||it.qtd||'1'),
-        fmt(it.vunit||it.valorUnit||0),
-        fmt(it.vtotal||it.valorTotal||Number(it.quant||1)*Number(it.vunit||0))
-      ];
-      let vx = M;
-      vs.forEach((v,vi) => {
-        const t = doc.splitTextToSize(v, cws[vi]-1.5);
-        doc.text(t[0]||'', vx+cws[vi]/2, ry2+rh/2+1, {align:'center'});
-        vx += cws[vi];
-      });
-      lx = M;
-      cws.forEach((w,i) => { lx+=w; if(i<cws.length-1){ doc.setDrawColor(220,220,220); doc.line(lx,ry2,lx,ry2+rh); } });
-      ry2 += rh;
-    });
+    doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(...vinho);
+    doc.text('AJBAM', 50, 21, {align:'center'});
+    doc.setFontSize(6); doc.setTextColor(80,80,80);
+    doc.text('SOLUÇÕES EM TRANSPORTES', 50, 28, {align:'center'});
   }
 
-  // ── OBS + RESUMO ──
-  const obsY = ry2+2; const obsH = 28; const resX = M+78;
-  doc.setDrawColor(200,200,200); doc.setLineWidth(0.25);
-  doc.roundedRect(M,obsY,75,obsH,1,1,'D');
-  doc.setFont('helvetica','bold'); doc.setFontSize(5); doc.setTextColor(25,25,25);
-  doc.text('OBSERVAÇÕES / INFORMAÇÕES COMPLEMENTARES', M+2, obsY+4.5);
-  const obsLines = [
-    '• Constar no DANFE o número desta Ordem de Compra.',
-    '• Enviar arquivo XML do DANFE para:',
-    '  ajbamtransportes@gmail.com',
-    '• Em caso de dúvidas, contato com o setor Administrativo.'
-  ];
-  obsLines.forEach((ln,i) => {
-    if(ln.includes('ajbam')){ doc.setTextColor(0,80,200); } else { doc.setTextColor(60,60,60); }
-    doc.setFont('helvetica','normal'); doc.setFontSize(4.8);
-    doc.text(ln, M+2, obsY+9+i*5);
-  });
+  // Título à direita
+  doc.setDrawColor(...ouro); doc.setLineWidth(0.8);
+  doc.line(123,13,198,13); doc.line(123,29,198,29);
+  doc.setTextColor(...verde); doc.setFont('helvetica','bold'); doc.setFontSize(19);
+  doc.text('ORDEM DE COMPRA', 160.5, 24, {align:'center'});
 
-  // Resumo financeiro
-  doc.setDrawColor(200,200,200); doc.setLineWidth(0.25);
-  doc.roundedRect(resX,obsY,67,obsH,1,1,'D');
-  doc.setFillColor(26,71,42);
-  doc.roundedRect(resX,obsY,67,5,1,1,'F'); doc.rect(resX,obsY+2,67,3,'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(5.5);
-  doc.text('RESUMO FINANCEIRO', resX+33.5, obsY+3.8, {align:'center'});
+  function campo(label, value, x, y, w, h, labelW){
+    doc.setDrawColor(140,140,140); doc.setLineWidth(0.25);
+    doc.roundedRect(x,y,w,h,1.2,1.2,'D');
+    doc.setFillColor(...verde);
+    doc.roundedRect(x,y,labelW,h,1.2,1.2,'F');
+    doc.rect(x+labelW-1,y,1,h,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(7);
+    doc.text(label, x+labelW/2, y+h/2+2, {align:'center'});
+    doc.setTextColor(25,25,25); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    const linhas = doc.splitTextToSize(txt(value), w-labelW-4);
+    doc.text(linhas.slice(0,2), x+labelW+3, y+h/2+2);
+  }
 
-  const sub = itens.reduce((s,it)=>s+Number(it.vtotal||it.valorTotal||0),0) || Number(o.valor||0);
-  const desc = Number(o.desconto||0);
-  const fr2  = Number(o.frete_val||0);
-  const tot  = sub - desc + fr2;
-  [['SUBTOTAL',fmt(sub)],['DESCONTOS',fmt(desc)],['FRETE',fmt(fr2)]].forEach(([lbl,val],i) => {
-    const rry = obsY+8+i*5.5;
-    doc.setFillColor(i%2===0?255:245, i%2===0?255:247, i%2===0?255:245);
-    doc.rect(resX,rry-3.5,67,5.5,'F');
-    doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(80,80,80);
-    doc.text(lbl, resX+3, rry);
-    doc.setTextColor(25,25,25);
-    doc.text(val, resX+64, rry, {align:'right'});
-  });
-  const ty = obsY+25;
-  doc.setFillColor(220,235,220); doc.rect(resX,ty-4,67,6,'F');
-  doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(26,71,42);
-  doc.text('TOTAL GERAL', resX+3, ty);
-  doc.text(fmt(tot), resX+64, ty, {align:'right'});
+  campo('NÚMERO DA ORDEM', o.num, 8, 38, 122, 8, 38);
+  campo('DATA', dataBR(o.data || new Date().toISOString().slice(0,10)), 134, 38, 64, 8, 22);
+  campo('FORNECEDOR', o.forn, 8, 49, 190, 8, 38);
+  campo('EQUIPAMENTO', o.placas || o.equipamento || o.dest || '-', 8, 60, 190, 8, 38);
 
-  // ── RODAPÉ ──
-  const footY = obsY+obsH+5;
-  doc.setDrawColor(26,71,42); doc.setLineWidth(0.4); doc.line(M,footY,W-M,footY);
-  doc.setFillColor(26,71,42); doc.circle(W/2, footY+3.5, 2, 'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(4.5);
-  doc.text('*', W/2, footY+5, {align:'center'});
-  doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(26,71,42);
-  doc.text('AJBAM SOLUÇÕES EM TRANSPORTES LTDA', W/2, footY+10, {align:'center'});
-  doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(80,80,80);
-  doc.text('Compromisso com a segurança, qualidade e pontualidade.', W/2, footY+15, {align:'center'});
+  // Tabela principal
+  const tx = 8, ty = 72, tw = 190, th = 50, valW = 51, descW = tw-valW;
+  doc.setDrawColor(110,110,110); doc.setLineWidth(0.25);
+  doc.roundedRect(tx,ty,tw,th,1.2,1.2,'D');
+  doc.setFillColor(...verde);
+  doc.roundedRect(tx,ty,tw,7,1.2,1.2,'F'); doc.rect(tx,ty+4,tw,3,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+  doc.text('DESCRIÇÃO', tx+descW/2, ty+5, {align:'center'});
+  doc.text('VALOR', tx+descW+valW/2, ty+5, {align:'center'});
+  doc.setDrawColor(120,120,120); doc.line(tx+descW,ty,tx+descW,ty+th);
 
-  // ── Salvar ──
+  const itens = Array.isArray(o.itens) && o.itens.length ? o.itens : [{desc:o.desc || o.obs || 'Ordem de compra', vtotal:o.valor}];
+  const rowH = 7;
+  let y = ty+7;
+  for(let i=0;i<6;i++){
+    doc.setDrawColor(210,210,210); doc.line(tx, y+rowH, tx+tw, y+rowH);
+    const it = itens[i];
+    if(it){
+      const descricao = it.desc || it.descricao || it.codigo || it.cod || o.desc || o.obs || '-';
+      const valor = Number(it.vtotal || it.valorTotal || it.valor || (Number(it.quant||it.qtd||1)*Number(it.vunit||it.valorUnit||0)) || (i===0 ? Number(o.valor)||0 : 0));
+      doc.setTextColor(25,25,25); doc.setFont('helvetica','normal'); doc.setFontSize(6.8);
+      doc.text(oneLine(descricao, 80), tx+3, y+4.8);
+      doc.setFont('helvetica','bold');
+      doc.text(moeda(valor), tx+tw-3, y+4.8, {align:'right'});
+    }
+    y += rowH;
+  }
+
+  // Rodapé informativo
+  const fy = 126;
+  doc.setDrawColor(...ouro); doc.setLineWidth(0.35);
+  doc.line(68,fy-4,68,fy+13); doc.line(132,fy-4,132,fy+13);
+
+  doc.setFillColor(...verde); doc.circle(17,fy+3,6,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text('✓',17,fy+5,{align:'center'});
+  doc.setTextColor(35,35,35); doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+  doc.text(['Ciente do valor já acordado na','cotação de valores.'],27,fy+1.5);
+
+  doc.setFillColor(...verde); doc.circle(82,fy+3,6,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.text('OC',82,fy+5,{align:'center'});
+  doc.setTextColor(35,35,35); doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+  doc.text(['Ordem de Compra liberada','após aprovação dos gestores.'],93,fy+1.5);
+
+  doc.setFillColor(145,25,24); doc.circle(146,fy+3,6,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text('!',146,fy+6,{align:'center'});
+  doc.setTextColor(145,25,24); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+  doc.text('INDISPENSÁVEL', 156, fy-1.5);
+  doc.setTextColor(35,35,35); doc.setFont('helvetica','normal'); doc.setFontSize(6.2);
+  doc.text(['ENVIAR A NF ACOMPANHADO','DO PIX OU BOLETO PARA:'],156,fy+4);
+  doc.setTextColor(145,25,24); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+  doc.text('ajbamtransportes@gmail.com',156,fy+14);
+
   const nomeForn = (o.forn||'SEM_FORN').replace(/[^a-zA-Z0-9\u00C0-\u00FF\s]/g,'').trim().replace(/\s+/g,'_');
   const nomePlaca = (o.placas||'-').replace(/[^a-zA-Z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
-  doc.save(`${o.num}_${nomeForn}_${nomePlaca}.pdf`);
+  doc.save(`${o.num || 'OC'}_${nomeForn}_${nomePlaca}.pdf`);
+  toast('PDF da Ordem de Compra gerado!');
 }
-
 function formatarDataBR(dataISO){
   if(!dataISO) return '-';
   const partes = String(dataISO).split('-');
