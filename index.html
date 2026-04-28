@@ -77,6 +77,8 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
 .btn-edit{background:rgba(0,112,214,.10);color:var(--accent2);border:1px solid rgba(0,112,214,.25)}
 .btn-save{background:rgba(0,149,122,.10);color:var(--accent);border:1px solid rgba(0,149,122,.28)}
 .action-btns{display:flex;gap:5px;flex-wrap:nowrap}
+.tr-cancelada td{opacity:.68;text-decoration:none;background:rgba(200,32,58,.035)!important}
+.btn-muted{background:rgba(0,0,0,.06);color:var(--text2);border:1px solid var(--border2)}
 
 /* TABLE */
 .table-wrap{background:#FFFFFF;border:1px solid var(--border);border-radius:12px;overflow:auto;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
@@ -1421,6 +1423,7 @@ let EPIEntregas = [];
 let Colaboradores = [];
 let Usuarios = [];
 let Faturamentos = [];
+let HistoricoOC = [];
 
 let nextFornId = 1;
 let nextProdId = 1;
@@ -1428,6 +1431,28 @@ let nextIdColab = 1, nextIdUser = 1;
 let nextFatId = 1;
 let nextId = {oc:1,nf:1,tit:1,est:1,saida:1,frota:1,episaida:1,epient:1};
 function newId(k){return nextId[k]++;}
+function usuarioAtualNome(){
+  return (window.usuarioLogado && (usuarioLogado.nome || usuarioLogado.email)) || 'Usuário do sistema';
+}
+function cloneSimples(obj){ return JSON.parse(JSON.stringify(obj || {})); }
+function resumoMudancasOC(antes, depois){
+  const campos = [['num','Número'],['data','Data'],['forn','Fornecedor'],['placas','Placa(s)'],['valor','Valor'],['tipo','Tipo'],['desc','Descrição'],['nf','Status NF'],['status','Status']];
+  const mudancas=[];
+  campos.forEach(([key,label])=>{ const a=antes?antes[key]:undefined; const d=depois?depois[key]:undefined; if(JSON.stringify(a)!==JSON.stringify(d)) mudancas.push(`${label}: ${a || '—'} → ${d || '—'}`); });
+  return mudancas.join(' | ') || 'Alteração registrada';
+}
+function registrarHistoricoOC(oc, acao, detalhe='', antes=null, depois=null){
+  if(!oc) return;
+  HistoricoOC.unshift({ id: Date.now()+Math.floor(Math.random()*1000), ocId: oc.id, ocNum: oc.num, acao, detalhe, usuario: usuarioAtualNome(), dataHora: new Date().toISOString(), antes: cloneSimples(antes), depois: cloneSimples(depois || oc) });
+}
+function verHistoricoOC(id){
+  const oc=OCs.find(x=>x.id===id);
+  const hist=HistoricoOC.filter(h=>h.ocId===id || (oc && h.ocNum===oc.num));
+  if(!hist.length){ toast('Esta OC ainda não tem histórico registrado.','error'); return; }
+  const linhas=hist.slice(0,12).map(h=>{ const data=new Date(h.dataHora).toLocaleString('pt-BR'); return `${data}\n${h.acao} por ${h.usuario}\n${h.detalhe || 'Sem detalhes'}`; }).join('\n\n--------------------\n\n');
+  alert(`Histórico da OC ${oc ? oc.num : ''}\n\n${linhas}`);
+}
+
 
 // ======================== HELPERS ========================
 const fmt = v => 'R$ ' + Math.round(parseFloat(v)||0).toLocaleString('pt-BR');
@@ -1436,7 +1461,7 @@ const CL={manutencao:'Manutenção',pecas:'Peças',impostos:'Impostos',pessoal:'
 const CC={manutencao:'#0099FF',pecas:'#00C4A1',impostos:'#F5A623',pessoal:'#A78BFA',admin:'#FB923C'};
 
 function chip(txt,cls){return `<span class="chip ${cls}">${txt}</span>`;}
-function chipS(s){return s==='Recebida'||s==='Pago'?chip(s,'cg'):s==='Parcialmente Recebida'?chip('⚡ Parc. Recebida','cb'):s==='Pendente'?chip(s,'ca'):s==='Aguardando Faturamento'?chip('⏳ Aguard.Fat.','ca'):s==='Faturado'?chip('💼 Faturado','cb'):chip(s,'cgr');}
+function chipS(s){return s==='Cancelada'?chip('🚫 Cancelada','cr'):s==='Recebida'||s==='Pago'?chip(s,'cg'):s==='Parcialmente Recebida'?chip('⚡ Parc. Recebida','cb'):s==='Pendente'?chip(s,'ca'):s==='Aguardando Faturamento'?chip('⏳ Aguard.Fat.','ca'):s==='Faturado'?chip('💼 Faturado','cb'):chip(s,'cgr');}
 function acts(editFn,delFn){return `<div class="action-btns"><button class="btn btn-edit btn-sm" onclick="${editFn}">✏️</button><button class="btn btn-danger btn-sm" onclick="${delFn}">🗑️</button></div>`;}
 
 // ======================== TOAST ========================
@@ -1493,7 +1518,7 @@ function populateSelects(){
   // OCs no select da NF
   const selNFOC=$('f-nf-oc');
   selNFOC.innerHTML='<option value="Sem OC">Sem OC (imposto/outro)</option>';
-  OCs.forEach(o=>selNFOC.innerHTML+=`<option value="${o.num}">${o.num} — ${o.forn}</option>`);
+  OCs.filter(o=>o.status!=='Cancelada').forEach(o=>selNFOC.innerHTML+=`<option value="${o.num}">${o.num} — ${o.forn}</option>`);
   // Tipos OC
   atualizarSelectTiposOC();
   // Placas
@@ -1637,6 +1662,7 @@ function nfOCChanged(){
 
 function editarOC(id){
   const o=OCs.find(x=>x.id===id); if(!o)return;
+  if(o.status==='Cancelada'){ toast('OC cancelada não pode ser editada.','error'); return; }
   editing.oc=id;
   // Popula placas no select simples
   ocPopulatePlacaSelect();
@@ -1706,11 +1732,14 @@ function salvarOC(){
 
   if(editing.oc){
     const i=OCs.findIndex(x=>x.id===editing.oc);
+    if(OCs[i].status==='Cancelada'){ toast('OC cancelada não pode ser editada.','error'); return; }
+    const antes = cloneSimples(OCs[i]);
     OCs[i]={...OCs[i],...obj};
+    registrarHistoricoOC(OCs[i], 'Editou OC', resumoMudancasOC(antes, OCs[i]), antes, OCs[i]);
     editing.oc=null; toast('OC atualizada com sucesso!');
   } else {
-    obj.id=newId('oc'); obj.nf='Pendente';
-    OCs.unshift(obj); toast('OC emitida com sucesso!');
+    obj.id=newId('oc'); obj.nf='Pendente'; obj.status='Ativa'; obj.criadaEm=new Date().toISOString(); obj.criadaPor=usuarioAtualNome();
+    OCs.unshift(obj); registrarHistoricoOC(obj, 'Criou OC', `OC criada no valor de ${fmt(obj.valor)} para ${obj.forn}`, null, obj); toast('OC emitida com sucesso!');
   }
   closeModal('modal-oc');
   $('modal-oc-title').textContent='Nova Ordem de Compra';
@@ -1718,12 +1747,26 @@ function salvarOC(){
   renderAll();
 }
 
-function excluirOC(id){
+function cancelarOC(id){
   const o=OCs.find(x=>x.id===id);
-  confirmDelete(`Excluir OC ${o.num}?`,`Fornecedor: ${o.forn} | Valor: ${fmt(o.valor)}`,()=>{
-    OCs=OCs.filter(x=>x.id!==id); toast('OC excluída.'); renderAll();
+  if(!o) return;
+  if(o.status==='Cancelada'){ toast('Esta OC já está cancelada.','error'); return; }
+  const motivo = prompt(`Motivo do cancelamento da OC ${o.num}:`);
+  if(motivo === null) return;
+  const motivoLimpo = motivo.trim();
+  if(!motivoLimpo){ toast('Informe um motivo para cancelar a OC.','error'); return; }
+  confirmDelete(`Cancelar OC ${o.num}?`,`A OC será mantida no histórico e não será apagada. Motivo: ${motivoLimpo}`,()=>{
+    const antes = cloneSimples(o);
+    o.status='Cancelada';
+    o.canceladaEm=new Date().toISOString();
+    o.canceladaPor=usuarioAtualNome();
+    o.motivoCancelamento=motivoLimpo;
+    registrarHistoricoOC(o, 'Cancelou OC', motivoLimpo, antes, o);
+    toast('OC cancelada e preservada no histórico.');
+    renderAll();
   });
 }
+function excluirOC(id){ cancelarOC(id); }
 
 // ======================== CRUD NF ========================
 
@@ -2436,10 +2479,11 @@ function renderDashboard(){
   const valorHoje=venceHoje.reduce((a,t)=>a+(Number(t.valor)||0),0);
   const valor3=vence3.reduce((a,t)=>a+(Number(t.valor)||0),0);
   const valor7=vence7.reduce((a,t)=>a+(Number(t.valor)||0),0);
-  const ocsP=OCs.filter(o=>o.nf==='Pendente'||o.nf==='Parcialmente Recebida');
+  const ocsAtivas=OCs.filter(o=>o.status!=='Cancelada');
+  const ocsP=ocsAtivas.filter(o=>o.nf==='Pendente'||o.nf==='Parcialmente Recebida');
 
   $('dash-gasto').textContent=fmt(gastTotal);
-  $('dash-ocs').textContent=OCs.length;
+  $('dash-ocs').textContent=ocsAtivas.length;
   $('dash-ocs-sub').textContent=ocsP.length+' sem NF';
   $('dash-titulos').textContent=fmt(pendVal);
   $('dash-titulos-sub').textContent=pendentes.length+' títulos pendentes';
@@ -2495,10 +2539,10 @@ function renderDashboard(){
   }
 
   // Insights rápidos operacionais de OCs (mês atual)
-  const ocsMes = OCs.filter(o => mesmoMesAtual(o.data));
+  const ocsMes = OCs.filter(o => o.status!=='Cancelada' && mesmoMesAtual(o.data));
   const totalOCsMes = ocsMes.length;
   const valorOCsMes = ocsMes.reduce((acc,o)=>acc+(Number(o.valor)||0),0);
-  const ocsPendentesNF = OCs.filter(o => o.nf !== 'Recebida');
+  const ocsPendentesNF = OCs.filter(o => o.status!=='Cancelada' && o.nf !== 'Recebida');
 
   const placaMap = {};
   ocsMes.forEach(o => {
@@ -2550,23 +2594,26 @@ function renderDashboard(){
 }
 
 function renderOC(){
-  $('oc-count').textContent=OCs.length;
+  const ativas = OCs.filter(o=>o.status!=='Cancelada').length;
+  const canceladas = OCs.length - ativas;
+  $('oc-count').textContent = canceladas ? `${ativas} ativas / ${OCs.length} total` : OCs.length;
   $('tb-oc').innerHTML=OCs.length?OCs.map(o=>{
+    if(!o.status) o.status='Ativa';
+    const cancelada = o.status === 'Cancelada';
     const rBadge = o.isRateio ? `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(167,139,250,.14);color:var(--purple);border:1px solid rgba(167,139,250,.25);margin-left:4px">🔀 ${o.rateio.length} caminhões</span>` : '';
-    return `<tr>
+    const motivo = cancelada && o.motivoCancelamento ? `<div style="font-size:10px;color:var(--red);margin-top:2px">Motivo: ${o.motivoCancelamento}</div>` : '';
+    const botoes = cancelada
+      ? `<button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button><button class="btn btn-muted btn-sm" onclick="verHistoricoOC(${o.id})">🕘 Histórico</button>`
+      : `<button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button><button class="btn btn-edit btn-sm" onclick="editarOC(${o.id})">✏️</button><button class="btn btn-amber btn-sm" onclick="cancelarOC(${o.id})">🚫 Cancelar</button><button class="btn btn-muted btn-sm" onclick="verHistoricoOC(${o.id})">🕘</button>`;
+    return `<tr class="${cancelada?'tr-cancelada':''}">
     <td class="mono" style="color:var(--accent2);font-size:11px">${o.num}</td>
     <td style="font-size:11px">${o.data}</td>
-    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.forn}">${o.forn}</td>
+    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.forn}">${o.forn}${motivo}</td>
     <td class="mono" style="font-size:11px">${o.placas}${rBadge}</td>
     <td>${chip(o.tipo,'cgr')}</td>
     <td class="mono">${fmt(o.valor)}</td>
-    <td>${chipS(o.nf)}</td>
-    <td>
-  <div class="action-btns">
-    <button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button>
-    ${acts(`editarOC(${o.id})`,`excluirOC(${o.id})`)}
-  </div>
-</td>
+    <td>${chipS(cancelada ? 'Cancelada' : o.nf)}</td>
+    <td><div class="action-btns">${botoes}</div></td>
   </tr>`;
   }).join(''):'<tr><td colspan="8" class="empty">Nenhuma OC cadastrada</td></tr>';
 }
@@ -4153,10 +4200,10 @@ let _savingState = false;
 
 function getAppState(){
   return {
-    version: 1,
+    version: 2,
     savedAt: new Date().toISOString(),
     Fornecedores, OCs, NFs, Titulos, Produtos, Estoque, Saidas, Frota,
-    EPIEstoque, EPIEntregas, Colaboradores, Usuarios, Faturamentos,
+    EPIEstoque, EPIEntregas, Colaboradores, Usuarios, Faturamentos, HistoricoOC,
     counters: { nextFornId, nextProdId, nextIdColab, nextIdUser, nextFatId, nextId }
   };
 }
@@ -4176,6 +4223,8 @@ function applyAppState(state){
   Colaboradores = Array.isArray(state.Colaboradores) ? state.Colaboradores : [];
   Usuarios = Array.isArray(state.Usuarios) ? state.Usuarios : [];
   Faturamentos = Array.isArray(state.Faturamentos) ? state.Faturamentos : [];
+  HistoricoOC = Array.isArray(state.HistoricoOC) ? state.HistoricoOC : [];
+  OCs.forEach(o=>{ if(!o.status) o.status='Ativa'; });
 
   const c = state.counters || {};
   nextFornId = c.nextFornId || proximoId(Fornecedores);
@@ -4247,7 +4296,7 @@ function salvarDepois(fnName){
   'salvarOC','salvarNF','salvarTitulo','salvarSaida','salvarFrota',
   'salvarEPIEntrada','salvarEPISaida','salvarColab','salvarUsuario',
   'salvarFornecedor','salvarProduto','salvarFaturamento','salvarNFRapida',
-  'marcarPago'
+  'marcarPago','cancelarOC'
 ].forEach(salvarDepois);
 
 const _confirmDeleteOriginal = confirmDelete;
