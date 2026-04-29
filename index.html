@@ -2062,7 +2062,7 @@ async function salvarNF(){
     if(oc && oc.isRateio && oc.rateio && oc.rateio.length > 0){
       oc.rateio.forEach(r => {
         const cam = Frota.find(f => f.placa === r.placa);
-        if(cam){ cam.gasto = Math.round((cam.gasto + r.valor) * 100) / 100; }
+        // gasto calculado automaticamente por calcGastoMesAtual() — não atualizar manualmente
       });
       const msg = parcelas.length > 1
         ? `NF lançada! ${parcelas.length} parcelas criadas no Contas a Pagar. Custo rateado em ${oc.rateio.length} caminhão(ões) no Relatório de Gastos.`
@@ -2071,7 +2071,7 @@ async function salvarNF(){
     } else {
       // Sem rateio: registra custo no caminhão da placa (se for uma placa da frota)
       const cam = Frota.find(f => f.placa === obj.dest);
-      if(cam){ cam.gasto = Math.round((cam.gasto + total) * 100) / 100; }
+      // gasto calculado automaticamente por calcGastoMesAtual() — não atualizar manualmente
       const msg = parcelas.length > 1
         ? `NF lançada! ${parcelas.length} parcelas criadas no Contas a Pagar.`
         : 'NF lançada e título criado no Contas a Pagar!';
@@ -2583,7 +2583,9 @@ function mesmoMesAtual(dataISO){
   return d.getFullYear() === h.getFullYear() && d.getMonth() === h.getMonth();
 }
 function renderDashboard(){
-  const gastTotal=Frota.reduce((a,f)=>a+(Number(f.gasto)||0),0);
+  sincronizarGastosFreota();
+  const gastosMap=calcGastoMesAtual();
+  const gastTotal=Object.values(gastosMap).reduce((a,v)=>a+v,0);
   const pendentes=Titulos.filter(t=>t.status==='Pendente');
   const pagos=Titulos.filter(t=>t.status==='Pago');
   const pendVal=pendentes.reduce((a,t)=>a+(Number(t.valor)||0),0);
@@ -2692,9 +2694,9 @@ function renderDashboard(){
   }
 
   let df='';
-  [...Frota].sort((a,b)=>(Number(b.gasto)||0)-(Number(a.gasto)||0)).slice(0,8).forEach(f=>{
+  [...Frota].sort((a,b)=>(gastosMap[b.placa]||0)-(gastosMap[a.placa]||0)).slice(0,8).forEach(f=>{
     const limite=Number(f.limite)||0;
-    const gasto=Number(f.gasto)||0;
+    const gasto=gastosMap[f.placa]||0;
     const pct=limite>0?Math.min(100,Math.round(gasto/limite*100)):0;
     const cls=pct>85?'danger':pct>65?'warn':'';
     df+=`<tr><td class="mono" style="color:var(--accent)">${f.placa}</td><td class="mono">${fmt(gasto)}</td><td class="mono" style="color:var(--text3)">${fmt(limite)}</td><td style="min-width:90px"><div class="progress-bar-wrap"><div class="progress-bar ${cls}" style="width:${pct}%"></div></div><span style="font-size:10px;color:var(--text3)">${pct}%</span></td></tr>`;
@@ -2931,6 +2933,7 @@ function renderEstoque(){
 }
 
 function renderFrota(){
+  sincronizarGastosFreota();
   $('frota-count').textContent=Frota.length;
   const hoje=new Date(); hoje.setHours(0,0,0,0);
   const d30=new Date(hoje); d30.setDate(d30.getDate()+30);
@@ -3139,6 +3142,42 @@ function calcGastoPorPlaca(){
   return gastos;
 }
 
+
+// Calcula gasto do mês atual por placa (sempre a partir das NFs — nunca usa f.gasto)
+function calcGastoMesAtual(){
+  const h = new Date();
+  const anoAtual = h.getFullYear();
+  const mesAtual = h.getMonth();
+  const gastos = {};
+  Frota.forEach(f => { gastos[f.placa] = 0; });
+
+  NFs.forEach(nf => {
+    if(nf.pgto === 'Aguardando Faturamento') return;
+    // filtra pelo mês da data da NF
+    const d = nf.data ? new Date(nf.data + 'T00:00:00') : null;
+    if(!d || d.getFullYear() !== anoAtual || d.getMonth() !== mesAtual) return;
+
+    const oc = OCs.find(o => o.num === nf.oc);
+    if(oc && oc.isRateio && oc.rateio && oc.rateio.length > 0){
+      oc.rateio.forEach(r => {
+        if(gastos[r.placa] === undefined) gastos[r.placa] = 0;
+        gastos[r.placa] = Math.round((gastos[r.placa] + r.valor) * 100) / 100;
+      });
+    } else {
+      const placa = nf.dest;
+      if(placa && gastos[placa] !== undefined){
+        gastos[placa] = Math.round((gastos[placa] + nf.valor) * 100) / 100;
+      }
+    }
+  });
+  return gastos;
+}
+
+// Sincroniza f.gasto de toda a frota com o cálculo real do mês atual
+function sincronizarGastosFreota(){
+  const gastos = calcGastoMesAtual();
+  Frota.forEach(f => { f.gasto = gastos[f.placa] || 0; });
+}
 function resetRelGastosFiltros(){
   const pfEl=$('rel-placa-filter');
   if(pfEl)pfEl.value='';
@@ -3160,9 +3199,9 @@ function renderRelGastos(){
   if(cnt) cnt.textContent=lista.length+' placa(s) exibida(s)';
   $('tb-rel').innerHTML=lista.map(f=>{
     const g = gastos[f.placa] || { serv: 0, pcs: 0, total: 0 };
-    const tot = Math.max(f.gasto, g.total);
-    const serv = g.serv || Math.round(tot*0.6);
-    const pcs  = g.pcs  || Math.round(tot*0.3);
+    const tot = g.total;
+    const serv = g.serv;
+    const pcs  = g.pcs;
     const saldo = f.limite - tot;
     const pct = Math.round(tot/f.limite*100);
     const sc = pct>85?'cr':pct>65?'ca':'cg';
@@ -3490,10 +3529,13 @@ function excluirUsuario(id){
 // ======================== EXPORT XLSX ========================
 function exportRelGastosXLSX(){
   if(typeof XLSX==='undefined'){toast('Biblioteca XLSX não carregou','error');return;}
-  const rows=[['Placa','Manutenção','Peças','Estoque','Total Mês','Limite','Saldo','Uso %']];
+  sincronizarGastosFreota();
+  const gastosReais = calcGastoPorPlaca();
+  const rows=[['Placa','Manutenção','Peças','Total Mês','Limite','Saldo','Uso %']];
   Frota.forEach(f=>{
-    const serv=Math.round(f.gasto*0.6),pcs=Math.round(f.gasto*0.3),est=Math.round(f.gasto*0.1);
-    rows.push([f.placa,serv,pcs,est,f.gasto,f.limite,f.limite-f.gasto,Math.round(f.gasto/f.limite*100)+'%']);
+    const g = gastosReais[f.placa] || {serv:0,pcs:0,total:0};
+    const tot = g.total;
+    rows.push([f.placa,g.serv,g.pcs,tot,f.limite,f.limite-tot,Math.round(tot/(f.limite||1)*100)+'%']);
   });
   const ws=XLSX.utils.aoa_to_sheet(rows);
   const wb=XLSX.utils.book_new();
@@ -3537,6 +3579,7 @@ function exportRelGastosPDF(){
   doc.setTextColor(11,22,40); doc.setFont('helvetica','bold'); doc.setFontSize(8);
   cols.forEach((c,i)=>{doc.text(c,x+2,31);x+=widths[i];});
   // Rows
+  const gastosReaisPDF = calcGastoPorPlaca();
   doc.setFont('helvetica','normal'); doc.setTextColor(30,40,60);
   Frota.forEach((f,ri)=>{
     if(ri%2===0){doc.setFillColor(240,245,250);doc.rect(10,y-4,277,7,'F');}
