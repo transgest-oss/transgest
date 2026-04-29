@@ -1086,6 +1086,7 @@ textarea{resize:vertical;min-height:65px}
       <div class="form-group full"><label>Categoria</label>
         <select id="f-oc-cat" onchange="ocToggleCategoria()">
           <option value="manutencao">Manutenção</option><option value="scherer">Scherer</option><option value="scherer_ambi">Scherer Ambicampos</option><option value="combustiveis">Combustíveis</option><option value="impostos">Impostos</option><option value="outros">Outros</option><option value="diarias">Diárias</option><option value="consorcios">Consórcios</option><option value="gratificacoes">Gratificações</option><option value="seguros">Seguros</option><option value="funcionarios">Funcionários</option><option value="adiantamentos">Adiantamentos</option>
+          <option value="colaboradores">Colaboradores</option>
         </select>
       </div>
       <div class="form-group"><label>Valor Total (R$)</label><input type="number" id="f-oc-valor" placeholder="0.00" step="0.01" oninput="ocRateioRecalc()"/></div>
@@ -1155,6 +1156,71 @@ textarea{resize:vertical;min-height:65px}
       <div class="form-group"><label>Nº NF / Referência</label><input type="text" id="f-nf-num" placeholder="12345"/></div>
       <div class="form-group"><label>Data Emissão</label><input type="date" id="f-nf-data"/></div>
       <div class="form-group full"><label>Fornecedor</label><select id="f-nf-forn"><option value="">— Selecione o fornecedor —</option></select></div>
+      <!-- Categoria da NF -->
+      <div class="form-group full">
+        <label>Categoria</label>
+        <select id="f-nf-cat" onchange="nfToggleCategoria()">
+          <option value="manutencao">Manutenção</option>
+          <option value="scherer">Scherer</option>
+          <option value="scherer_ambi">Scherer Ambicampos</option>
+          <option value="combustiveis">Combustíveis</option>
+          <option value="impostos">Impostos</option>
+          <option value="outros">Outros</option>
+          <option value="diarias">Diárias</option>
+          <option value="consorcios">Consórcios</option>
+          <option value="gratificacoes">Gratificações</option>
+          <option value="seguros">Seguros</option>
+          <option value="funcionarios">Funcionários</option>
+          <option value="adiantamentos">Adiantamentos</option>
+          <option value="colaboradores">Colaboradores</option>
+        </select>
+      </div>
+
+      <!-- Campos extras — só aparecem para COMBUSTÍVEIS -->
+      <div id="nf-comb-wrap" style="display:none;grid-column:span 2">
+        <div style="background:rgba(0,149,122,.06);border:1px solid rgba(0,149,122,.2);border-radius:10px;padding:13px 15px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div style="grid-column:span 3;font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.07em">⛽ Detalhes do Combustível</div>
+          <div class="form-group" style="margin:0">
+            <label>Tipo de Combustível</label>
+            <select id="f-nf-comb-tipo">
+              <option>Diesel S-10</option>
+              <option>Diesel S-500</option>
+              <option>Gasolina Comum</option>
+              <option>Gasolina Aditivada</option>
+              <option>Fluido de Freio</option>
+              <option>Aromatizante</option>
+              <option>Óleo Lubrificante</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Quantidade (L)</label>
+            <input type="number" id="f-nf-comb-qtd" placeholder="0.00" step="0.01" min="0" oninput="nfCombCalc()"/>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Valor Unitário (R$/L)</label>
+            <input type="number" id="f-nf-comb-vuni" placeholder="0.000" step="0.001" min="0" oninput="nfCombCalc()"/>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Forma de Pagamento</label>
+            <select id="f-nf-comb-pgto">
+              <option>Boleto</option>
+              <option>PIX</option>
+              <option>Cartão</option>
+              <option>Dinheiro</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Placa do Veículo</label>
+            <select id="f-nf-comb-placa"><option value="">— Selecione —</option></select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Valor Total Calculado</label>
+            <input type="text" id="f-nf-comb-vtotal" readonly style="background:var(--card);color:var(--accent2);font-weight:700" placeholder="—"/>
+          </div>
+        </div>
+      </div>
+
       <!-- Aviso de OC rateada (aparece automaticamente) -->
       <div class="form-group full" id="nf-rateio-aviso" style="display:none;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:12px 14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -1843,6 +1909,7 @@ const CATEGORIAS_OC = [
   { id: 'seguros',            label: 'Seguros',             comPlaca: false },
   { id: 'funcionarios',       label: 'Funcionários',        comPlaca: false },
   { id: 'adiantamentos',      label: 'Adiantamentos',       comPlaca: false },
+  { id: 'colaboradores',     label: 'Colaboradores',        comPlaca: false },
 ];
 
 function categoriaLabel(id){ const c=CATEGORIAS_OC.find(x=>x.id===id); return c?c.label:(id||'—'); }
@@ -1935,6 +2002,7 @@ window.openModal = function(id, mode, data){
     }
     // inicializar parcelas ao abrir NF nova
     if(id==='modal-nf'){
+      if($('f-nf-cat')){$('f-nf-cat').value='manutencao'; nfToggleCategoria();}
       $('f-nf-parcelas').value='1';
       $('f-nf-valor').value='';
       $('f-nf-data').value=today;
@@ -1997,6 +2065,13 @@ function ocRateioRecalc(){
 
 // Detecta se a OC selecionada na NF tem rateio e exibe distribuição
 function nfOCChanged(){
+  // Auto-fill categoria from OC
+  const ocNum = $('f-nf-oc')?.value;
+  const oc = OCs.find(o => o.num === ocNum);
+  if(oc && oc.categoria && $('f-nf-cat')){
+    $('f-nf-cat').value = oc.categoria;
+    nfToggleCategoria();
+  }
   const ocNum = $('f-nf-oc').value;
   const oc = OCs.find(o => o.num === ocNum);
   const aviso = $('nf-rateio-aviso');
@@ -2213,6 +2288,12 @@ function editarNF(id){
   $('f-nf-oc').value=o.oc; $('f-nf-tipo').value=o.tipo;
   $('f-nf-num').value=o.num; $('f-nf-data').value=o.data||today;
   $('f-nf-forn').value=o.forn||''; $('f-nf-dest').value=o.dest;
+  if($('f-nf-cat')){$('f-nf-cat').value=o.categoria||'manutencao'; nfToggleCategoria();}
+  if(o.combTipo) document.getElementById('f-nf-comb-tipo').value=o.combTipo||'';
+  if(o.combQtd) document.getElementById('f-nf-comb-qtd').value=o.combQtd||'';
+  if(o.combVuni) document.getElementById('f-nf-comb-vuni').value=o.combVuni||'';
+  if(o.combPgto) document.getElementById('f-nf-comb-pgto').value=o.combPgto||'';
+  if(o.combPlaca) document.getElementById('f-nf-comb-placa').value=o.combPlaca||'';
   $('f-nf-valor').value=o.valor;
   $('f-nf-obs').value=o.obs||'';
   if($('f-nf-file')) $('f-nf-file').value='';
@@ -2229,6 +2310,34 @@ function editarNF(id){
   $('modal-nf-title').textContent='Editar Nota Fiscal';
   $('btn-save-nf').textContent='💾 Atualizar';
   $('modal-nf').classList.add('open');
+}
+
+
+function nfToggleCategoria(){
+  const cat = ($('f-nf-cat')||{value:'manutencao'}).value;
+  const combWrap = document.getElementById('nf-comb-wrap');
+  if(combWrap) combWrap.style.display = cat === 'combustiveis' ? '' : 'none';
+  // Populate combustivel placa select
+  if(cat === 'combustiveis'){
+    const sel = document.getElementById('f-nf-comb-placa');
+    if(sel && sel.options.length <= 1){
+      Frota.forEach(f => sel.innerHTML += `<option value="${f.placa}">${f.placa} — ${f.modelo||''}</option>`);
+    }
+  }
+}
+
+function nfCombCalc(){
+  const qtd = parseFloat(document.getElementById('f-nf-comb-qtd')?.value)||0;
+  const vuni = parseFloat(document.getElementById('f-nf-comb-vuni')?.value)||0;
+  const total = qtd * vuni;
+  const el = document.getElementById('f-nf-comb-vtotal');
+  if(el) el.value = total > 0 ? fmt(total) : '—';
+  // Auto-fill valor total da NF se ainda estiver vazio
+  const nfVal = document.getElementById('f-nf-valor');
+  if(nfVal && total > 0 && !nfVal.value) {
+    nfVal.value = total.toFixed(2);
+    nfRecalcularParcelas();
+  }
 }
 
 async function salvarNF(){
@@ -2258,7 +2367,8 @@ async function salvarNF(){
       ? ocFat.placas : $('f-nf-dest').value;
     const docNFfat = await uploadDocNF();
     if(docNFfat === null){ toast('Erro ao enviar arquivo. Tente novamente.','error'); return; }
-    const obj={oc:$('f-nf-oc').value,tipo:$('f-nf-tipo').value,num:$('f-nf-num').value.trim()||'NF-'+Date.now(),data:$('f-nf-data').value||today,forn,dest:destFat,valor:total,venc:null,pgto:'Aguardando Faturamento',obs:$('f-nf-obs').value.trim(),parcelas:[],doc:docNFfat,categoria:catHerd};
+    const nfCatFat = ($('f-nf-cat')||{value:catHerd}).value || catHerd;
+    const obj={oc:$('f-nf-oc').value,tipo:$('f-nf-tipo').value,num:$('f-nf-num').value.trim()||'NF-'+Date.now(),data:$('f-nf-data').value||today,forn,dest:destFat,valor:total,venc:null,pgto:'Aguardando Faturamento',obs:$('f-nf-obs').value.trim(),parcelas:[],doc:docNFfat,categoria:nfCatFat};
     obj.id=newId('nf'); NFs.unshift(obj);
     const ocFatRef=OCs.find(o=>o.num===obj.oc); if(ocFatRef) atualizarStatusOC(ocFatRef);
     toast('NF lançada! Aguardando faturamento do fornecedor.');
@@ -2274,7 +2384,15 @@ async function salvarNF(){
   const docNF = await uploadDocNF();
   if(docNF === null){ toast('Erro ao enviar arquivo. Tente novamente.','error'); return; }
   const docNFfinal = docNF || (editing.nf ? (NFs.find(x=>x.id===editing.nf)||{}).doc||'' : '');
-  const obj={oc:$('f-nf-oc').value,tipo:$('f-nf-tipo').value,num:$('f-nf-num').value.trim()||'NF-'+Date.now(),data:$('f-nf-data').value||today,forn,dest:destNF,valor:total,venc:vencPrincipal,pgto:'Pendente',obs:$('f-nf-obs').value.trim(),parcelas,doc:docNFfinal,categoria:catHerd};
+  const nfCat = ($('f-nf-cat')||{value:catHerd}).value || catHerd;
+  const combExtra = nfCat === 'combustiveis' ? {
+    combTipo: ($('f-nf-comb-tipo')||{value:''}).value,
+    combQtd: parseFloat(($('f-nf-comb-qtd')||{value:0}).value)||0,
+    combVuni: parseFloat(($('f-nf-comb-vuni')||{value:0}).value)||0,
+    combPgto: ($('f-nf-comb-pgto')||{value:''}).value,
+    combPlaca: ($('f-nf-comb-placa')||{value:''}).value,
+  } : {};
+  const obj={oc:$('f-nf-oc').value,tipo:$('f-nf-tipo').value,num:$('f-nf-num').value.trim()||'NF-'+Date.now(),data:$('f-nf-data').value||today,forn,dest:destNF,valor:total,venc:vencPrincipal,pgto:'Pendente',obs:$('f-nf-obs').value.trim(),parcelas,doc:docNFfinal,categoria:nfCat,...combExtra};
 
   if(editing.nf){
     const i=NFs.findIndex(x=>x.id===editing.nf);
@@ -2302,7 +2420,8 @@ async function salvarNF(){
         status:'Pendente',
         placa:obj.dest,   // destino geral da NF (placa única ou "rateado")
         obs:parcelas.length>1?`Parcela ${i+1} de ${parcelas.length} — NF ${obj.num}`:'',
-        categoria:obj.categoria||'manutencao'
+        categoria:obj.categoria||'manutencao',
+        combPlaca:obj.combPlaca||''
       });
     });
 
@@ -4652,6 +4771,7 @@ const RM_LINHAS = [
   { id: 'seguros',       label: 'Seguros',                     cats: ['seguros'] },
   { id: 'funcionarios',  label: 'Funcionários',                cats: ['funcionarios'] },
   { id: 'adiantamentos', label: 'Adiantamentos',               cats: ['adiantamentos'] },
+  { id: 'colaboradores',  label: 'Colaboradores',                cats: ['colaboradores'] },
 ];
 
 // Calcula o total de uma categoria num mês/ano a partir dos Títulos
