@@ -314,6 +314,7 @@ textarea{resize:vertical;min-height:65px}
     <div class="nav-item" onclick="showScreen('consulta',this);renderConsulta()"><span class="nav-icon">🔍</span> Consulta Rápida</div>
     <div class="nav-item" onclick="showScreen('despesas',this);renderDespesas()"><span class="nav-icon">🏆</span> Despesas por Placa</div>
     <div class="nav-item" onclick="showScreen('relmensal',this);renderRelMensal()"><span class="nav-icon">📅</span> Resumo Operacional</div>
+    <div class="nav-item" onclick="showScreen('energisa',this);renderEnergisa()"><span class="nav-icon">⚡</span> Planilha Energisa</div>
   </nav>
   <div class="sidebar-footer">
     <div class="user-card">
@@ -970,6 +971,58 @@ textarea{resize:vertical;min-height:65px}
           <thead id="tb-relmensal-head"></thead>
           <tbody id="tb-relmensal-body"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- PLANILHA ENERGISA -->
+    <div class="screen" id="screen-energisa">
+      <div class="section-header">
+        <div class="section-title">⚡ Gerar Planilha Energisa</div>
+      </div>
+
+      <!-- SELETOR DE MÊS/ANO -->
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px;max-width:600px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px">Selecione o mês de referência</div>
+        <div style="display:flex;gap:12px;align-items:flex-end">
+          <div class="form-group" style="margin:0;flex:1">
+            <label>Mês</label>
+            <select id="en-mes" style="font-size:13px;padding:8px 12px">
+              <option value="1">Janeiro</option>
+              <option value="2">Fevereiro</option>
+              <option value="3">Março</option>
+              <option value="4">Abril</option>
+              <option value="5">Maio</option>
+              <option value="6">Junho</option>
+              <option value="7">Julho</option>
+              <option value="8">Agosto</option>
+              <option value="9">Setembro</option>
+              <option value="10">Outubro</option>
+              <option value="11">Novembro</option>
+              <option value="12">Dezembro</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;flex:1">
+            <label>Ano</label>
+            <select id="en-ano" style="font-size:13px;padding:8px 12px">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" style="padding:10px 24px;font-size:13px" onclick="renderEnergisa()">Visualizar</button>
+        </div>
+      </div>
+
+      <!-- PREVIEW DO RESUMO -->
+      <div id="en-preview" style="margin-bottom:20px"></div>
+
+      <!-- BOTÃO GERAR -->
+      <div id="en-gerar-wrap" style="display:none">
+        <button class="btn btn-primary" style="padding:14px 32px;font-size:14px;font-weight:700" onclick="gerarPlanilhaEnergisa()">
+          📊 Gerar Excel — Planilha Energisa
+        </button>
+        <div style="margin-top:8px;font-size:12px;color:var(--text3)">
+          O arquivo será gerado com todas as abas no formato exigido pela Energisa.
+        </div>
       </div>
     </div>
 <!-- MODAL FORNECEDOR -->
@@ -1930,7 +1983,7 @@ function ocToggleCategoria(){
   }
 }
 
-const titles={dashboard:'Dashboard Geral',oc:'Ordens de Compra',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',nf:'Notas Fiscais',faturamentos:'Faturamentos',financeiro:'Contas a Pagar',estoque:'Estoque de Peças',frota:'Gestão de Frota',epi:'Controle de EPIs','rel-gastos':'Relatório — Gastos por Placa','rel-financeiro':'Relatório Financeiro por Período',pendentes:'OCs Pendentes de Faturamento',colaboradores:'Cadastro de Colaboradores',usuarios:'Usuários do Sistema',consulta:'🔍 Consulta Rápida',pipas:'🚛 Operações — Pipas',despesas:'🏆 Despesas por Placa 2026',relmensal:'📅 Resumo Operacional Mensal'};
+const titles={dashboard:'Dashboard Geral',oc:'Ordens de Compra',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',nf:'Notas Fiscais',faturamentos:'Faturamentos',financeiro:'Contas a Pagar',estoque:'Estoque de Peças',frota:'Gestão de Frota',epi:'Controle de EPIs','rel-gastos':'Relatório — Gastos por Placa','rel-financeiro':'Relatório Financeiro por Período',pendentes:'OCs Pendentes de Faturamento',colaboradores:'Cadastro de Colaboradores',usuarios:'Usuários do Sistema',consulta:'🔍 Consulta Rápida',pipas:'🚛 Operações — Pipas',despesas:'🏆 Despesas por Placa 2026',relmensal:'📅 Resumo Operacional Mensal',energisa:'⚡ Gerar Planilha Energisa'};
 function showScreen(id,el){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -4755,6 +4808,278 @@ async function doLogout(){
 }
 
 // ======================== PERSISTÊNCIA SUPABASE — TABELAS SEPARADAS ========================
+
+// ======================== PLANILHA ENERGISA ========================
+
+function enNFsMes(cats, ano, mes){
+  const prefixo = `${ano}-${String(mes).padStart(2,'0')}`;
+  return NFs.filter(nf => {
+    const cat = nf.categoria || 'manutencao';
+    if(!cats.includes(cat)) return false;
+    if(nf.pgto === 'Aguardando Faturamento') return false;
+    return (nf.data||'').startsWith(prefixo);
+  });
+}
+
+function enTitulosMes(cats, ano, mes){
+  const prefixo = `${ano}-${String(mes).padStart(2,'0')}`;
+  return Titulos.filter(t => {
+    const cat = t.categoria || 'manutencao';
+    if(!cats.includes(cat)) return false;
+    return (t.emissao||t.venc||'').startsWith(prefixo);
+  });
+}
+
+function renderEnergisa(){
+  const mes = parseInt(document.getElementById('en-mes').value);
+  const ano = parseInt(document.getElementById('en-ano').value);
+  const prefixo = `${ano}-${String(mes).padStart(2,'0')}`;
+  const mesNome = MESES_NOME[mes-1];
+
+  // Calcula totais por categoria
+  const totais = {};
+  RM_LINHAS.forEach(l => {
+    totais[l.id] = enNFsMes(l.cats, ano, mes).reduce((a,nf) => a + (nf.valor||0), 0);
+  });
+  // Funcionários via NFs
+  totais['funcionarios'] = enNFsMes(['funcionarios'], ano, mes).reduce((a,nf) => a + (nf.valor||0), 0);
+  const totalGeral = Object.values(totais).reduce((a,v) => a+v, 0);
+
+  const preview = document.getElementById('en-preview');
+  const gerarWrap = document.getElementById('en-gerar-wrap');
+
+  const linhasPreview = RM_LINHAS.concat([{id:'funcionarios',label:'Funcionários',cats:['funcionarios']}])
+    .filter((l,i,arr) => arr.findIndex(x=>x.id===l.id)===i) // deduplica
+    .map(l => {
+      const v = totais[l.id]||0;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <span style="color:var(--text2)">${l.label}</span>
+        <span style="font-family:var(--mono);font-weight:${v>0?'700':'400'};color:${v>0?'var(--text)':'var(--text3)'}">${v > 0 ? fmt(v) : '—'}</span>
+      </div>`;
+    }).join('');
+
+  preview.innerHTML = `
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px 24px;max-width:600px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">
+        📋 Resumo — ${mesNome} ${ano}
+      </div>
+      ${linhasPreview}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 0;margin-top:4px;font-size:14px;font-weight:800">
+        <span>Valor Total</span>
+        <span style="font-family:var(--mono);color:var(--accent2)">${fmt(totalGeral)}</span>
+      </div>
+    </div>`;
+
+  gerarWrap.style.display = totalGeral > 0 ? 'block' : 'none';
+}
+
+function gerarPlanilhaEnergisa(){
+  if(typeof XLSX === 'undefined'){ toast('Biblioteca XLSX não carregou','error'); return; }
+
+  const mes = parseInt(document.getElementById('en-mes').value);
+  const ano = parseInt(document.getElementById('en-ano').value);
+  const mesNome = MESES_NOME[mes-1].toUpperCase();
+  const prefixo = `${ano}-${String(mes).padStart(2,'0')}`;
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Helper: adiciona aba ──
+  function addSheet(nome, dados){
+    const ws = XLSX.utils.aoa_to_sheet(dados);
+    // Largura automática
+    const cols = dados[0] ? dados[0].map((_,i) => ({
+      wch: Math.max(...dados.map(r => String(r[i]||'').length), String(dados[0][i]||'').length, 10)
+    })) : [];
+    ws['!cols'] = cols;
+    XLSX.utils.book_append_sheet(wb, ws, nome);
+  }
+
+  // ── Totais por categoria ──
+  const tot = {};
+  const cats_map = {
+    manutencao:   ['manutencao','scherer'],
+    scherer_ambi: ['scherer_ambi'],
+    combustiveis: ['combustiveis'],
+    impostos:     ['impostos'],
+    outros:       ['outros'],
+    diarias:      ['diarias'],
+    consorcios:   ['consorcios'],
+    gratificacoes:['gratificacoes'],
+    seguros:      ['seguros'],
+    funcionarios: ['funcionarios'],
+    adiantamentos:['adiantamentos'],
+    colaboradores:['colaboradores'],
+  };
+
+  Object.keys(cats_map).forEach(k => {
+    tot[k] = enNFsMes(cats_map[k], ano, mes).reduce((a,nf) => a+(nf.valor||0), 0);
+  });
+  const totalGeral = Object.values(tot).reduce((a,v)=>a+v,0);
+
+  // ── ABA 1: RESUMO ──
+  addSheet('RESUMO', [
+    ['Resumo Operacional'],
+    ['DADOS', 'VALOR FINAL'],
+    ['MANUTENÇÃO MENSAL (MAN. + SCHERER AJBAM)', tot.manutencao],
+    ['COMBUSTÍVEIS (ÓLEOS)',                     tot.combustiveis],
+    ['IMPOSTOS',                                 tot.impostos],
+    ['OUTROS',                                   tot.outros],
+    ['SCHERER AMBICAMPOS',                       tot.scherer_ambi],
+    ['ADIANTAMENTO',                             tot.adiantamentos],
+    ['DIARIAS',                                  tot.diarias],
+    ['CONSÓRCIOS',                               tot.consorcios],
+    ['GRATIFICAÇÕES',                            tot.gratificacoes],
+    ['SEGUROS E MONITORAMENTO',                  tot.seguros],
+    ['FUNCIONÁRIOS',                             tot.funcionarios],
+    ['COLABORADORES',                            tot.colaboradores],
+    ['Valor Total',                              totalGeral],
+  ]);
+
+  // ── ABA 2: MANUTENÇÃO (Man. + Scherer) ──
+  const nfMan = enNFsMes(['manutencao','scherer'], ano, mes);
+  const rowsMan = [
+    ['MANUTENÇÃO'],
+    ['Data','OS','Valor','Destino','Empresa','Tipo','NF','Caminhão'],
+    ...nfMan.map(nf => {
+      const oc = OCs.find(o => o.num === nf.oc);
+      return [
+        nf.data||'',
+        nf.oc||'-',
+        nf.valor||0,
+        nf.dest||'-',
+        nf.forn||'',
+        nf.tipo||'',
+        nf.num||'',
+        nf.dest||'-',
+      ];
+    }),
+    ['','','','',' ','',''],
+    ['','',nfMan.reduce((a,n)=>a+(n.valor||0),0),'','','','',''],
+  ];
+  addSheet('MANUTENÇÃO', rowsMan);
+
+  // ── ABA 3: SCHERER ──
+  const nfSch = enNFsMes(['scherer'], ano, mes);
+  addSheet('SCHERER', [
+    ['SCHERER'],
+    ['Data','OS','Valor','Descrição','Empresa','Tipo','NF','Caminhão'],
+    ...nfSch.map(nf => [nf.data||'', nf.oc||'-', nf.valor||0, nf.desc||nf.obs||'', nf.forn||'', nf.tipo||'', nf.num||'', nf.dest||'-']),
+    ['','',nfSch.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── ABA 4: SCHERER AMBICAMPOS ──
+  const nfAmbi = enNFsMes(['scherer_ambi'], ano, mes);
+  addSheet('SCHERER AMBICAMPOS', [
+    ['SCHERER AMBICAMPOS'],
+    ['Data','OS','Valor','Destino','Empresa','Tipo','NF','Caminhão'],
+    ...nfAmbi.map(nf => [nf.data||'', nf.oc||'-', nf.valor||0, nf.desc||nf.obs||'', nf.forn||'', nf.tipo||'', nf.num||'', nf.dest||'-']),
+    ['','',nfAmbi.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── ABA 5: DIARIA ──
+  const nfDia = enNFsMes(['diarias'], ano, mes);
+  addSheet('DIARIA', [
+    ['DIARIAS'],
+    ['Data','Valor','Colaborador','Empresa','Tipo'],
+    ...nfDia.map(nf => [nf.data||'', nf.valor||0, nf.dest||nf.obs||'', nf.forn||'AJBAM', nf.tipo||'COMPROVANTE']),
+    ['',nfDia.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── ABA 6: OUTROS ──
+  const nfOut = enNFsMes(['outros'], ano, mes);
+  addSheet('OUTROS', [
+    ['OUTROS'],
+    ['DATA','OC','VALOR','DESCRIÇÃO','FORNECEDOR','NUMERO NOTA FISCAL','EMPRESA'],
+    ...nfOut.map(nf => [nf.data||'', nf.oc||'-', nf.valor||0, nf.obs||nf.desc||'', nf.forn||'', nf.num||'', 'AJBAM']),
+    ['','',nfOut.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── ABA 7: SEGUROS E MONITORAMENTO ──
+  const nfSeg = enNFsMes(['seguros'], ano, mes);
+  addSheet('SEGUROS E MONITORAMENTO', [
+    ['SEGURANÇA E MONITORAMENTO'],
+    ['DATA','OC','VALOR','DESCRIÇÃO','FORNECEDOR','NUMERO NOTA FISCAL'],
+    ...nfSeg.map(nf => [nf.data||'', nf.oc||'-', nf.valor||0, nf.obs||nf.desc||'', nf.forn||'', nf.num||'']),
+    ['','',nfSeg.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── ABA 8: COMBUSTÍVEIS ──
+  const nfComb = enNFsMes(['combustiveis'], ano, mes);
+  addSheet('COMBUSTIVEIS', [
+    [''],
+    ['Data','Quantidade','Valor Uni.','Valor Total','Empresa','Tipo Óleo','Forma Pagamento','Nº Nota','Placa'],
+    ...nfComb.map(nf => [
+      nf.data||'',
+      nf.combQtd||'',
+      nf.combVuni||'',
+      nf.valor||0,
+      nf.forn||'',
+      nf.combTipo||'',
+      nf.combPgto||'BOLETO',
+      nf.num||'',
+      nf.combPlaca||nf.dest||'',
+    ]),
+    ['','','TOTAL','',nfComb.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── ABA 9: IMPOSTOS ──
+  const nfImp = enNFsMes(['impostos'], ano, mes);
+  addSheet('IMPOSTOS', [
+    ['OBRIGAÇÕES FISCAIS'],
+    ['Data','Valor','Descrição','Empresa','Tipo','NF','Forma'],
+    ...nfImp.map(nf => [nf.data||'', nf.valor||0, nf.obs||nf.desc||'', nf.forn||'', 'IMPOSTO', nf.num||'', 'BOLETO']),
+    ['',nfImp.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── ABA 10: ADIANTAMENTO ──
+  const nfAdt = enNFsMes(['adiantamentos'], ano, mes);
+  addSheet('ADIANTAMENTO', [
+    ['ADIANTAMENTOS'],
+    ['Data','Valor','Destino','Empresa','Nota'],
+    ...nfAdt.map(nf => [nf.data||'', nf.valor||0, nf.dest||nf.obs||'', nf.forn||'AJBAM', nf.num||'COMPROVANTE']),
+    ['',nfAdt.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── ABA 11: CONSÓRCIOS ──
+  const nfCons = enNFsMes(['consorcios'], ano, mes);
+  addSheet('CONSORCIOS', [
+    ['Data','Valor','Destino','Empresa','Nº Nota','Vencimento'],
+    ...nfCons.map(nf => [nf.data||'', nf.valor||0, nf.obs||nf.desc||'', nf.forn||'', nf.num||'BOLETO', nf.venc||'']),
+    ['',nfCons.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── ABA 12: GRATIFICAÇÃO ──
+  const nfGrat = enNFsMes(['gratificacoes'], ano, mes);
+  addSheet('GRATIFICAÇÃO', [
+    ['GRATIFICAÇÕES'],
+    ['DATA','FUNCIONARIO','VALOR','Nº DA NOTA'],
+    ...nfGrat.map(nf => [nf.data||'', nf.dest||nf.obs||'TODOS', nf.valor||0, nf.num||'COMPROVANTE']),
+    ['','',nfGrat.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── ABA 13: FUNCIONÁRIOS ──
+  const nfFunc = enNFsMes(['funcionarios'], ano, mes);
+  addSheet('FUNCIONÁRIOS', [
+    ['FUNCIONÁRIOS'],
+    ['Data','Valor','Descrição','Empresa','Nota'],
+    ...nfFunc.map(nf => [nf.data||'', nf.valor||0, nf.obs||nf.desc||'', nf.forn||'AJBAM', nf.num||'COMPROVANTE']),
+    ['',nfFunc.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── ABA 14: COLABORADORES ──
+  const nfColab = enNFsMes(['colaboradores'], ano, mes);
+  addSheet('COLABORADORES', [
+    ['COLABORADORES'],
+    ['Data','Valor','Descrição','Empresa','Nota'],
+    ...nfColab.map(nf => [nf.data||'', nf.valor||0, nf.obs||nf.desc||'', nf.forn||'AJBAM', nf.num||'COMPROVANTE']),
+    ['',nfColab.reduce((a,n)=>a+(n.valor||0),0)],
+  ]);
+
+  // ── Gera o arquivo ──
+  const nomeArquivo = `CONTROLE_DE_GASTOS_AJBAM_${mesNome}_${ano}.xlsx`;
+  XLSX.writeFile(wb, nomeArquivo);
+  toast(`✅ Planilha gerada: ${nomeArquivo}`);
+}
 
 // ======================== RESUMO OPERACIONAL MENSAL ========================
 
