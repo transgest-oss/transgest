@@ -963,7 +963,8 @@ textarea{resize:vertical;min-height:65px}
       <!-- MÊS ATUAL EM DESTAQUE -->
       <div id="rm-mes-atual" style="margin-bottom:16px"></div>
 
-      <!-- TABELA ANUAL -->
+      <!-- TABELA ANUAL — Evolução do ano -->
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📊 Evolução Anual</div>
       <div class="card" style="overflow:auto">
         <table id="tb-relmensal" style="min-width:1000px">
           <thead id="tb-relmensal-head"></thead>
@@ -4776,13 +4777,17 @@ const RM_LINHAS = [
 
 // Calcula o total de uma categoria num mês/ano a partir dos Títulos
 function rmValorCatMes(cats, ano, mes){
+  // Regime de competência: agrupa pela data de emissão da NF
+  // não pelo vencimento do título
   const prefixo = `${ano}-${String(mes).padStart(2,'0')}`;
-  return Titulos.filter(t => {
-    const cat = t.categoria || 'manutencao';
+  
+  // Busca nas NFs pela data de emissão
+  return NFs.filter(nf => {
+    const cat = nf.categoria || 'manutencao';
     if(!cats.includes(cat)) return false;
-    // Usa data de vencimento para agrupar no mês
-    return (t.venc||'').startsWith(prefixo);
-  }).reduce((a,t) => a + (t.valor||0), 0);
+    if(nf.pgto === 'Aguardando Faturamento') return false;
+    return (nf.data||'').startsWith(prefixo);
+  }).reduce((a,nf) => a + (nf.valor||0), 0);
 }
 
 function renderRelMensal(){
