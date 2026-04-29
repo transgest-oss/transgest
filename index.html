@@ -4023,14 +4023,22 @@ async function salvarUsuario(){
     btn.textContent = '💾 Criar Usuário'; btn.disabled = false;
 
     if(se){
-      toast('Erro ao criar no Supabase: ' + se.message, 'error');
-      return;
+      // Se o e-mail já existe no Supabase, só salva o perfil no TransGest
+      if(se.message && (se.message.includes('already registered') || se.message.includes('already been registered'))){
+        obj.id = nextIdUser++;
+        obj.supaId = '';
+        Usuarios.unshift(obj);
+        toast('Perfil criado no TransGest! (Usuário já existia no Supabase) ✅');
+      } else {
+        toast('Erro ao criar no Supabase: ' + se.message, 'error');
+        return;
+      }
+    } else {
+      obj.id = nextIdUser++;
+      obj.supaId = sd.user?.id || '';
+      Usuarios.unshift(obj);
+      toast('Usuário criado! ✅');
     }
-
-    obj.id = nextIdUser++;
-    obj.supaId = sd.user?.id || '';
-    Usuarios.unshift(obj);
-    toast('Usuário criado! Um e-mail de confirmação foi enviado para ' + email + '.');
   }
 
   closeModal('modal-usuario');
