@@ -215,6 +215,15 @@ textarea{resize:vertical;min-height:65px}
 .cq-goto{font-size:11px;color:var(--accent2);font-weight:600;cursor:pointer;padding:2px 8px;border-radius:5px;border:1px solid rgba(0,112,214,.25);background:rgba(0,112,214,.06)}
 .cq-goto:hover{background:rgba(0,112,214,.14)}
 .cq-resumo-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.desp-ok{background:rgba(0,149,122,.10);color:var(--accent);font-weight:700}
+.desp-nok{background:rgba(200,80,80,.10);color:var(--red);font-weight:700}
+.desp-vazio{color:var(--text3);font-size:11px}
+.desp-media-ok{background:rgba(0,149,122,.15);color:var(--accent);font-weight:800;font-size:13px}
+.desp-media-nok{background:rgba(200,80,80,.15);color:var(--red);font-weight:800;font-size:13px}
+#tb-despesas th{font-size:11px;padding:8px 10px;white-space:nowrap}
+#tb-despesas td{font-size:12px;padding:7px 10px;white-space:nowrap;text-align:right}
+#tb-despesas td:first-child{text-align:left;font-weight:700;font-family:var(--mono);color:var(--accent2)}
+#tb-despesas td:nth-child(2){text-align:right;color:var(--text3);font-size:11px}
 </style>
 <style>
 /* LOGIN */
@@ -290,6 +299,7 @@ textarea{resize:vertical;min-height:65px}
     <div class="nav-item" onclick="showScreen('rel-financeiro',this)"><span class="nav-icon">💰</span> Financeiro</div>
     <div class="nav-item" onclick="showScreen('pendentes',this)"><span class="nav-icon">⚠</span> OCs Pendentes</div>
     <div class="nav-item" onclick="showScreen('consulta',this);renderConsulta()"><span class="nav-icon">🔍</span> Consulta Rápida</div>
+    <div class="nav-item" onclick="showScreen('despesas',this);renderDespesas()"><span class="nav-icon">🏆</span> Despesas por Placa</div>
   </nav>
   <div class="sidebar-footer">
     <div class="user-card">
@@ -890,6 +900,38 @@ textarea{resize:vertical;min-height:65px}
 </div>
 </div><!-- /#app-wrap --> ============================================================ -->
 
+
+    <!-- DESPESAS POR PLACA -->
+    <div class="screen" id="screen-despesas">
+      <div class="section-header">
+        <div class="section-title">🏆 Despesas por Placa 2026</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="desp-ano" onchange="renderDespesas()" style="font-size:12px;padding:6px 10px">
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="exportDespesasXLSX()">📊 Excel</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="stats-row stats-4" id="desp-kpis" style="margin-bottom:16px"></div>
+
+      <!-- TABELA PRINCIPAL -->
+      <div class="card" style="overflow:auto">
+        <table id="tb-despesas" style="min-width:900px">
+          <thead id="tb-despesas-head"></thead>
+          <tbody id="tb-despesas-body"></tbody>
+        </table>
+      </div>
+
+      <!-- LEGENDA -->
+      <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;font-size:12px;color:var(--text3)">
+        <span>🟢 Média abaixo do limite — motorista elegível à gratificação</span>
+        <span>🔴 Média acima do limite — fora da faixa</span>
+        <span style="color:var(--text3)">— Mês sem lançamentos</span>
+      </div>
+    </div>
 <!-- MODAL FORNECEDOR -->
 <!-- MODAL PIPA -->
 <div class="modal-overlay" id="modal-pipa">
@@ -1740,7 +1782,7 @@ const modal_icon={oc:'modal-oc-icon',nf:'modal-nf-icon',tit:'modal-tit-icon',sai
 const modal_title={oc:'modal-oc-title',nf:'modal-nf-title',tit:'modal-tit-title'};
 
 // ======================== NAVEGAÇÃO ========================
-const titles={dashboard:'Dashboard Geral',oc:'Ordens de Compra',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',nf:'Notas Fiscais',faturamentos:'Faturamentos',financeiro:'Contas a Pagar',estoque:'Estoque de Peças',frota:'Gestão de Frota',epi:'Controle de EPIs','rel-gastos':'Relatório — Gastos por Placa','rel-financeiro':'Relatório Financeiro por Período',pendentes:'OCs Pendentes de Faturamento',colaboradores:'Cadastro de Colaboradores',usuarios:'Usuários do Sistema',consulta:'🔍 Consulta Rápida',pipas:'🚛 Operações — Pipas'};
+const titles={dashboard:'Dashboard Geral',oc:'Ordens de Compra',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',nf:'Notas Fiscais',faturamentos:'Faturamentos',financeiro:'Contas a Pagar',estoque:'Estoque de Peças',frota:'Gestão de Frota',epi:'Controle de EPIs','rel-gastos':'Relatório — Gastos por Placa','rel-financeiro':'Relatório Financeiro por Período',pendentes:'OCs Pendentes de Faturamento',colaboradores:'Cadastro de Colaboradores',usuarios:'Usuários do Sistema',consulta:'🔍 Consulta Rápida',pipas:'🚛 Operações — Pipas',despesas:'🏆 Despesas por Placa 2026'};
 function showScreen(id,el){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -4507,6 +4549,162 @@ async function doLogout(){
 }
 
 // ======================== PERSISTÊNCIA SUPABASE — TABELAS SEPARADAS ========================
+
+// ======================== DESPESAS POR PLACA ========================
+
+const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// Retorna os gastos reais de uma placa em um mês/ano específico
+// calculados a partir das NFs (mesma lógica do calcGastoPorPlaca mas por mês)
+function gastoPlacaMes(placa, ano, mes){
+  // mes: 1-12
+  const mesStr = String(mes).padStart(2,'0');
+  const prefixo = `${ano}-${mesStr}`;
+  let total = 0;
+  NFs.forEach(nf => {
+    if(!(nf.data||'').startsWith(prefixo)) return;
+    const oc = OCs.find(o => o.num === nf.oc);
+    if(oc && oc.isRateio && oc.rateio){
+      oc.rateio.forEach(r => { if(r.placa === placa) total += r.valor||0; });
+    } else {
+      if(nf.dest === placa) total += nf.valor||0;
+    }
+  });
+  // Também considera Títulos com placa e vencimento no mês
+  Titulos.forEach(t => {
+    if(!t.placa || t.placa !== placa) return;
+    if(!(t.venc||'').startsWith(prefixo)) return;
+    // Evita dupla contagem — só conta títulos que não têm NF vinculada
+    if(!t.nf) total += t.valor||0;
+  });
+  return Math.round(total * 100) / 100;
+}
+
+function renderDespesas(){
+  const ano = parseInt((document.getElementById('desp-ano')||{value:'2026'}).value) || 2026;
+  const mesAtual = new Date().getMonth() + 1; // 1-12
+  const anoAtual = new Date().getFullYear();
+  // Meses a exibir: de Janeiro até o mês atual (se for o ano atual), senão Dezembro
+  const mesesExibir = ano === anoAtual ? mesAtual : 12;
+
+  // Apenas placas reais da frota (exclui categorias como ESTOQUE, OUTROS, etc.)
+  const placasValidas = Frota.filter(f => f.placa && /^[A-Z]{3}\d[A-Z0-9]\d{2}$|^[A-Z]{3}\d{4}$/.test(f.placa));
+
+  if(!placasValidas.length){
+    document.getElementById('tb-despesas-head').innerHTML = '';
+    document.getElementById('tb-despesas-body').innerHTML = '<tr><td colspan="20" class="empty">Nenhum caminhão cadastrado na frota com placa válida.</td></tr>';
+    document.getElementById('desp-kpis').innerHTML = '';
+    return;
+  }
+
+  // Monta matriz de gastos: { placa: [g1, g2, ..., gN] }
+  const matriz = {};
+  placasValidas.forEach(f => {
+    matriz[f.placa] = [];
+    for(let m = 1; m <= mesesExibir; m++){
+      matriz[f.placa].push(gastoPlacaMes(f.placa, ano, m));
+    }
+  });
+
+  // Cabeçalho da tabela
+  const thead = document.getElementById('tb-despesas-head');
+  thead.innerHTML = `<tr>
+    <th style="text-align:left">Placa</th>
+    <th style="text-align:right">Limite</th>
+    ${Array.from({length: mesesExibir}, (_,i) => `<th>${MESES_NOME[i].slice(0,3)}</th>`).join('')}
+    <th style="background:rgba(0,112,214,.07)">Total</th>
+    <th style="background:rgba(0,149,122,.07)">Média</th>
+    <th>Status</th>
+  </tr>`;
+
+  // Corpo da tabela
+  const tbody = document.getElementById('tb-despesas-body');
+  let totalGeral = 0;
+  let dentroCount = 0;
+  let foraCount = 0;
+
+  const rows = placasValidas.map(f => {
+    const gastos = matriz[f.placa];
+    const mesesComDados = gastos.filter(g => g > 0).length;
+    const totalPlaca = gastos.reduce((a,g) => a+g, 0);
+    // Média acumulada: soma ÷ número de meses (independente de ter dados ou não)
+    const media = mesesComDados > 0 ? totalPlaca / mesesExibir : 0;
+    const limite = f.limite || 0;
+    const dentro = limite > 0 && media <= limite;
+    const fora = limite > 0 && media > limite;
+
+    totalGeral += totalPlaca;
+    if(dentro) dentroCount++;
+    if(fora) foraCount++;
+
+    const celulasMeses = gastos.map(g =>
+      g > 0
+        ? `<td class="mono">${fmt(g)}</td>`
+        : `<td class="desp-vazio">—</td>`
+    ).join('');
+
+    const mediaClass = dentro ? 'desp-media-ok' : fora ? 'desp-media-nok' : '';
+    const statusIcon = dentro ? '🟢' : fora ? '🔴' : '⚪';
+    const statusLabel = dentro ? 'OK' : fora ? 'Acima' : 'Sem limite';
+
+    return `<tr>
+      <td>${f.placa}</td>
+      <td class="mono" style="color:var(--text3)">${limite > 0 ? fmt(limite) : '—'}</td>
+      ${celulasMeses}
+      <td class="mono" style="background:rgba(0,112,214,.05);font-weight:700">${fmt(totalPlaca)}</td>
+      <td class="mono ${mediaClass}" style="border-radius:6px">${mesesComDados > 0 ? fmt(media) : '—'}</td>
+      <td style="text-align:center;font-size:13px">${statusIcon} ${statusLabel}</td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = rows.join('') + `<tr style="border-top:2px solid var(--border);background:var(--card)">
+    <td style="font-weight:800;font-size:13px">TOTAL</td>
+    <td></td>
+    ${Array.from({length: mesesExibir}, () => '<td></td>').join('')}
+    <td class="mono" style="font-weight:800;font-size:13px;background:rgba(0,112,214,.07)">${fmt(totalGeral)}</td>
+    <td></td>
+    <td></td>
+  </tr>`;
+
+  // KPIs
+  const kpis = document.getElementById('desp-kpis');
+  const mediaGeral = placasValidas.length > 0 ? totalGeral / (placasValidas.length * mesesExibir) : 0;
+  kpis.innerHTML =
+    `<div class="stat-card"><div class="stat-label">Caminhões avaliados</div><div class="stat-value" style="font-size:20px">${placasValidas.length}</div><div class="stat-sub">${mesesExibir} meses acumulados</div></div>` +
+    `<div class="stat-card"><div class="stat-label">Dentro do limite 🟢</div><div class="stat-value" style="font-size:20px;color:var(--accent)">${dentroCount}</div><div class="stat-sub">Elegíveis à gratificação</div></div>` +
+    `<div class="stat-card"><div class="stat-label">Acima do limite 🔴</div><div class="stat-value" style="font-size:20px;color:var(--red)">${foraCount}</div><div class="stat-sub">Fora da faixa</div></div>` +
+    `<div class="stat-card"><div class="stat-label">Gasto Total ${ano}</div><div class="stat-value" style="font-size:20px;color:var(--amber)">${fmt(totalGeral)}</div><div class="stat-sub">Média ${fmt(mediaGeral)}/caminhão/mês</div></div>`;
+}
+
+function exportDespesasXLSX(){
+  if(typeof XLSX === 'undefined'){ toast('Biblioteca XLSX não carregou','error'); return; }
+  const ano = parseInt((document.getElementById('desp-ano')||{value:'2026'}).value) || 2026;
+  const mesAtual = new Date().getMonth() + 1;
+  const anoAtual = new Date().getFullYear();
+  const mesesExibir = ano === anoAtual ? mesAtual : 12;
+
+  const placasValidas = Frota.filter(f => f.placa && /^[A-Z]{3}\d[A-Z0-9]\d{2}$|^[A-Z]{3}\d{4}$/.test(f.placa));
+
+  const cabecalho = ['Placa','Limite', ...MESES_NOME.slice(0, mesesExibir), 'Total', 'Média Acumulada', 'Status'];
+  const rows = [cabecalho];
+
+  placasValidas.forEach(f => {
+    const gastos = [];
+    for(let m = 1; m <= mesesExibir; m++) gastos.push(gastoPlacaMes(f.placa, ano, m));
+    const total = gastos.reduce((a,g) => a+g, 0);
+    const mesesComDados = gastos.filter(g=>g>0).length;
+    const media = mesesComDados > 0 ? total / mesesExibir : 0;
+    const limite = f.limite || 0;
+    const status = limite > 0 ? (media <= limite ? '✅ OK' : '❌ Acima') : '—';
+    rows.push([f.placa, limite, ...gastos, total, media, status]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `Despesas ${ano}`);
+  XLSX.writeFile(wb, `Despesas_Placas_${ano}.xlsx`);
+  toast('Excel gerado! ✅');
+}
 
 // ======================== PIPAS ========================
 
