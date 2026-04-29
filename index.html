@@ -434,7 +434,6 @@ textarea{resize:vertical;min-height:65px}
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <span id="fat-aguard-badge" style="font-size:11px;color:var(--amber)"></span>
-          <button class="btn btn-secondary" onclick="openModalNFRapida()">🧾 Lançar NF do Fornecedor</button>
           <button class="btn btn-primary" onclick="openModalFaturamento()">+ Registrar Faturamento</button>
         </div>
       </div>
@@ -464,8 +463,7 @@ textarea{resize:vertical;min-height:65px}
       <div class="section-header">
         <div class="section-title">Contas a Pagar (<span id="fin-count">0</span>)</div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary" onclick="openModal('modal-titulo','novo')" style="font-size:11px">+ Lançamento Manual</button>
-          <button class="btn btn-primary" onclick="openModal('modal-titulo','novo')">+ Novo Título</button>
+          <button class="btn btn-primary" onclick="openModalAvulso()">+ Lançamento Avulso</button>
         </div>
       </div>
       <div class="stats-row stats-4" id="fin-kpis"></div>
@@ -1287,7 +1285,7 @@ textarea{resize:vertical;min-height:65px}
     <div class="modal-title"><span id="modal-nf-icon">🧾</span> <span id="modal-nf-title">Lançar Nota Fiscal</span></div>
     <div class="form-grid">
       <div class="form-group"><label>OC Vinculada</label>
-        <select id="f-nf-oc" onchange="nfOCChanged()"><option value="Sem OC">Sem OC (imposto/outro)</option></select>
+        <select id="f-nf-oc" onchange="nfOCChanged()"><option value="Sem OC">Sem OC</option></select>
       </div>
       <div class="form-group"><label>Tipo</label>
         <select id="f-nf-tipo"><option>Nota de Serviço</option><option>Nota de Produto</option></select>
@@ -1372,7 +1370,7 @@ textarea{resize:vertical;min-height:65px}
         </div>
       </div>
       <div class="form-group" id="nf-dest-wrap"><label>Destino / Placa</label>
-        <select id="f-nf-dest"><option value="Estoque">Estoque</option><option value="Administrativo">Administrativo</option></select>
+        <select id="f-nf-dest"><option value="Estoque">Estoque</option></select>
       </div>
       <div class="form-group full" style="background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.18);border-radius:8px;padding:10px 12px">
         <label style="color:var(--amber)">Modalidade de Cobrança</label>
@@ -1854,7 +1852,7 @@ textarea{resize:vertical;min-height:65px}
     </div>
     <div class="form-grid">
       <div class="form-group"><label>OC Vinculada</label>
-        <select id="f-nfr-oc"><option value="Sem OC">Sem OC (imposto/outro)</option></select>
+        <select id="f-nfr-oc"><option value="Sem OC">Sem OC</option></select>
       </div>
       <div class="form-group"><label>Tipo</label>
         <select id="f-nfr-tipo"><option>NF de Serviço</option><option>NF de Peças</option><option>NF Serviço + Peças</option><option>Imposto / Taxa</option><option>Outro</option></select>
@@ -2093,7 +2091,7 @@ function showScreen(id,el){
 function populateSelects(){
   // OCs no select da NF
   const selNFOC=$('f-nf-oc');
-  selNFOC.innerHTML='<option value="Sem OC">Sem OC (imposto/outro)</option>';
+  selNFOC.innerHTML='<option value="Sem OC">Sem OC</option>';
   OCs.filter(o=>o.status!=='Cancelada').forEach(o=>selNFOC.innerHTML+=`<option value="${o.num}">${o.num} — ${o.forn}</option>`);
   // Tipos OC
   atualizarSelectTiposOC();
@@ -2102,7 +2100,7 @@ function populateSelects(){
   ['f-oc-placa','f-nf-dest','f-saida-placa','f-tit-placa'].forEach(sid=>{
     const s=$(sid); if(!s)return;
     const isNfDest=sid==='f-nf-dest';
-    s.innerHTML=(isNfDest?'<option value="Estoque">Estoque</option><option value="Administrativo">Administrativo</option>':'<option value="-">Nenhuma (geral)</option>');
+    s.innerHTML=(isNfDest?'<option value="Estoque">Estoque</option>':'<option value="-">Nenhuma (geral)</option>');
     if(isNfDest){
       // Adiciona placas da frota
       Frota.forEach(f=>{ if(f.placa) s.innerHTML+=`<option value="${f.placa}">${f.placa}${f.modelo?' — '+f.modelo:''}</option>`; });
@@ -4559,12 +4557,12 @@ function abrirFatParaNF(nfId){
 function openModalNFRapida(){
   // Popula o select de OCs
   const selOC = $('f-nfr-oc');
-  selOC.innerHTML = '<option value="Sem OC">Sem OC (imposto/outro)</option>';
+  selOC.innerHTML = '<option value="Sem OC">Sem OC</option>';
   OCs.forEach(o => selOC.innerHTML += `<option value="${o.num}">${o.num} — ${o.forn}</option>`);
 
   // Popula placas no destino
   const selDest = $('f-nfr-dest');
-  selDest.innerHTML = '<option value="Estoque">Estoque</option><option value="Administrativo">Administrativo</option>';
+  selDest.innerHTML = '<option value="Estoque">Estoque</option>';
   Frota.forEach(f=>{ if(f.placa) selDest.innerHTML+=`<option value="${f.placa}">${f.placa}${f.modelo?' — '+f.modelo:''}</option>`; });
   Frota.forEach(f => selDest.innerHTML += `<option value="${f.placa}">${f.placa}</option>`);
 
