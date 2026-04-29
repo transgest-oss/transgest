@@ -2119,15 +2119,13 @@ function ocRateioRecalc(){
 
 // Detecta se a OC selecionada na NF tem rateio e exibe distribuição
 function nfOCChanged(){
-  // Auto-fill categoria from OC
-  const ocNum = $('f-nf-oc')?.value;
+  const ocNum = $('f-nf-oc')?.value || $('f-nf-oc').value;
   const oc = OCs.find(o => o.num === ocNum);
+  // Auto-fill categoria from OC
   if(oc && oc.categoria && $('f-nf-cat')){
     $('f-nf-cat').value = oc.categoria;
     nfToggleCategoria();
   }
-  const ocNum = $('f-nf-oc').value;
-  const oc = OCs.find(o => o.num === ocNum);
   const aviso = $('nf-rateio-aviso');
   const destWrap = $('nf-dest-wrap');
 
