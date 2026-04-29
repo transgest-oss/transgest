@@ -279,6 +279,7 @@ textarea{resize:vertical;min-height:65px}
     <div class="nav-item" onclick="showScreen('estoque',this)"><span class="nav-icon">📦</span> Estoque de Peças</div>
     <div class="nav-item" onclick="showScreen('frota',this)"><span class="nav-icon">🚚</span> Frota</div>
     <div class="nav-item" onclick="showScreen('epi',this)"><span class="nav-icon">🦺</span> EPIs</div>
+    <div class="nav-item" onclick="showScreen('pipas',this);renderPipas()"><span class="nav-icon">🚛</span> Pipas</div>
     <div class="nav-section" style="margin-top:6px">Cadastros</div>
     <div class="nav-item" onclick="showScreen('fornecedores',this)"><span class="nav-icon">🏭</span> Fornecedores</div>
     <div class="nav-item" onclick="showScreen('produtos',this)"><span class="nav-icon">🔩</span> Produtos</div>
@@ -792,10 +793,130 @@ textarea{resize:vertical;min-height:65px}
       </div>
     </div>
   </div>
+
+    <!-- PIPAS -->
+    <div class="screen" id="screen-pipas">
+      <div class="section-header">
+        <div class="section-title">🚛 Operações — Pipas (<span id="pipas-count">0</span> viagens)</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="exportPipasXLSX()">📊 Excel</button>
+          <button class="btn btn-primary" onclick="openModalPipa('novo')">+ Registrar Viagem</button>
+        </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="filter-bar">
+        <label>Mês</label>
+        <select id="pipa-fil-mes" onchange="renderPipas()" style="font-size:12px;padding:6px 10px">
+          <option value="">Todos</option>
+        </select>
+        <label>Placa</label>
+        <select id="pipa-fil-placa" onchange="renderPipas()"><option value="">Todas</option></select>
+        <label>Motorista</label>
+        <select id="pipa-fil-mot" onchange="renderPipas()"><option value="">Todos</option></select>
+        <button class="btn btn-secondary btn-sm" onclick="resetPipaFiltros()">Limpar</button>
+      </div>
+
+      <!-- KPIs -->
+      <div class="stats-row stats-4" id="pipa-kpis" style="margin-bottom:14px"></div>
+
+      <!-- TABS -->
+      <div class="tab-row" style="margin-bottom:14px">
+        <button class="tab on" onclick="setPipaTab('indicadores',this)">📊 Indicadores por Placa</button>
+        <button class="tab" onclick="setPipaTab('viagens',this)">📋 Viagens</button>
+        <button class="tab" onclick="setPipaTab('motoristas',this)">👤 Por Motorista</button>
+      </div>
+
+      <!-- TAB INDICADORES -->
+      <div id="pipa-tab-indicadores">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Placa</th>
+                <th>Viagens</th>
+                <th>Total Litros</th>
+                <th>Média Litros/Viagem</th>
+                <th>Custo Manutenção</th>
+                <th>Custo / Litro</th>
+                <th>Eficiência</th>
+              </tr>
+            </thead>
+            <tbody id="tb-pipa-indicadores"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB VIAGENS -->
+      <div id="pipa-tab-viagens" style="display:none">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Hora</th>
+                <th>Placa</th>
+                <th>Motorista</th>
+                <th>Litros</th>
+                <th>Local de Saída</th>
+                <th>Origem</th>
+                <th>Local de Descarga</th>
+                <th style="width:100px">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-pipa-viagens"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB MOTORISTAS -->
+      <div id="pipa-tab-motoristas" style="display:none">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Motorista</th>
+                <th>Viagens</th>
+                <th>Total Litros</th>
+                <th>Média Litros/Viagem</th>
+                <th>Placas Utilizadas</th>
+              </tr>
+            </thead>
+            <tbody id="tb-pipa-motoristas"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 </div>
 </div><!-- /#app-wrap --> ============================================================ -->
 
 <!-- MODAL FORNECEDOR -->
+<!-- MODAL PIPA -->
+<div class="modal-overlay" id="modal-pipa">
+  <div class="modal" style="width:600px">
+    <div class="modal-title">🚛 <span id="modal-pipa-title">Registrar Viagem</span></div>
+    <div class="form-grid">
+      <div class="form-group"><label>Data</label><input type="date" id="f-pipa-data"/></div>
+      <div class="form-group"><label>Hora</label><input type="time" id="f-pipa-hora"/></div>
+      <div class="form-group"><label>Placa</label>
+        <select id="f-pipa-placa">
+          <option value="">— Selecione —</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Motorista</label><input type="text" id="f-pipa-motorista" placeholder="Nome do motorista"/></div>
+      <div class="form-group"><label>Litros (Peso Líquido)</label><input type="number" id="f-pipa-litros" placeholder="0,00" step="0.01" min="0"/></div>
+      <div class="form-group"><label>Local de Saída</label><input type="text" id="f-pipa-saida" placeholder="Ex: Caixa do pós tratamento"/></div>
+      <div class="form-group"><label>Origem</label><input type="text" id="f-pipa-origem" placeholder="Ex: AGRIC"/></div>
+      <div class="form-group"><label>Local de Descarga</label><input type="text" id="f-pipa-descarga" placeholder="Ex: Área 3"/></div>
+      <div class="form-group full"><label>Observações</label><textarea id="f-pipa-obs" placeholder="Observações adicionais..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-pipa')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-pipa" onclick="salvarPipa()">💾 Salvar Viagem</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-fornecedor">
   <div class="modal" style="width:580px">
     <div class="modal-title">🏭 <span id="modal-forn-title">Novo Fornecedor</span></div>
@@ -1619,7 +1740,7 @@ const modal_icon={oc:'modal-oc-icon',nf:'modal-nf-icon',tit:'modal-tit-icon',sai
 const modal_title={oc:'modal-oc-title',nf:'modal-nf-title',tit:'modal-tit-title'};
 
 // ======================== NAVEGAÇÃO ========================
-const titles={dashboard:'Dashboard Geral',oc:'Ordens de Compra',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',nf:'Notas Fiscais',faturamentos:'Faturamentos',financeiro:'Contas a Pagar',estoque:'Estoque de Peças',frota:'Gestão de Frota',epi:'Controle de EPIs','rel-gastos':'Relatório — Gastos por Placa','rel-financeiro':'Relatório Financeiro por Período',pendentes:'OCs Pendentes de Faturamento',colaboradores:'Cadastro de Colaboradores',usuarios:'Usuários do Sistema',consulta:'🔍 Consulta Rápida'};
+const titles={dashboard:'Dashboard Geral',oc:'Ordens de Compra',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',nf:'Notas Fiscais',faturamentos:'Faturamentos',financeiro:'Contas a Pagar',estoque:'Estoque de Peças',frota:'Gestão de Frota',epi:'Controle de EPIs','rel-gastos':'Relatório — Gastos por Placa','rel-financeiro':'Relatório Financeiro por Período',pendentes:'OCs Pendentes de Faturamento',colaboradores:'Cadastro de Colaboradores',usuarios:'Usuários do Sistema',consulta:'🔍 Consulta Rápida',pipas:'🚛 Operações — Pipas'};
 function showScreen(id,el){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -4387,6 +4508,296 @@ async function doLogout(){
 
 // ======================== PERSISTÊNCIA SUPABASE — TABELAS SEPARADAS ========================
 
+// ======================== PIPAS ========================
+
+let ViagensPipa = [];
+let _nextPipaId = 1;
+
+function newPipaId(){ return _nextPipaId++; }
+
+function pipasInit(){
+  // Carrega do Supabase via TG_TABLES se disponível
+  if(!window.ViagensPipa) window.ViagensPipa = [];
+}
+
+function openModalPipa(mode, id){
+  // Popula placas da frota
+  const sel = document.getElementById('f-pipa-placa');
+  if(sel){
+    sel.innerHTML = '<option value="">— Selecione —</option>';
+    Frota.forEach(f => sel.innerHTML += `<option value="${f.placa}">${f.placa} — ${f.modelo||''}</option>`);
+  }
+  if(mode === 'novo'){
+    document.getElementById('f-pipa-data').value = today;
+    document.getElementById('f-pipa-hora').value = new Date().toTimeString().slice(0,5);
+    document.getElementById('f-pipa-placa').value = '';
+    document.getElementById('f-pipa-motorista').value = '';
+    document.getElementById('f-pipa-litros').value = '';
+    document.getElementById('f-pipa-saida').value = '';
+    document.getElementById('f-pipa-origem').value = '';
+    document.getElementById('f-pipa-descarga').value = '';
+    document.getElementById('f-pipa-obs').value = '';
+    document.getElementById('modal-pipa-title').textContent = 'Registrar Viagem';
+    document.getElementById('btn-save-pipa').textContent = '💾 Salvar Viagem';
+    window._editingPipa = null;
+  } else {
+    const v = ViagensPipa.find(x => x.id === id); if(!v) return;
+    window._editingPipa = id;
+    document.getElementById('f-pipa-data').value = v.data;
+    document.getElementById('f-pipa-hora').value = v.hora||'';
+    document.getElementById('f-pipa-placa').value = v.placa;
+    document.getElementById('f-pipa-motorista').value = v.motorista;
+    document.getElementById('f-pipa-litros').value = v.litros;
+    document.getElementById('f-pipa-saida').value = v.saida||'';
+    document.getElementById('f-pipa-origem').value = v.origem||'';
+    document.getElementById('f-pipa-descarga').value = v.descarga||'';
+    document.getElementById('f-pipa-obs').value = v.obs||'';
+    document.getElementById('modal-pipa-title').textContent = 'Editar Viagem';
+    document.getElementById('btn-save-pipa').textContent = '💾 Atualizar';
+  }
+  document.getElementById('modal-pipa').classList.add('open');
+}
+
+function salvarPipa(){
+  const placa = document.getElementById('f-pipa-placa').value;
+  if(!placa){ toast('Selecione a placa','error'); return; }
+  const motorista = document.getElementById('f-pipa-motorista').value.trim();
+  if(!motorista){ toast('Informe o motorista','error'); return; }
+  const litros = parseFloat(document.getElementById('f-pipa-litros').value)||0;
+  if(!litros){ toast('Informe os litros','error'); return; }
+
+  const obj = {
+    placa,
+    motorista,
+    litros,
+    data: document.getElementById('f-pipa-data').value || today,
+    hora: document.getElementById('f-pipa-hora').value || '',
+    saida: document.getElementById('f-pipa-saida').value.trim(),
+    origem: document.getElementById('f-pipa-origem').value.trim(),
+    descarga: document.getElementById('f-pipa-descarga').value.trim(),
+    obs: document.getElementById('f-pipa-obs').value.trim(),
+  };
+
+  if(window._editingPipa){
+    const i = ViagensPipa.findIndex(x => x.id === window._editingPipa);
+    ViagensPipa[i] = { ...ViagensPipa[i], ...obj };
+    window._editingPipa = null;
+    toast('Viagem atualizada!');
+  } else {
+    obj.id = newPipaId();
+    ViagensPipa.unshift(obj);
+    toast('Viagem registrada! ✅');
+  }
+  closeModal('modal-pipa');
+  renderPipas();
+  // Persiste no Supabase
+  saveEntidade('ViagensPipa', obj);
+  saveCounters();
+}
+
+function excluirPipa(id){
+  const v = ViagensPipa.find(x => x.id === id);
+  confirmDelete(`Excluir viagem de ${v.placa} em ${formatarDataBR(v.data)}?`, `${v.litros.toLocaleString('pt-BR')} litros — ${v.motorista}`, () => {
+    ViagensPipa = ViagensPipa.filter(x => x.id !== id);
+    deleteEntidade('ViagensPipa', id);
+    toast('Viagem excluída.');
+    renderPipas();
+  });
+}
+
+function resetPipaFiltros(){
+  ['pipa-fil-mes','pipa-fil-placa','pipa-fil-mot'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  renderPipas();
+}
+
+function setPipaTab(tab, el){
+  ['indicadores','viagens','motoristas'].forEach(t => {
+    const div = document.getElementById('pipa-tab-'+t);
+    if(div) div.style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('#screen-pipas .tab').forEach(t => t.classList.remove('on'));
+  if(el) el.classList.add('on');
+}
+
+function renderPipas(){
+  // Popular filtros
+  const filMes  = document.getElementById('pipa-fil-mes');
+  const filPlaca = document.getElementById('pipa-fil-placa');
+  const filMot  = document.getElementById('pipa-fil-mot');
+
+  // Meses disponíveis
+  if(filMes){
+    const cur = filMes.value;
+    const MESES_PT = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const mesesSet = new Set(ViagensPipa.map(v => v.data ? v.data.slice(0,7) : '').filter(Boolean));
+    const meses = [...mesesSet].sort().reverse();
+    filMes.innerHTML = '<option value="">Todos os meses</option>';
+    meses.forEach(ym => {
+      const [ano, m] = ym.split('-');
+      filMes.innerHTML += `<option value="${ym}">${MESES_PT[parseInt(m)]} ${ano}</option>`;
+    });
+    filMes.value = cur;
+  }
+
+  // Placas disponíveis
+  if(filPlaca){
+    const cur = filPlaca.value;
+    const placas = [...new Set(ViagensPipa.map(v => v.placa).filter(Boolean))].sort();
+    filPlaca.innerHTML = '<option value="">Todas as placas</option>';
+    placas.forEach(p => filPlaca.innerHTML += `<option value="${p}">${p}</option>`);
+    filPlaca.value = cur;
+  }
+
+  // Motoristas disponíveis
+  if(filMot){
+    const cur = filMot.value;
+    const mots = [...new Set(ViagensPipa.map(v => v.motorista).filter(Boolean))].sort();
+    filMot.innerHTML = '<option value="">Todos os motoristas</option>';
+    mots.forEach(m => filMot.innerHTML += `<option value="${m}">${m}</option>`);
+    filMot.value = cur;
+  }
+
+  // Filtra viagens
+  const mesFil   = (filMes||{value:''}).value;
+  const placaFil = (filPlaca||{value:''}).value;
+  const motFil   = (filMot||{value:''}).value;
+
+  const viagens = ViagensPipa.filter(v => {
+    if(mesFil   && !(v.data||'').startsWith(mesFil)) return false;
+    if(placaFil && v.placa !== placaFil) return false;
+    if(motFil   && v.motorista !== motFil) return false;
+    return true;
+  });
+
+  document.getElementById('pipas-count').textContent = viagens.length;
+
+  // KPIs gerais
+  const totalLitros = viagens.reduce((a,v) => a + (v.litros||0), 0);
+  const totalViagens = viagens.length;
+  const placasUnicas = new Set(viagens.map(v => v.placa)).size;
+  const mediaLitros = totalViagens ? Math.round(totalLitros / totalViagens) : 0;
+
+  // Custo total de manutenção das placas no período
+  const gastosMap = calcGastoMesAtual();
+  const placasFiltradas = [...new Set(viagens.map(v => v.placa))];
+  const custoTotal = placasFiltradas.reduce((a, p) => a + (gastosMap[p]||0), 0);
+  const custoPorLitro = totalLitros > 0 ? custoTotal / totalLitros : 0;
+
+  const kpisEl = document.getElementById('pipa-kpis');
+  if(kpisEl) kpisEl.innerHTML =
+    `<div class="stat-card"><div class="stat-label">Total de Viagens</div><div class="stat-value" style="font-size:20px">${totalViagens.toLocaleString('pt-BR')}</div><div class="stat-sub">${placasUnicas} placa(s)</div></div>` +
+    `<div class="stat-card"><div class="stat-label">Total Transportado</div><div class="stat-value" style="font-size:20px;color:var(--accent)">${totalLitros.toLocaleString('pt-BR')} L</div><div class="stat-sub">Média ${mediaLitros.toLocaleString('pt-BR')} L/viagem</div></div>` +
+    `<div class="stat-card"><div class="stat-label">Custo de Manutenção</div><div class="stat-value" style="font-size:20px;color:var(--amber)">${fmt(custoTotal)}</div><div class="stat-sub">Frota filtrada no mês</div></div>` +
+    `<div class="stat-card"><div class="stat-label">Custo por Litro</div><div class="stat-value" style="font-size:20px;color:${custoPorLitro > 0.5 ? 'var(--red)' : 'var(--accent2)'}">${custoPorLitro > 0 ? 'R$ ' + custoPorLitro.toFixed(4) : '—'}</div><div class="stat-sub">Manutenção ÷ litros</div></div>`;
+
+  // TAB INDICADORES POR PLACA
+  const porPlaca = {};
+  viagens.forEach(v => {
+    if(!porPlaca[v.placa]) porPlaca[v.placa] = { viagens: 0, litros: 0 };
+    porPlaca[v.placa].viagens++;
+    porPlaca[v.placa].litros += v.litros||0;
+  });
+
+  const tbInd = document.getElementById('tb-pipa-indicadores');
+  if(tbInd){
+    const placasOrd = Object.keys(porPlaca).sort((a,b) => porPlaca[b].litros - porPlaca[a].litros);
+    const maxLitros = Math.max(...placasOrd.map(p => porPlaca[p].litros), 1);
+    tbInd.innerHTML = placasOrd.length ? placasOrd.map(placa => {
+      const d = porPlaca[placa];
+      const custo = gastosMap[placa] || 0;
+      const cpl = d.litros > 0 ? custo / d.litros : 0;
+      const media = d.viagens > 0 ? Math.round(d.litros / d.viagens) : 0;
+      const pct = Math.round(d.litros / maxLitros * 100);
+      const efCls = cpl === 0 ? 'cgr' : cpl < 0.3 ? 'cg' : cpl < 0.6 ? 'ca' : 'cr';
+      const efLabel = cpl === 0 ? '—' : cpl < 0.3 ? '🟢 Ótimo' : cpl < 0.6 ? '🟡 Regular' : '🔴 Alto';
+      return `<tr>
+        <td class="mono" style="font-weight:700;color:var(--accent)">${placa}</td>
+        <td class="mono">${d.viagens}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="mono" style="font-weight:600">${d.litros.toLocaleString('pt-BR')} L</span>
+            <div class="progress-bar-wrap" style="flex:1;min-width:60px"><div class="progress-bar" style="width:${pct}%;background:var(--accent2)"></div></div>
+          </div>
+        </td>
+        <td class="mono">${media.toLocaleString('pt-BR')} L</td>
+        <td class="mono">${custo > 0 ? fmt(custo) : '<span style="color:var(--text3)">—</span>'}</td>
+        <td class="mono" style="font-weight:700;color:var(--accent2)">${cpl > 0 ? 'R$ '+cpl.toFixed(4) : '<span style="color:var(--text3)">—</span>'}</td>
+        <td>${chip(efLabel, efCls)}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" class="empty">Nenhuma viagem no período</td></tr>';
+  }
+
+  // TAB VIAGENS
+  const tbViag = document.getElementById('tb-pipa-viagens');
+  if(tbViag){
+    tbViag.innerHTML = viagens.length ? [...viagens].sort((a,b) => {
+      const da = (a.data||'')+(a.hora||'');
+      const db = (b.data||'')+(b.hora||'');
+      return db.localeCompare(da);
+    }).map(v => `<tr>
+      <td style="font-size:11px">${formatarDataBR(v.data)}</td>
+      <td class="mono" style="font-size:11px;color:var(--text3)">${v.hora||'—'}</td>
+      <td class="mono" style="font-weight:700;color:var(--accent)">${v.placa}</td>
+      <td>${v.motorista}</td>
+      <td class="mono" style="font-weight:600;color:var(--accent2)">${(v.litros||0).toLocaleString('pt-BR')} L</td>
+      <td style="font-size:11px;color:var(--text3)">${v.saida||'—'}</td>
+      <td style="font-size:11px">${v.origem||'—'}</td>
+      <td style="font-size:11px;color:var(--text3)">${v.descarga||'—'}</td>
+      <td>${acts(`openModalPipa('editar',${v.id})`,`excluirPipa(${v.id})`)}</td>
+    </tr>`).join('') : '<tr><td colspan="9" class="empty">Nenhuma viagem registrada</td></tr>';
+  }
+
+  // TAB MOTORISTAS
+  const porMot = {};
+  viagens.forEach(v => {
+    if(!porMot[v.motorista]) porMot[v.motorista] = { viagens: 0, litros: 0, placas: new Set() };
+    porMot[v.motorista].viagens++;
+    porMot[v.motorista].litros += v.litros||0;
+    porMot[v.motorista].placas.add(v.placa);
+  });
+
+  const tbMot = document.getElementById('tb-pipa-motoristas');
+  if(tbMot){
+    const motsOrd = Object.keys(porMot).sort((a,b) => porMot[b].litros - porMot[a].litros);
+    tbMot.innerHTML = motsOrd.length ? motsOrd.map(mot => {
+      const d = porMot[mot];
+      const media = d.viagens > 0 ? Math.round(d.litros / d.viagens) : 0;
+      return `<tr>
+        <td style="font-weight:500">${mot}</td>
+        <td class="mono">${d.viagens}</td>
+        <td class="mono" style="font-weight:600;color:var(--accent2)">${d.litros.toLocaleString('pt-BR')} L</td>
+        <td class="mono">${media.toLocaleString('pt-BR')} L</td>
+        <td style="font-size:11px;color:var(--text3)">${[...d.placas].join(', ')}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="5" class="empty">Nenhuma viagem registrada</td></tr>';
+  }
+}
+
+function exportPipasXLSX(){
+  if(typeof XLSX === 'undefined'){ toast('Biblioteca XLSX não carregou','error'); return; }
+  const mesFil   = (document.getElementById('pipa-fil-mes')||{value:''}).value;
+  const placaFil = (document.getElementById('pipa-fil-placa')||{value:''}).value;
+  const motFil   = (document.getElementById('pipa-fil-mot')||{value:''}).value;
+
+  const viagens = ViagensPipa.filter(v => {
+    if(mesFil   && !(v.data||'').startsWith(mesFil)) return false;
+    if(placaFil && v.placa !== placaFil) return false;
+    if(motFil   && v.motorista !== motFil) return false;
+    return true;
+  }).sort((a,b) => ((b.data||'')+(b.hora||'')).localeCompare((a.data||'')+(a.hora||'')));
+
+  const rows = [['Data','Hora','Placa','Motorista','Litros','Local de Saída','Origem','Local de Descarga','Obs']];
+  viagens.forEach(v => rows.push([v.data, v.hora||'', v.placa, v.motorista, v.litros, v.saida||'', v.origem||'', v.descarga||'', v.obs||'']));
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Viagens Pipas');
+  XLSX.writeFile(wb, 'Viagens_Pipas.xlsx');
+  toast('Excel gerado com sucesso!');
+}
+
 // ======================== CONSULTA RÁPIDA ========================
 
 function popularFiltrosConsulta(){
@@ -4640,6 +5051,7 @@ const TG_TABLES = {
   Usuarios:      'tg_usuarios',
   Faturamentos:  'tg_faturamentos',
   HistoricoOC:   'tg_historico_oc',
+  ViagensPipa:   'tg_viagens_pipa',
 };
 
 function proximoId(lista){
@@ -4664,6 +5076,8 @@ async function loadAppState(){
     });
 
     OCs.forEach(o=>{ if(!o.status) o.status='Ativa'; });
+    if(!window.ViagensPipa) window.ViagensPipa = [];
+    _nextPipaId = ViagensPipa.length ? Math.max(...ViagensPipa.map(v=>Number(v.id)||0))+1 : 1;
 
     // Carrega contadores
     const { data: ctrs } = await supa.from('tg_counters').select('key, value');
