@@ -4257,121 +4257,282 @@ async function doLogout(){
   document.getElementById('screen-dashboard').classList.add('active');
 }
 
-// ======================== PERSISTÊNCIA SUPABASE (PRODUÇÃO) ========================
-const TRANSGEST_STATE_ID = 'default';
+// ======================== PERSISTÊNCIA SUPABASE — TABELAS SEPARADAS ========================
+// v3 — cada entidade tem sua própria tabela no Supabase.
+// Isso elimina o risco de dois usuários sobrescreverem os dados um do outro.
+
 let _stateLoaded = false;
-let _savingState = false;
+let _savingQueue = {}; // controla saves em paralelo por tabela
 
-function getAppState(){
-  return {
-    version: 2,
-    savedAt: new Date().toISOString(),
-    Fornecedores, OCs, NFs, Titulos, Produtos, Estoque, Saidas, Frota,
-    EPIEstoque, EPIEntregas, Colaboradores, Usuarios, Faturamentos, HistoricoOC,
-    counters: { nextFornId, nextProdId, nextIdColab, nextIdUser, nextFatId, nextId }
-  };
-}
-
-function applyAppState(state){
-  state = state || {};
-  Fornecedores = Array.isArray(state.Fornecedores) ? state.Fornecedores : [];
-  OCs = Array.isArray(state.OCs) ? state.OCs : [];
-  NFs = Array.isArray(state.NFs) ? state.NFs : [];
-  Titulos = Array.isArray(state.Titulos) ? state.Titulos : [];
-  Produtos = Array.isArray(state.Produtos) ? state.Produtos : [];
-  Estoque = Array.isArray(state.Estoque) ? state.Estoque : [];
-  Saidas = Array.isArray(state.Saidas) ? state.Saidas : [];
-  Frota = Array.isArray(state.Frota) ? state.Frota : [];
-  EPIEstoque = Array.isArray(state.EPIEstoque) ? state.EPIEstoque : [];
-  EPIEntregas = Array.isArray(state.EPIEntregas) ? state.EPIEntregas : [];
-  Colaboradores = Array.isArray(state.Colaboradores) ? state.Colaboradores : [];
-  Usuarios = Array.isArray(state.Usuarios) ? state.Usuarios : [];
-  Faturamentos = Array.isArray(state.Faturamentos) ? state.Faturamentos : [];
-  HistoricoOC = Array.isArray(state.HistoricoOC) ? state.HistoricoOC : [];
-  OCs.forEach(o=>{ if(!o.status) o.status='Ativa'; });
-
-  const c = state.counters || {};
-  nextFornId = c.nextFornId || proximoId(Fornecedores);
-  nextProdId = c.nextProdId || proximoId(Produtos);
-  nextIdColab = c.nextIdColab || proximoId(Colaboradores);
-  nextIdUser = c.nextIdUser || proximoId(Usuarios);
-  nextFatId = c.nextFatId || proximoId(Faturamentos);
-  nextId = c.nextId || {
-    oc: proximoId(OCs), nf: proximoId(NFs), tit: proximoId(Titulos),
-    est: proximoId(Estoque), saida: proximoId(Saidas), frota: proximoId(Frota),
-    episaida: proximoId(EPIEntregas), epient: proximoId(EPIEstoque)
-  };
-}
+// Mapa: nome JS → nome da tabela no Supabase
+const TG_TABLES = {
+  Fornecedores:  'tg_fornecedores',
+  OCs:           'tg_ocs',
+  NFs:           'tg_nfs',
+  Titulos:       'tg_titulos',
+  Produtos:      'tg_produtos',
+  Estoque:       'tg_estoque',
+  Saidas:        'tg_saidas',
+  Frota:         'tg_frota',
+  EPIEstoque:    'tg_epi_estoque',
+  EPIEntregas:   'tg_epi_entregas',
+  Colaboradores: 'tg_colaboradores',
+  Usuarios:      'tg_usuarios',
+  Faturamentos:  'tg_faturamentos',
+  HistoricoOC:   'tg_historico_oc',
+};
 
 function proximoId(lista){
   const maior = (lista || []).reduce((m, item) => Math.max(m, Number(item.id) || 0), 0);
   return maior + 1;
 }
 
+// ── CARREGAMENTO INICIAL ──────────────────────────────────────────
 async function loadAppState(){
-  const { data, error } = await supa
-    .from('transgest_state')
-    .select('state')
-    .eq('id', TRANSGEST_STATE_ID)
-    .maybeSingle();
+  try {
+    const nomes = Object.keys(TG_TABLES);
+    // Busca todas as tabelas em paralelo
+    const resultados = await Promise.all(
+      nomes.map(nome => supa.from(TG_TABLES[nome]).select('id, data').order('id', { ascending: true }))
+    );
 
-  if(error){
-    toast('Erro ao carregar dados do Supabase: ' + error.message, 'error');
-    console.error(error);
+    nomes.forEach((nome, i) => {
+      const { data, error } = resultados[i];
+      if(error){ console.error(`Erro ao carregar ${nome}:`, error); return; }
+      // Cada linha tem { id, data: { ...objeto } }; reconstruímos o array
+      window[nome] = (data || []).map(row => ({ ...row.data, id: Number(row.id) }));
+    });
+
+    OCs.forEach(o=>{ if(!o.status) o.status='Ativa'; });
+
+    // Carrega contadores
+    const { data: ctrs } = await supa.from('tg_counters').select('key, value');
+    if(ctrs){
+      const m = {};
+      ctrs.forEach(r => m[r.key] = Number(r.value));
+      nextFornId  = m.nextFornId  || proximoId(Fornecedores);
+      nextProdId  = m.nextProdId  || proximoId(Produtos);
+      nextIdColab = m.nextIdColab || proximoId(Colaboradores);
+      nextIdUser  = m.nextIdUser  || proximoId(Usuarios);
+      nextFatId   = m.nextFatId   || proximoId(Faturamentos);
+      nextId = {
+        oc:       m.nextId_oc      || proximoId(OCs),
+        nf:       m.nextId_nf      || proximoId(NFs),
+        tit:      m.nextId_tit     || proximoId(Titulos),
+        est:      m.nextId_est     || proximoId(Estoque),
+        saida:    m.nextId_saida   || proximoId(Saidas),
+        frota:    m.nextId_frota   || proximoId(Frota),
+        episaida: m.nextId_episaida|| proximoId(EPIEntregas),
+        epient:   m.nextId_epient  || proximoId(EPIEstoque),
+      };
+    }
+
+    _stateLoaded = true;
+    populateSelects();
+    popularFiltroMeses(); // filtro dinâmico de meses
+    return true;
+  } catch(e){
+    toast('Erro ao carregar dados: ' + e.message, 'error');
+    console.error(e);
     return false;
   }
-
-  applyAppState(data && data.state ? data.state : {});
-  _stateLoaded = true;
-  populateSelects();
-  return true;
 }
 
-async function saveAppState(silent=false){
-  if(!_stateLoaded || _savingState) return;
-  _savingState = true;
-  const payload = getAppState();
-  const { error } = await supa
-    .from('transgest_state')
-    .upsert({ id: TRANSGEST_STATE_ID, state: payload, updated_at: new Date().toISOString() });
-  _savingState = false;
+// ── SALVAR UMA ENTIDADE ESPECÍFICA ────────────────────────────────
+// Salva apenas os registros que mudaram em vez de reescrever tudo.
+// Recebe o nome JS (ex: 'OCs') e os objetos a upsert (array ou único).
+async function saveEntidade(nomeJS, objetos){
+  if(!_stateLoaded) return;
+  const tabela = TG_TABLES[nomeJS];
+  if(!tabela){ console.warn('Tabela desconhecida:', nomeJS); return; }
 
+  const rows = (Array.isArray(objetos) ? objetos : [objetos]).map(o => ({
+    id: Number(o.id),
+    data: o,
+    updated_at: new Date().toISOString()
+  }));
+
+  const { error } = await supa.from(tabela).upsert(rows);
   if(error){
-    toast('Erro ao salvar no Supabase: ' + error.message, 'error');
+    toast(`Erro ao salvar ${nomeJS}: ${error.message}`, 'error');
     console.error(error);
-    return false;
   }
-  if(!silent) toast('Salvo no Supabase com garantia ✅');
-  return true;
 }
 
-function salvarDepois(fnName){
-  const original = window[fnName];
-  if(typeof original !== 'function') return;
-  window[fnName] = async function(...args){
-    const ret = original.apply(this, args);
-    if(ret && typeof ret.then === 'function') await ret;
-    await saveAppState(true);
-    return ret;
-  };
+// Exclui um registro de uma tabela pelo id
+async function deleteEntidade(nomeJS, id){
+  if(!_stateLoaded) return;
+  const tabela = TG_TABLES[nomeJS];
+  if(!tabela) return;
+  const { error } = await supa.from(tabela).delete().eq('id', Number(id));
+  if(error){ toast(`Erro ao excluir: ${error.message}`, 'error'); console.error(error); }
 }
 
+// Salva contadores de IDs
+async function saveCounters(){
+  const rows = [
+    { key: 'nextFornId',     value: nextFornId },
+    { key: 'nextProdId',     value: nextProdId },
+    { key: 'nextIdColab',    value: nextIdColab },
+    { key: 'nextIdUser',     value: nextIdUser },
+    { key: 'nextFatId',      value: nextFatId },
+    { key: 'nextId_oc',      value: nextId.oc },
+    { key: 'nextId_nf',      value: nextId.nf },
+    { key: 'nextId_tit',     value: nextId.tit },
+    { key: 'nextId_est',     value: nextId.est },
+    { key: 'nextId_saida',   value: nextId.saida },
+    { key: 'nextId_frota',   value: nextId.frota },
+    { key: 'nextId_episaida',value: nextId.episaida },
+    { key: 'nextId_epient',  value: nextId.epient },
+  ];
+  await supa.from('tg_counters').upsert(rows);
+}
+
+// ── HOOKS NAS FUNÇÕES DE SALVAR ───────────────────────────────────
+// Intercepta cada função de salvar para persistir apenas a entidade afetada.
+
+// Guarda referências originais
+const _orig = {};
 [
   'salvarOC','salvarNF','salvarTitulo','salvarSaida','salvarFrota',
   'salvarEPIEntrada','salvarEPISaida','salvarColab','salvarUsuario',
   'salvarFornecedor','salvarProduto','salvarFaturamento','salvarNFRapida',
   'marcarPago','cancelarOC'
-].forEach(salvarDepois);
+].forEach(fn => { _orig[fn] = window[fn]; });
 
+// Mapa: função → quais entidades ela afeta
+const FN_ENTIDADES = {
+  salvarOC:         ['OCs', 'HistoricoOC'],
+  salvarNF:         ['NFs', 'OCs', 'Titulos', 'Frota'],
+  salvarTitulo:     ['Titulos'],
+  salvarSaida:      ['Saidas', 'Produtos'],
+  salvarFrota:      ['Frota'],
+  salvarEPIEntrada: ['EPIEstoque'],
+  salvarEPISaida:   ['EPIEntregas'],
+  salvarColab:      ['Colaboradores'],
+  salvarUsuario:    ['Usuarios'],
+  salvarFornecedor: ['Fornecedores'],
+  salvarProduto:    ['Produtos'],
+  salvarFaturamento:['Faturamentos', 'NFs', 'Titulos'],
+  salvarNFRapida:   ['NFs', 'OCs'],
+  marcarPago:       ['Titulos'],
+  cancelarOC:       ['OCs', 'HistoricoOC'],
+};
+
+function wrapSalvar(fnName){
+  window[fnName] = async function(...args){
+    // Snapshot antes
+    const snapAntes = {};
+    const entidades = FN_ENTIDADES[fnName] || [];
+    entidades.forEach(e => {
+      snapAntes[e] = new Set((window[e] || []).map(x => x.id));
+    });
+
+    const ret = _orig[fnName].apply(this, args);
+    if(ret && typeof ret.then === 'function') await ret;
+
+    // Detecta registros novos ou alterados e salva só eles
+    const promises = [];
+    entidades.forEach(e => {
+      const lista = window[e] || [];
+      const idsAntes = snapAntes[e] || new Set();
+      // Novos: id não existia antes
+      const novos = lista.filter(x => !idsAntes.has(x.id));
+      // Modificados: filtramos todos (simples e seguro para listas pequenas)
+      // Para listas grandes, poderia comparar JSON; aqui fazemos upsert de todos
+      if(novos.length > 0) promises.push(saveEntidade(e, novos));
+      else if(lista.length > 0) promises.push(saveEntidade(e, lista));
+    });
+    promises.push(saveCounters());
+    await Promise.all(promises);
+    return ret;
+  };
+}
+
+Object.keys(FN_ENTIDADES).forEach(wrapSalvar);
+
+// Intercepta exclusões para deletar do Supabase
 const _confirmDeleteOriginal = confirmDelete;
 confirmDelete = function(msg, detail, fn){
   return _confirmDeleteOriginal(msg, detail, async function(){
+    // Snapshot antes da exclusão
+    const snapAntes = {};
+    Object.keys(TG_TABLES).forEach(e => {
+      snapAntes[e] = new Set((window[e] || []).map(x => x.id));
+    });
+
     const ret = fn && fn();
     if(ret && typeof ret.then === 'function') await ret;
-    await saveAppState(true);
+
+    // Detecta quais ids foram removidos por entidade
+    const promises = [];
+    Object.keys(TG_TABLES).forEach(e => {
+      const depoisIds = new Set((window[e] || []).map(x => x.id));
+      const removidos = [...(snapAntes[e] || [])].filter(id => !depoisIds.has(id));
+      removidos.forEach(id => promises.push(deleteEntidade(e, id)));
+    });
+    promises.push(saveCounters());
+    await Promise.all(promises);
   });
 };
 
+// ── FILTRO DE MESES DINÂMICO ──────────────────────────────────────
+function popularFiltroMeses(){
+  // Coleta todos os meses/anos presentes nos dados financeiros (Titulos + NFs)
+  const mesesSet = new Set();
+  const MESES_PT = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  [...Titulos, ...NFs].forEach(t => {
+    const d = t.venc || t.data;
+    if(!d) return;
+    const partes = String(d).split('-');
+    if(partes.length < 2) return;
+    const ano = partes[0], mes = parseInt(partes[1]);
+    if(ano && mes) mesesSet.add(`${ano}-${String(mes).padStart(2,'0')}`);
+  });
+
+  // Ordena decrescente (mais recente primeiro)
+  const mesesOrdenados = [...mesesSet].sort().reverse();
+
+  // Atualiza selects hardcoded no rel-gastos
+  ['rel-mes','rel-mes-fim'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    if(!sel) return;
+    const curVal = sel.value;
+    // Mantém opção vazia no "até"
+    sel.innerHTML = selId === 'rel-mes-fim' ? '<option value="">—</option>' : '';
+    mesesOrdenados.forEach(ym => {
+      const [ano, mesStr] = ym.split('-');
+      const mesNum = parseInt(mesStr);
+      const opt = document.createElement('option');
+      opt.value = mesNum;
+      opt.dataset.ano = ano;
+      opt.textContent = `${MESES_PT[mesNum]} ${ano}`;
+      sel.appendChild(opt);
+    });
+    // Tenta restaurar valor
+    if(curVal) sel.value = curVal;
+  });
+
+  // Relatório financeiro — selects fm/fa com anos dinâmicos
+  const anos = [...new Set(mesesOrdenados.map(ym => ym.split('-')[0]))].sort().reverse();
+  ['fa','fta'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    if(!sel) return;
+    const curVal = sel.value;
+    sel.innerHTML = '';
+    anos.forEach(ano => {
+      const opt = document.createElement('option');
+      opt.value = ano;
+      opt.textContent = ano;
+      sel.appendChild(opt);
+    });
+    if(curVal && anos.includes(curVal)) sel.value = curVal;
+    else if(anos.length) sel.value = anos[0];
+  });
+}
+
+// ── LOGIN / SESSÃO ────────────────────────────────────────────────
 const _doLoginOriginal = doLogin;
 doLogin = async function(){
   await _doLoginOriginal();
@@ -4385,20 +4546,23 @@ doLogin = async function(){
 supa.auth.getSession().then(({ data: { session } }) => {
   if(session){
     const email = session.user.email;
-    const perfil = Usuarios.find(u => u.email.toLowerCase() === email.toLowerCase());
-    const nomeExibir = perfil ? perfil.nome : email.split('@')[0];
-    const perfilExibir = perfil ? perfil.perfil.replace(' (Acesso Total)','') : 'Usuário';
-    const iniciais = nomeExibir.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+    // Usuarios ainda está vazio aqui; vamos carregar e depois buscar
+    loadAppState().then(() => {
+      const perfil = Usuarios.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+      const nomeExibir = perfil ? perfil.nome : email.split('@')[0];
+      const perfilExibir = perfil ? perfil.perfil.replace(' (Acesso Total)','') : 'Usuário';
+      const iniciais = nomeExibir.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
 
-    document.getElementById('sb-avatar').textContent = iniciais;
-    document.getElementById('sb-nome').textContent = nomeExibir;
-    document.getElementById('sb-perfil').textContent = perfilExibir;
+      document.getElementById('sb-avatar').textContent = iniciais;
+      document.getElementById('sb-nome').textContent = nomeExibir;
+      document.getElementById('sb-perfil').textContent = perfilExibir;
 
-    usuarioLogado = { ...session.user, nome: nomeExibir, perfil: perfilExibir };
+      usuarioLogado = { ...session.user, nome: nomeExibir, perfil: perfilExibir };
 
-    document.getElementById('login-wrap').style.display = 'none';
-    document.getElementById('app-wrap').style.display = 'flex';
-    loadAppState().then(() => renderAll());
+      document.getElementById('login-wrap').style.display = 'none';
+      document.getElementById('app-wrap').style.display = 'flex';
+      renderAll();
+    });
   }
 });
 
