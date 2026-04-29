@@ -1029,6 +1029,88 @@ textarea{resize:vertical;min-height:65px}
 </div><!-- /main -->
 
 <!-- MODAL FORNECEDOR -->
+<!-- MODAL LANÇAMENTO AVULSO -->
+<div class="modal-overlay" id="modal-avulso">
+  <div class="modal" style="width:640px">
+    <div class="modal-title">📋 Lançamento Avulso — Sem Nota Fiscal</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Categoria</label>
+        <select id="f-av-cat">
+          <option value="combustiveis">Combustíveis</option>
+          <option value="impostos">Impostos</option>
+          <option value="seguros">Seguros e Monitoramento</option>
+          <option value="consorcios">Consórcios</option>
+          <option value="diarias">Diárias</option>
+          <option value="gratificacoes">Gratificações</option>
+          <option value="funcionarios">Funcionários</option>
+          <option value="adiantamentos">Adiantamentos</option>
+          <option value="colaboradores">Colaboradores</option>
+          <option value="outros">Outros</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Fornecedor / Beneficiário</label>
+        <select id="f-av-forn"><option value="">— Selecione —</option></select>
+      </div>
+      <div class="form-group full">
+        <label>Descrição</label>
+        <input type="text" id="f-av-desc" placeholder="Ex: Apólice 2026 — Seguro Frota Viavante, Parcela DAS Simples..."/>
+      </div>
+      <div class="form-group">
+        <label>Valor Total (R$)</label>
+        <input type="number" id="f-av-valor" placeholder="0.00" step="0.01" min="0" oninput="avRecalcParcelas()"/>
+      </div>
+      <div class="form-group">
+        <label>Nº de Parcelas</label>
+        <select id="f-av-parcelas" onchange="avGerarParcelas()">
+          <option value="1">1× (à vista)</option>
+          <option value="2">2×</option><option value="3">3×</option>
+          <option value="4">4×</option><option value="5">5×</option>
+          <option value="6">6×</option><option value="7">7×</option>
+          <option value="8">8×</option><option value="9">9×</option>
+          <option value="10">10×</option><option value="11">11×</option>
+          <option value="12">12×</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Forma de Pagamento</label>
+        <select id="f-av-forma">
+          <option>Boleto</option><option>PIX</option>
+          <option>Débito Automático</option><option>Cartão</option><option>Dinheiro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Referência / Nº Doc.</label>
+        <input type="text" id="f-av-ref" placeholder="Nº do boleto, apólice..."/>
+      </div>
+    </div>
+
+    <!-- GRADE DE PARCELAS -->
+    <div style="margin-top:14px;background:rgba(0,112,214,.04);border:1px solid rgba(0,112,214,.15);border-radius:10px;padding:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">📅 Parcelas — Vencimento e Competência</div>
+      <div style="display:grid;grid-template-columns:28px 1fr 1fr 1fr auto;gap:8px;margin-bottom:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">
+        <span></span>
+        <span>Vencimento</span>
+        <span>Competência (mês/ano)</span>
+        <span>Valor (R$)</span>
+        <span></span>
+      </div>
+      <div id="av-parcelas-linhas"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:9px;border-top:1px solid rgba(0,112,214,.15)">
+        <span style="font-size:11px;color:var(--text2)">Total das parcelas:</span>
+        <span id="av-parcelas-soma" style="font-size:12px;font-weight:700;font-family:var(--mono);color:var(--accent2)">R$ 0,00</span>
+        <span id="av-parcelas-diff" style="font-size:10px;color:var(--text3);margin-left:8px"></span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-avulso')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAvulso()">💾 Criar Títulos</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL PIPA -->
 <div class="modal-overlay" id="modal-pipa">
   <div class="modal" style="width:600px">
@@ -1208,7 +1290,7 @@ textarea{resize:vertical;min-height:65px}
         <select id="f-nf-oc" onchange="nfOCChanged()"><option value="Sem OC">Sem OC (imposto/outro)</option></select>
       </div>
       <div class="form-group"><label>Tipo</label>
-        <select id="f-nf-tipo"><option>NF de Serviço</option><option>NF de Peças</option><option>NF Serviço + Peças</option><option>Imposto / Taxa</option><option>Outro</option></select>
+        <select id="f-nf-tipo"><option>Nota de Serviço</option><option>Nota de Produto</option></select>
       </div>
       <div class="form-group"><label>Nº NF / Referência</label><input type="text" id="f-nf-num" placeholder="12345"/></div>
       <div class="form-group"><label>Data Emissão</label><input type="date" id="f-nf-data"/></div>
@@ -1307,7 +1389,17 @@ textarea{resize:vertical;min-height:65px}
         </div>
       </div>
       <div class="form-group"><label>Valor Total da NF (R$)</label>
-        <input type="number" id="f-nf-valor" placeholder="0.00" step="0.01" oninput="nfRecalcularParcelas()"/>
+        <input type="number" id="f-nf-valor" placeholder="0.00" step="0.01" oninput="nfCalcDivergencia();nfRecalcularParcelas()"/>
+      </div>
+      <div class="form-group"><label>Acréscimo (R$) <span style="font-size:10px;color:var(--text3)">ex: frete</span></label>
+        <input type="number" id="f-nf-acrescimo" placeholder="0.00" step="0.01" min="0" oninput="nfCalcDivergencia();nfRecalcularParcelas()"/>
+      </div>
+      <div class="form-group"><label>Desconto (R$)</label>
+        <input type="number" id="f-nf-desconto" placeholder="0.00" step="0.01" min="0" oninput="nfCalcDivergencia();nfRecalcularParcelas()"/>
+      </div>
+      <!-- Aviso de divergência NF x OC -->
+      <div id="nf-diverg-aviso" class="form-group full" style="display:none;background:rgba(200,120,0,.07);border:1px solid rgba(200,120,0,.25);border-radius:8px;padding:10px 14px">
+        <span style="color:var(--amber);font-size:12px;font-weight:600" id="nf-diverg-msg"></span>
       </div>
       <div class="form-group"><label>Nº de Parcelas</label>
         <select id="f-nf-parcelas" onchange="nfGerarParcelas()">
@@ -2011,6 +2103,10 @@ function populateSelects(){
     const s=$(sid); if(!s)return;
     const isNfDest=sid==='f-nf-dest';
     s.innerHTML=(isNfDest?'<option value="Estoque">Estoque</option><option value="Administrativo">Administrativo</option>':'<option value="-">Nenhuma (geral)</option>');
+    if(isNfDest){
+      // Adiciona placas da frota
+      Frota.forEach(f=>{ if(f.placa) s.innerHTML+=`<option value="${f.placa}">${f.placa}${f.modelo?' — '+f.modelo:''}</option>`; });
+    }
     placas.forEach(p=>s.innerHTML+=`<option value="${p}">${p}</option>`);
   });
   // Fornecedores nos selects
@@ -2060,6 +2156,9 @@ window.openModal = function(id, mode, data){
     // inicializar parcelas ao abrir NF nova
     if(id==='modal-nf'){
       if($('f-nf-cat')){$('f-nf-cat').value='manutencao'; nfToggleCategoria();}
+      if(document.getElementById('f-nf-acrescimo')) document.getElementById('f-nf-acrescimo').value='';
+      if(document.getElementById('f-nf-desconto')) document.getElementById('f-nf-desconto').value='';
+      if(document.getElementById('nf-diverg-aviso')) document.getElementById('nf-diverg-aviso').style.display='none';
       $('f-nf-parcelas').value='1';
       $('f-nf-valor').value='';
       $('f-nf-data').value=today;
@@ -2124,6 +2223,7 @@ function ocRateioRecalc(){
 function nfOCChanged(){
   const ocNum = $('f-nf-oc')?.value || $('f-nf-oc').value;
   const oc = OCs.find(o => o.num === ocNum);
+  nfCalcDivergencia();
   // Auto-fill categoria from OC
   if(oc && oc.categoria && $('f-nf-cat')){
     $('f-nf-cat').value = oc.categoria;
@@ -2397,8 +2497,11 @@ function nfCombCalc(){
 
 async function salvarNF(){
   const forn=$('f-nf-forn').value.trim(); if(!forn){toast('Selecione o fornecedor','error');return;}
-  const total=parseFloat($('f-nf-valor').value)||0;
-  if(!total){toast('Informe o valor total da NF','error');return;}
+  const valorBase=parseFloat($('f-nf-valor').value)||0;
+  if(!valorBase){toast('Informe o valor total da NF','error');return;}
+  const acrescimo=parseFloat(document.getElementById('f-nf-acrescimo')?.value)||0;
+  const desconto=parseFloat(document.getElementById('f-nf-desconto')?.value)||0;
+  const total=Math.round((valorBase+acrescimo-desconto)*100)/100;
 
   // Coleta parcelas da grade
   const vencEls=[...document.querySelectorAll('.parcela-venc')];
@@ -4462,6 +4565,7 @@ function openModalNFRapida(){
   // Popula placas no destino
   const selDest = $('f-nfr-dest');
   selDest.innerHTML = '<option value="Estoque">Estoque</option><option value="Administrativo">Administrativo</option>';
+  Frota.forEach(f=>{ if(f.placa) selDest.innerHTML+=`<option value="${f.placa}">${f.placa}${f.modelo?' — '+f.modelo:''}</option>`; });
   Frota.forEach(f => selDest.innerHTML += `<option value="${f.placa}">${f.placa}</option>`);
 
   // Reseta campos
@@ -4809,6 +4913,182 @@ async function doLogout(){
 }
 
 // ======================== PERSISTÊNCIA SUPABASE — TABELAS SEPARADAS ========================
+
+// ======================== LANÇAMENTO AVULSO ========================
+
+function openModalAvulso(){
+  // Popula fornecedores
+  const sel = document.getElementById('f-av-forn');
+  if(sel){
+    sel.innerHTML = '<option value="">— Selecione —</option>';
+    Fornecedores.forEach(f => sel.innerHTML += `<option value="${f.nome}">${f.nome}</option>`);
+  }
+  document.getElementById('f-av-cat').value = 'seguros';
+  document.getElementById('f-av-valor').value = '';
+  document.getElementById('f-av-desc').value = '';
+  document.getElementById('f-av-ref').value = '';
+  document.getElementById('f-av-parcelas').value = '1';
+  document.getElementById('f-av-forma').value = 'Boleto';
+  document.getElementById('av-parcelas-linhas').innerHTML = '';
+  document.getElementById('av-parcelas-soma').textContent = 'R$ 0,00';
+  document.getElementById('av-parcelas-diff').textContent = '';
+  avGerarParcelas();
+  document.getElementById('modal-avulso').classList.add('open');
+}
+
+function avProxMes(anoMes, n){
+  // Retorna anoMes + n meses no formato {ano, mes}
+  let { ano, mes } = anoMes;
+  mes += n;
+  while(mes > 12){ mes -= 12; ano++; }
+  return { ano, mes };
+}
+
+function avGerarParcelas(){
+  const total = parseFloat(document.getElementById('f-av-valor').value)||0;
+  const qtd = parseInt(document.getElementById('f-av-parcelas').value)||1;
+  const valParcela = qtd > 0 ? Math.round(total/qtd*100)/100 : 0;
+  const hoje = new Date();
+  const wrap = document.getElementById('av-parcelas-linhas');
+
+  let html = '';
+  for(let i = 0; i < qtd; i++){
+    // Vencimento: 1 mês a frente por parcela
+    const vencDate = new Date(hoje.getFullYear(), hoje.getMonth() + i + 1, hoje.getDate());
+    const vencISO = vencDate.toISOString().slice(0,10);
+    // Competência: mês atual + i
+    const compMes = avProxMes({ano: hoje.getFullYear(), mes: hoje.getMonth()+1}, i);
+    const compVal = `${compMes.ano}-${String(compMes.mes).padStart(2,'0')}`;
+
+    html += `<div style="display:grid;grid-template-columns:28px 1fr 1fr 1fr auto;gap:8px;margin-bottom:6px;align-items:center">
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-align:center">${i+1}</span>
+      <input type="date" class="av-parc-venc" value="${vencISO}" style="font-size:12px;padding:6px 8px"/>
+      <input type="month" class="av-parc-comp" value="${compVal}" style="font-size:12px;padding:6px 8px"/>
+      <input type="number" class="av-parc-val" value="${valParcela.toFixed(2)}" step="0.01" min="0" oninput="avSomarParcelas()" style="font-size:12px;padding:6px 8px;font-family:var(--mono)"/>
+      <span style="font-size:10px;color:var(--text3)">R$</span>
+    </div>`;
+  }
+  wrap.innerHTML = html;
+  avSomarParcelas();
+}
+
+function avRecalcParcelas(){
+  const total = parseFloat(document.getElementById('f-av-valor').value)||0;
+  const qtd = parseInt(document.getElementById('f-av-parcelas').value)||1;
+  const valParcela = qtd > 0 ? Math.round(total/qtd*100)/100 : 0;
+  document.querySelectorAll('.av-parc-val').forEach((el,i) => {
+    // Só recalcula se ainda estiver com valor padrão
+    el.value = valParcela.toFixed(2);
+  });
+  avSomarParcelas();
+}
+
+function avSomarParcelas(){
+  const total = parseFloat(document.getElementById('f-av-valor').value)||0;
+  const soma = [...document.querySelectorAll('.av-parc-val')].reduce((a,el)=>a+(parseFloat(el.value)||0),0);
+  const somaEl = document.getElementById('av-parcelas-soma');
+  const diffEl = document.getElementById('av-parcelas-diff');
+  somaEl.textContent = 'R$ ' + soma.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const diff = Math.round((soma - total)*100)/100;
+  if(Math.abs(diff) > 0.02){
+    diffEl.textContent = `Diferença: R$ ${Math.abs(diff).toFixed(2)}`;
+    diffEl.style.color = 'var(--red)';
+    somaEl.style.color = 'var(--red)';
+  } else {
+    diffEl.textContent = '✓';
+    diffEl.style.color = 'var(--accent)';
+    somaEl.style.color = 'var(--accent2)';
+  }
+}
+
+function salvarAvulso(){
+  const cat = document.getElementById('f-av-cat').value;
+  const forn = document.getElementById('f-av-forn').value.trim();
+  if(!forn){ toast('Selecione o fornecedor','error'); return; }
+  const desc = document.getElementById('f-av-desc').value.trim();
+  if(!desc){ toast('Informe a descrição','error'); return; }
+  const total = parseFloat(document.getElementById('f-av-valor').value)||0;
+  if(!total){ toast('Informe o valor','error'); return; }
+  const ref = document.getElementById('f-av-ref').value.trim();
+  const forma = document.getElementById('f-av-forma').value;
+
+  const vencs = [...document.querySelectorAll('.av-parc-venc')];
+  const comps = [...document.querySelectorAll('.av-parc-comp')];
+  const vals  = [...document.querySelectorAll('.av-parc-val')];
+
+  if(!vencs.length){ toast('Gere as parcelas primeiro','error'); return; }
+
+  // Valida
+  for(let i=0;i<vencs.length;i++){
+    if(!vencs[i].value){ toast(`Informe o vencimento da parcela ${i+1}`,'error'); return; }
+    if(!comps[i].value){ toast(`Informe a competência da parcela ${i+1}`,'error'); return; }
+    if(!(parseFloat(vals[i].value)>0)){ toast(`Informe o valor da parcela ${i+1}`,'error'); return; }
+  }
+
+  // Verifica soma
+  const soma = Math.round(vals.reduce((a,el)=>a+(parseFloat(el.value)||0),0)*100)/100;
+  if(Math.abs(soma - total) > 0.02){
+    toast(`A soma das parcelas (${fmt(soma)}) difere do total (${fmt(total)})`,'error'); return;
+  }
+
+  // Cria títulos
+  const qtd = vencs.length;
+  vencs.forEach((el,i) => {
+    const label = qtd > 1 ? ` — Parcela ${i+1}/${qtd}` : '';
+    const compYM = comps[i].value; // formato YYYY-MM
+    const compData = compYM + '-01'; // primeiro dia do mês de competência
+    Titulos.unshift({
+      id: newId('tit'),
+      forn,
+      tipo: 'Avulso',
+      ref: (ref||desc) + label,
+      valor: Math.round(parseFloat(vals[i].value)*100)/100,
+      emissao: compData, // competência como data de emissão para o relatório
+      venc: el.value,
+      status: 'Pendente',
+      placa: '-',
+      obs: desc + (ref ? ` — Ref: ${ref}` : '') + ` — ${forma}`,
+      categoria: cat,
+      competencia: compYM,
+    });
+  });
+
+  closeModal('modal-avulso');
+  toast(`${qtd} título(s) criado(s) no Contas a Pagar! ✅`);
+  renderAll();
+}
+
+// ======================== DIVERGÊNCIA NF x OC ========================
+
+function nfCalcDivergencia(){
+  const ocNum = ($('f-nf-oc')||{value:'Sem OC'}).value;
+  const oc = OCs.find(o => o.num === ocNum);
+  if(!oc){ 
+    document.getElementById('nf-diverg-aviso').style.display = 'none';
+    return; 
+  }
+
+  const valorNF = parseFloat(($('f-nf-valor')||{value:0}).value)||0;
+  const acrescimo = parseFloat(document.getElementById('f-nf-acrescimo')?.value)||0;
+  const desconto = parseFloat(document.getElementById('f-nf-desconto')?.value)||0;
+  const valorFinal = valorNF + acrescimo - desconto;
+  const valorOC = oc.valor || 0;
+  const diff = Math.round((valorFinal - valorOC)*100)/100;
+
+  const aviso = document.getElementById('nf-diverg-aviso');
+  const msg = document.getElementById('nf-diverg-msg');
+
+  if(Math.abs(diff) > 0.02){
+    aviso.style.display = '';
+    if(diff > 0){
+      msg.textContent = `⚠️ NF maior que a OC em ${fmt(Math.abs(diff))} (OC: ${fmt(valorOC)} → NF + acréscimos: ${fmt(valorFinal)})`;
+    } else {
+      msg.textContent = `⚠️ NF menor que a OC em ${fmt(Math.abs(diff))} (OC: ${fmt(valorOC)} → NF com descontos: ${fmt(valorFinal)})`;
+    }
+  } else {
+    aviso.style.display = 'none';
+  }
+}
 
 // ======================== PLANILHA ENERGISA ========================
 
