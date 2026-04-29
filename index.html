@@ -196,6 +196,25 @@ textarea{resize:vertical;min-height:65px}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:99px}
+.cq-check{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);cursor:pointer;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);user-select:none}
+.cq-check:hover{background:var(--card2)}
+.cq-check input{accent-color:var(--accent)}
+.cq-card{background:#fff;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.cq-card-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.cq-card-header:hover{background:var(--card)}
+.cq-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+.cq-badge.oc{background:rgba(0,112,214,.12);color:var(--accent2)}
+.cq-badge.nf{background:rgba(0,149,122,.12);color:var(--accent)}
+.cq-badge.tit{background:rgba(200,120,0,.12);color:var(--amber)}
+.cq-badge.fat{background:rgba(124,92,218,.12);color:var(--purple)}
+.cq-row{display:grid;gap:4px;padding:10px 14px 12px}
+.cq-row-item{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border)}
+.cq-row-item:last-child{border-bottom:none}
+.cq-label{color:var(--text3);font-size:11px;min-width:120px}
+.cq-val{color:var(--text);font-weight:500;text-align:right}
+.cq-goto{font-size:11px;color:var(--accent2);font-weight:600;cursor:pointer;padding:2px 8px;border-radius:5px;border:1px solid rgba(0,112,214,.25);background:rgba(0,112,214,.06)}
+.cq-goto:hover{background:rgba(0,112,214,.14)}
+.cq-resumo-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
 </style>
 <style>
 /* LOGIN */
@@ -269,6 +288,7 @@ textarea{resize:vertical;min-height:65px}
     <div class="nav-item" onclick="showScreen('rel-gastos',this)"><span class="nav-icon">📊</span> Gastos por Placa</div>
     <div class="nav-item" onclick="showScreen('rel-financeiro',this)"><span class="nav-icon">💰</span> Financeiro</div>
     <div class="nav-item" onclick="showScreen('pendentes',this)"><span class="nav-icon">⚠</span> OCs Pendentes</div>
+    <div class="nav-item" onclick="showScreen('consulta',this);renderConsulta()"><span class="nav-icon">🔍</span> Consulta Rápida</div>
   </nav>
   <div class="sidebar-footer">
     <div class="user-card">
@@ -706,6 +726,71 @@ textarea{resize:vertical;min-height:65px}
       </table></div>
     </div>
 
+
+    <!-- CONSULTA RÁPIDA -->
+    <div class="screen" id="screen-consulta">
+      <div class="section-header">
+        <div class="section-title">🔍 Consulta Rápida</div>
+        <button class="btn btn-secondary btn-sm" onclick="limparConsulta()">Limpar filtros</button>
+      </div>
+
+      <!-- FILTROS -->
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr) repeat(2,1fr);gap:12px;margin-bottom:12px">
+          <div>
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;display:block;margin-bottom:5px">Palavra-chave</label>
+            <input type="text" id="cq-texto" placeholder="NF, OC, fornecedor, placa..." style="width:100%;font-size:12px;padding:7px 10px" oninput="renderConsulta()"/>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;display:block;margin-bottom:5px">Fornecedor</label>
+            <select id="cq-forn" onchange="renderConsulta()" style="width:100%;font-size:12px;padding:7px 10px">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;display:block;margin-bottom:5px">Placa</label>
+            <select id="cq-placa" onchange="renderConsulta()" style="width:100%;font-size:12px;padding:7px 10px">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;display:block;margin-bottom:5px">De</label>
+            <input type="date" id="cq-de" onchange="renderConsulta()" style="width:100%;font-size:12px;padding:7px 10px"/>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;display:block;margin-bottom:5px">Até</label>
+            <input type="date" id="cq-ate" onchange="renderConsulta()" style="width:100%;font-size:12px;padding:7px 10px"/>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;display:flex;align-items:center;gap:16px">
+            Tipo de registro
+          </label>
+          <label class="cq-check"><input type="checkbox" id="cq-t-oc" checked onchange="renderConsulta()"> OCs</label>
+          <label class="cq-check"><input type="checkbox" id="cq-t-nf" checked onchange="renderConsulta()"> NFs</label>
+          <label class="cq-check"><input type="checkbox" id="cq-t-tit" checked onchange="renderConsulta()"> Títulos</label>
+          <label class="cq-check"><input type="checkbox" id="cq-t-fat" checked onchange="renderConsulta()"> Faturamentos</label>
+          <label style="margin-left:16px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;display:flex;align-items:center">Status</label>
+          <select id="cq-status" onchange="renderConsulta()" style="font-size:12px;padding:5px 10px">
+            <option value="">Todos</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Pago">Pago</option>
+            <option value="Ativa">OC Ativa</option>
+            <option value="Cancelada">Cancelada</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- RESUMO -->
+      <div id="cq-resumo" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap"></div>
+
+      <!-- RESULTADOS -->
+      <div id="cq-resultados">
+        <div class="empty" style="padding:40px;text-align:center;color:var(--text3)">
+          Use os filtros acima para buscar registros.
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 </div><!-- /#app-wrap --> ============================================================ -->
@@ -1534,7 +1619,7 @@ const modal_icon={oc:'modal-oc-icon',nf:'modal-nf-icon',tit:'modal-tit-icon',sai
 const modal_title={oc:'modal-oc-title',nf:'modal-nf-title',tit:'modal-tit-title'};
 
 // ======================== NAVEGAÇÃO ========================
-const titles={dashboard:'Dashboard Geral',oc:'Ordens de Compra',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',nf:'Notas Fiscais',faturamentos:'Faturamentos',financeiro:'Contas a Pagar',estoque:'Estoque de Peças',frota:'Gestão de Frota',epi:'Controle de EPIs','rel-gastos':'Relatório — Gastos por Placa','rel-financeiro':'Relatório Financeiro por Período',pendentes:'OCs Pendentes de Faturamento',colaboradores:'Cadastro de Colaboradores',usuarios:'Usuários do Sistema'};
+const titles={dashboard:'Dashboard Geral',oc:'Ordens de Compra',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',nf:'Notas Fiscais',faturamentos:'Faturamentos',financeiro:'Contas a Pagar',estoque:'Estoque de Peças',frota:'Gestão de Frota',epi:'Controle de EPIs','rel-gastos':'Relatório — Gastos por Placa','rel-financeiro':'Relatório Financeiro por Período',pendentes:'OCs Pendentes de Faturamento',colaboradores:'Cadastro de Colaboradores',usuarios:'Usuários do Sistema',consulta:'🔍 Consulta Rápida'};
 function showScreen(id,el){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -4258,6 +4343,238 @@ async function doLogout(){
 }
 
 // ======================== PERSISTÊNCIA SUPABASE — TABELAS SEPARADAS ========================
+
+// ======================== CONSULTA RÁPIDA ========================
+
+function popularFiltrosConsulta(){
+  // Fornecedores
+  const selForn = document.getElementById('cq-forn');
+  if(selForn){
+    const curForn = selForn.value;
+    selForn.innerHTML = '<option value="">Todos os fornecedores</option>';
+    const forns = [...new Set([
+      ...OCs.map(o=>o.forn),
+      ...NFs.map(n=>n.forn),
+      ...Titulos.map(t=>t.forn),
+      ...Faturamentos.map(f=>f.forn)
+    ].filter(Boolean))].sort();
+    forns.forEach(f => selForn.innerHTML += `<option value="${f}">${f}</option>`);
+    if(curForn) selForn.value = curForn;
+  }
+  // Placas
+  const selPlaca = document.getElementById('cq-placa');
+  if(selPlaca){
+    const curPlaca = selPlaca.value;
+    selPlaca.innerHTML = '<option value="">Todas as placas</option>';
+    const placas = [...new Set([
+      ...Frota.map(f=>f.placa),
+      ...OCs.map(o=>o.placas||'').join('/').split('/').map(p=>p.trim()),
+      ...NFs.map(n=>n.dest||''),
+      ...Titulos.map(t=>t.placa||'')
+    ].filter(p=>p && p !== '-' && p.length > 2))].sort();
+    placas.forEach(p => selPlaca.innerHTML += `<option value="${p}">${p}</option>`);
+    if(curPlaca) selPlaca.value = curPlaca;
+  }
+}
+
+function limparConsulta(){
+  ['cq-texto','cq-de','cq-ate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['cq-forn','cq-placa','cq-status'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['cq-t-oc','cq-t-nf','cq-t-tit','cq-t-fat'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=true;});
+  renderConsulta();
+}
+
+function renderConsulta(){
+  popularFiltrosConsulta();
+
+  const texto  = (document.getElementById('cq-texto')||{value:''}).value.toLowerCase().trim();
+  const forn   = (document.getElementById('cq-forn')||{value:''}).value;
+  const placa  = (document.getElementById('cq-placa')||{value:''}).value;
+  const de     = (document.getElementById('cq-de')||{value:''}).value;
+  const ate    = (document.getElementById('cq-ate')||{value:''}).value;
+  const status = (document.getElementById('cq-status')||{value:''}).value;
+  const inclOC  = document.getElementById('cq-t-oc')  && document.getElementById('cq-t-oc').checked;
+  const inclNF  = document.getElementById('cq-t-nf')  && document.getElementById('cq-t-nf').checked;
+  const inclTit = document.getElementById('cq-t-tit') && document.getElementById('cq-t-tit').checked;
+  const inclFat = document.getElementById('cq-t-fat') && document.getElementById('cq-t-fat').checked;
+
+  // Sem nenhum filtro ativo
+  const temFiltro = texto || forn || placa || de || ate || status;
+  if(!temFiltro){
+    document.getElementById('cq-resumo').innerHTML = '';
+    document.getElementById('cq-resultados').innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:var(--text3)">Use os filtros acima para buscar registros em todo o sistema.</div>';
+    return;
+  }
+
+  function dentroDoperiodo(dataISO){
+    if(!dataISO) return true;
+    if(de && dataISO < de) return false;
+    if(ate && dataISO > ate) return false;
+    return true;
+  }
+  function matchTexto(campos){
+    if(!texto) return true;
+    return campos.some(c => c && String(c).toLowerCase().includes(texto));
+  }
+  function matchForn(f){ return !forn || (f||'').toLowerCase() === forn.toLowerCase(); }
+  function matchPlaca(p){ return !placa || (p||'').toLowerCase().includes(placa.toLowerCase()); }
+  function matchStatus(s){ return !status || (s||'').toLowerCase() === status.toLowerCase(); }
+
+  const resultados = [];
+
+  // ── OCs ──
+  if(inclOC){
+    OCs.forEach(o => {
+      if(!matchTexto([o.num, o.forn, o.placas, o.desc, o.tipo])) return;
+      if(!matchForn(o.forn)) return;
+      if(!matchPlaca(o.placas)) return;
+      if(!dentroDoperiodo(o.data)) return;
+      if(!matchStatus(o.status)) return;
+      resultados.push({ tipo:'oc', data: o.data, obj: o });
+    });
+  }
+
+  // ── NFs ──
+  if(inclNF){
+    NFs.forEach(n => {
+      if(!matchTexto([n.num, n.forn, n.oc, n.dest, n.tipo, n.obs])) return;
+      if(!matchForn(n.forn)) return;
+      if(!matchPlaca(n.dest)) return;
+      if(!dentroDoperiodo(n.data)) return;
+      if(status && !matchStatus(n.pgto)) return;
+      resultados.push({ tipo:'nf', data: n.data, obj: n });
+    });
+  }
+
+  // ── Títulos ──
+  if(inclTit){
+    Titulos.forEach(t => {
+      if(!matchTexto([t.forn, t.ref, t.tipo, t.placa, t.obs])) return;
+      if(!matchForn(t.forn)) return;
+      if(!matchPlaca(t.placa)) return;
+      if(!dentroDoperiodo(t.venc)) return;
+      if(!matchStatus(t.status)) return;
+      resultados.push({ tipo:'tit', data: t.venc, obj: t });
+    });
+  }
+
+  // ── Faturamentos ──
+  if(inclFat){
+    Faturamentos.forEach(f => {
+      if(!matchTexto([f.num, f.forn, ...(f.nfNums||[])])) return;
+      if(!matchForn(f.forn)) return;
+      if(!dentroDoperiodo(f.data)) return;
+      if(!matchStatus(f.status)) return;
+      resultados.push({ tipo:'fat', data: f.data, obj: f });
+    });
+  }
+
+  // Ordena por data decrescente
+  resultados.sort((a,b) => (b.data||'').localeCompare(a.data||''));
+
+  // ── Resumo chips ──
+  const conts = { oc:0, nf:0, tit:0, fat:0 };
+  resultados.forEach(r => conts[r.tipo]++);
+  const CHIP_CORES = { oc:'rgba(0,112,214,.1)', nf:'rgba(0,149,122,.1)', tit:'rgba(200,120,0,.1)', fat:'rgba(124,92,218,.1)' };
+  const CHIP_TEXT  = { oc:'var(--accent2)', nf:'var(--accent)', tit:'var(--amber)', fat:'var(--purple)' };
+  const CHIP_LABEL = { oc:'OCs', nf:'NFs', tit:'Títulos', fat:'Faturamentos' };
+  const resumoEl = document.getElementById('cq-resumo');
+  resumoEl.innerHTML = `<div style="font-size:12px;color:var(--text3);display:flex;align-items:center;margin-right:6px">${resultados.length} resultado(s)</div>` +
+    Object.keys(conts).filter(k=>conts[k]>0).map(k=>
+      `<div class="cq-resumo-chip" style="background:${CHIP_CORES[k]};color:${CHIP_TEXT[k]};border:1px solid ${CHIP_TEXT[k]}33">
+        ${conts[k]} ${CHIP_LABEL[k]}
+      </div>`
+    ).join('');
+
+  // ── Renderiza cards ──
+  if(!resultados.length){
+    document.getElementById('cq-resultados').innerHTML = '<div class="empty" style="padding:36px;text-align:center;color:var(--text3)">Nenhum registro encontrado com esses filtros.</div>';
+    return;
+  }
+
+  document.getElementById('cq-resultados').innerHTML = resultados.map(r => {
+    const o = r.obj;
+    if(r.tipo === 'oc') return `
+      <div class="cq-card">
+        <div class="cq-card-header">
+          <span class="cq-badge oc">OC</span>
+          <span style="font-weight:600;font-size:13px;font-family:var(--mono)">${o.num}</span>
+          <span style="font-size:12px;color:var(--text3)">${o.forn}</span>
+          <span style="margin-left:auto;font-family:var(--mono);font-weight:700;color:var(--accent2)">${fmt(o.valor)}</span>
+          ${chipS(o.status||'Ativa')}
+          <button class="cq-goto" onclick="showScreen('oc',null)">Ver OCs →</button>
+        </div>
+        <div class="cq-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="cq-row-item"><span class="cq-label">Data emissão</span><span class="cq-val">${formatarDataBR(o.data)}</span></div>
+          <div class="cq-row-item"><span class="cq-label">Placa(s)</span><span class="cq-val mono">${o.placas||'-'}</span></div>
+          <div class="cq-row-item"><span class="cq-label">Tipo</span><span class="cq-val">${o.tipo||'-'}</span></div>
+          <div class="cq-row-item"><span class="cq-label">Status NF</span><span class="cq-val">${o.nf||'-'}</span></div>
+          ${o.desc?`<div class="cq-row-item" style="grid-column:span 2"><span class="cq-label">Descrição</span><span class="cq-val">${o.desc}</span></div>`:''}
+        </div>
+      </div>`;
+
+    if(r.tipo === 'nf') return `
+      <div class="cq-card">
+        <div class="cq-card-header">
+          <span class="cq-badge nf">NF</span>
+          <span style="font-weight:600;font-size:13px;font-family:var(--mono)">NF ${o.num}</span>
+          <span style="font-size:12px;color:var(--text3)">${o.forn}</span>
+          <span style="margin-left:auto;font-family:var(--mono);font-weight:700;color:var(--accent)">${fmt(o.valor)}</span>
+          ${chip(o.pgto||'Pendente', o.pgto==='Faturado'?'cg':o.pgto==='Aguardando Faturamento'?'ca':'cgr')}
+          <button class="cq-goto" onclick="showScreen('nf',null)">Ver NFs →</button>
+        </div>
+        <div class="cq-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="cq-row-item"><span class="cq-label">Emissão</span><span class="cq-val">${formatarDataBR(o.data)}</span></div>
+          <div class="cq-row-item"><span class="cq-label">OC Vinculada</span><span class="cq-val mono">${o.oc||'Sem OC'}</span></div>
+          <div class="cq-row-item"><span class="cq-label">Destino / Placa</span><span class="cq-val mono">${o.dest||'-'}</span></div>
+          <div class="cq-row-item"><span class="cq-label">Tipo</span><span class="cq-val">${o.tipo||'-'}</span></div>
+          ${o.venc?`<div class="cq-row-item"><span class="cq-label">Vencimento</span><span class="cq-val">${formatarDataBR(o.venc)}</span></div>`:''}
+          ${o.doc?`<div class="cq-row-item"><span class="cq-label">Documento</span><span class="cq-val">${linkComprovante(o.doc,'📄','Abrir arquivo')}</span></div>`:''}
+        </div>
+      </div>`;
+
+    if(r.tipo === 'tit') return `
+      <div class="cq-card">
+        <div class="cq-card-header">
+          <span class="cq-badge tit">TÍTULO</span>
+          <span style="font-weight:600;font-size:13px">${o.ref||'-'}</span>
+          <span style="font-size:12px;color:var(--text3)">${o.forn}</span>
+          <span style="margin-left:auto;font-family:var(--mono);font-weight:700;color:var(--amber)">${fmt(o.valor)}</span>
+          ${chipS(o.status)}
+          <button class="cq-goto" onclick="showScreen('financeiro',null)">Ver Financeiro →</button>
+        </div>
+        <div class="cq-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="cq-row-item"><span class="cq-label">Vencimento</span><span class="cq-val" style="color:${diasAte(o.venc)<0&&o.status==='Pendente'?'var(--red)':'inherit'}">${formatarDataBR(o.venc)}${diasAte(o.venc)<0&&o.status==='Pendente'?' ⚠':''}</span></div>
+          <div class="cq-row-item"><span class="cq-label">Tipo</span><span class="cq-val">${o.tipo||'-'}</span></div>
+          <div class="cq-row-item"><span class="cq-label">Placa</span><span class="cq-val mono">${o.placa||'-'}</span></div>
+          ${o.boleto?`<div class="cq-row-item"><span class="cq-label">Boleto</span><span class="cq-val">${linkComprovante(o.boleto,'📄','Abrir boleto')}</span></div>`:''}
+          ${o.comprovante?`<div class="cq-row-item"><span class="cq-label">Comprovante</span><span class="cq-val">${linkComprovante(o.comprovante,'📎','Abrir comprovante')}</span></div>`:''}
+          ${o.obs?`<div class="cq-row-item" style="grid-column:span 2"><span class="cq-label">Obs</span><span class="cq-val">${o.obs}</span></div>`:''}
+        </div>
+      </div>`;
+
+    if(r.tipo === 'fat') return `
+      <div class="cq-card">
+        <div class="cq-card-header">
+          <span class="cq-badge fat">FATURAMENTO</span>
+          <span style="font-weight:600;font-size:13px;font-family:var(--mono)">${o.num}</span>
+          <span style="font-size:12px;color:var(--text3)">${o.forn}</span>
+          <span style="margin-left:auto;font-family:var(--mono);font-weight:700;color:var(--purple)">${fmt(o.valor)}</span>
+          ${chipS(o.status)}
+          <button class="cq-goto" onclick="showScreen('faturamentos',null)">Ver Faturamentos →</button>
+        </div>
+        <div class="cq-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="cq-row-item"><span class="cq-label">Data</span><span class="cq-val">${formatarDataBR(o.data)}</span></div>
+          <div class="cq-row-item"><span class="cq-label">Vencimento</span><span class="cq-val">${formatarDataBR(o.venc)}</span></div>
+          <div class="cq-row-item"><span class="cq-label">Forma Pgto</span><span class="cq-val">${o.forma||'-'}</span></div>
+          <div class="cq-row-item" style="grid-column:span 3"><span class="cq-label">NFs incluídas</span><span class="cq-val">${(o.nfNums||[]).map(n=>'NF '+n).join(', ')||'-'}</span></div>
+        </div>
+      </div>`;
+
+    return '';
+  }).join('');
+}
+
 // v3 — cada entidade tem sua própria tabela no Supabase.
 // Isso elimina o risco de dois usuários sobrescreverem os dados um do outro.
 
