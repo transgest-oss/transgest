@@ -394,7 +394,7 @@ textarea{resize:vertical;min-height:65px}
         </div>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Nº OC</th><th>Data</th><th>Fornecedor</th><th>Placa(s)</th><th>Tipo</th><th>Valor</th><th>Status</th><th>NF</th><th style="width:170px">Ações</th></tr></thead>
+        <thead><tr><th>Nº OC</th><th>Data</th><th>Fornecedor</th><th>Categoria</th><th>Placa(s)</th><th>Tipo</th><th>Valor</th><th>Status</th><th>NF</th><th style="width:170px">Ações</th></tr></thead>
         <tbody id="tb-oc"></tbody>
       </table></div>
     </div>
@@ -478,7 +478,7 @@ textarea{resize:vertical;min-height:65px}
         <button class="btn btn-secondary btn-sm" onclick="resetFinFiltros()">Limpar</button>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Fornecedor</th><th>Tipo</th><th>NF / Ref.</th><th>Placa</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Boleto</th><th>Comprov.</th><th style="width:170px">Ações</th></tr></thead>
+        <thead><tr><th>Fornecedor</th><th>Categoria</th><th>Tipo</th><th>NF / Ref.</th><th>Placa</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Boleto</th><th>Comprov.</th><th style="width:170px">Ações</th></tr></thead>
         <tbody id="tb-fin"></tbody>
       </table></div>
     </div>
@@ -1044,6 +1044,11 @@ textarea{resize:vertical;min-height:65px}
       <div class="form-group"><label>Nº OC</label><input type="text" id="f-oc-num" placeholder="OC-2025-XXXX"/></div>
       <div class="form-group"><label>Data</label><input type="date" id="f-oc-data"/></div>
       <div class="form-group full"><label>Fornecedor</label><select id="f-oc-forn"><option value="">— Selecione o fornecedor —</option></select></div>
+      <div class="form-group full"><label>Categoria</label>
+        <select id="f-oc-cat" onchange="ocToggleCategoria()">
+          <option value="manutencao">Manutenção</option><option value="scherer">Scherer</option><option value="scherer_ambi">Scherer Ambicampos</option><option value="combustiveis">Combustíveis</option><option value="impostos">Impostos</option><option value="outros">Outros</option><option value="diarias">Diárias</option><option value="consorcios">Consórcios</option><option value="gratificacoes">Gratificações</option><option value="seguros">Seguros</option><option value="funcionarios">Funcionários</option><option value="adiantamentos">Adiantamentos</option>
+        </select>
+      </div>
       <div class="form-group"><label>Valor Total (R$)</label><input type="number" id="f-oc-valor" placeholder="0.00" step="0.01" oninput="ocRateioRecalc()"/></div>
       <div class="form-group"><label>Tipo <button onclick="openModal('modal-tipos-oc','novo')" style="font-size:10px;color:var(--accent2);background:none;border:none;cursor:pointer;padding:0 0 0 6px;font-family:var(--font)">⚙️ Gerenciar</button></label>
         <select id="f-oc-tipo"><option>Manutenção (Serviço)</option><option>Peças</option><option>Serviço + Peças</option><option>Administrativo</option><option>Pessoal</option></select>
@@ -1053,10 +1058,12 @@ textarea{resize:vertical;min-height:65px}
       </div>
 
       <!-- Placa única (sem rateio) -->
+      <div id="oc-placa-wrap">
       <div class="form-group" id="oc-placa-simples">
         <label>Placa</label>
         <select id="f-oc-placa"><option value="-">Nenhuma (geral)</option></select>
       </div>
+      </div><!-- /oc-placa-wrap -->
       <div class="form-group full"><label>Descrição</label><textarea id="f-oc-desc" placeholder="Descreva o serviço ou material..."></textarea></div>
     </div>
 
@@ -1782,6 +1789,40 @@ const modal_icon={oc:'modal-oc-icon',nf:'modal-nf-icon',tit:'modal-tit-icon',sai
 const modal_title={oc:'modal-oc-title',nf:'modal-nf-title',tit:'modal-tit-title'};
 
 // ======================== NAVEGAÇÃO ========================
+
+// ======================== CATEGORIAS ========================
+const CATEGORIAS_OC = [
+  { id: 'manutencao',         label: 'Manutenção',          comPlaca: true  },
+  { id: 'scherer',            label: 'Scherer',             comPlaca: true  },
+  { id: 'scherer_ambi',       label: 'Scherer Ambicampos',  comPlaca: false },
+  { id: 'combustiveis',       label: 'Combustíveis',        comPlaca: false },
+  { id: 'impostos',           label: 'Impostos',            comPlaca: false },
+  { id: 'outros',             label: 'Outros',              comPlaca: false },
+  { id: 'diarias',            label: 'Diárias',             comPlaca: false },
+  { id: 'consorcios',         label: 'Consórcios',          comPlaca: false },
+  { id: 'gratificacoes',      label: 'Gratificações',       comPlaca: false },
+  { id: 'seguros',            label: 'Seguros',             comPlaca: false },
+  { id: 'funcionarios',       label: 'Funcionários',        comPlaca: false },
+  { id: 'adiantamentos',      label: 'Adiantamentos',       comPlaca: false },
+];
+
+function categoriaLabel(id){ const c=CATEGORIAS_OC.find(x=>x.id===id); return c?c.label:(id||'—'); }
+function categoriaComPlaca(id){ const c=CATEGORIAS_OC.find(x=>x.id===id); return c?c.comPlaca:true; }
+
+function ocToggleCategoria(){
+  const catId = ($('f-oc-cat')||{value:'manutencao'}).value;
+  const comPlaca = categoriaComPlaca(catId);
+  const placaWrap = document.getElementById('oc-placa-wrap');
+  const rateioWrap = document.getElementById('f-oc-rateio') ? document.getElementById('f-oc-rateio').closest('.form-group') : null;
+  if(placaWrap) placaWrap.style.display = comPlaca ? '' : 'none';
+  if(rateioWrap) rateioWrap.style.display = comPlaca ? '' : 'none';
+  if(!comPlaca){
+    // Reseta rateio se categoria não tem placa
+    if($('f-oc-rateio')) $('f-oc-rateio').value = 'Não';
+    ocToggleRateio();
+  }
+}
+
 const titles={dashboard:'Dashboard Geral',oc:'Ordens de Compra',fornecedores:'Cadastro de Fornecedores',produtos:'Cadastro de Produtos',nf:'Notas Fiscais',faturamentos:'Faturamentos',financeiro:'Contas a Pagar',estoque:'Estoque de Peças',frota:'Gestão de Frota',epi:'Controle de EPIs','rel-gastos':'Relatório — Gastos por Placa','rel-financeiro':'Relatório Financeiro por Período',pendentes:'OCs Pendentes de Faturamento',colaboradores:'Cadastro de Colaboradores',usuarios:'Usuários do Sistema',consulta:'🔍 Consulta Rápida',pipas:'🚛 Operações — Pipas',despesas:'🏆 Despesas por Placa 2026'};
 function showScreen(id,el){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -1845,6 +1886,7 @@ window.openModal = function(id, mode, data){
     if(editKey)editing[editKey]=null;
     // inicializar OC nova
     if(id==='modal-oc'){
+      if($('f-oc-cat')){$('f-oc-cat').value='manutencao'; ocToggleCategoria();}
       $('f-oc-rateio').value='Não';
       $('f-oc-valor').value='';
       $('f-oc-num').value='';
@@ -1949,6 +1991,8 @@ function editarOC(id){
   $('f-oc-num').value=o.num; $('f-oc-data').value=o.data;
   $('f-oc-forn').value=o.forn||''; $('f-oc-valor').value=o.valor;
   $('f-oc-tipo').value=o.tipo; $('f-oc-desc').value=o.desc||'';
+  if($('f-oc-cat')) $('f-oc-cat').value=o.categoria||'manutencao';
+  ocToggleCategoria();
   const temRateio = o.rateio && o.rateio.length > 0;
   $('f-oc-rateio').value = temRateio ? 'Sim' : 'Não';
   ocToggleRateio();
@@ -2007,8 +2051,9 @@ function salvarOC(){
   }
 
   const tipoOC = $('f-oc-tipo').value;
+  const catOC = ($('f-oc-cat')||{value:'manutencao'}).value;
   const nfsEsperadas = tipoOC === 'Serviço + Peças' ? 2 : 1;
-  const obj={num,data,forn,placas,valor,tipo:tipoOC,nf:'Pendente',nfsEsperadas,desc:$('f-oc-desc').value.trim(),rateio,isRateio};
+  const obj={num,data,forn,placas,valor,tipo:tipoOC,categoria:catOC,nf:'Pendente',nfsEsperadas,desc:$('f-oc-desc').value.trim(),rateio,isRateio};
 
   if(editing.oc){
     const i=OCs.findIndex(x=>x.id===editing.oc);
@@ -2174,7 +2219,7 @@ async function salvarNF(){
       ? ocFat.placas : $('f-nf-dest').value;
     const docNFfat = await uploadDocNF();
     if(docNFfat === null){ toast('Erro ao enviar arquivo. Tente novamente.','error'); return; }
-    const obj={oc:$('f-nf-oc').value,tipo:$('f-nf-tipo').value,num:$('f-nf-num').value.trim()||'NF-'+Date.now(),data:$('f-nf-data').value||today,forn,dest:destFat,valor:total,venc:null,pgto:'Aguardando Faturamento',obs:$('f-nf-obs').value.trim(),parcelas:[],doc:docNFfat};
+    const obj={oc:$('f-nf-oc').value,tipo:$('f-nf-tipo').value,num:$('f-nf-num').value.trim()||'NF-'+Date.now(),data:$('f-nf-data').value||today,forn,dest:destFat,valor:total,venc:null,pgto:'Aguardando Faturamento',obs:$('f-nf-obs').value.trim(),parcelas:[],doc:docNFfat,categoria:catHerd};
     obj.id=newId('nf'); NFs.unshift(obj);
     const ocFatRef=OCs.find(o=>o.num===obj.oc); if(ocFatRef) atualizarStatusOC(ocFatRef);
     toast('NF lançada! Aguardando faturamento do fornecedor.');
@@ -2190,7 +2235,7 @@ async function salvarNF(){
   const docNF = await uploadDocNF();
   if(docNF === null){ toast('Erro ao enviar arquivo. Tente novamente.','error'); return; }
   const docNFfinal = docNF || (editing.nf ? (NFs.find(x=>x.id===editing.nf)||{}).doc||'' : '');
-  const obj={oc:$('f-nf-oc').value,tipo:$('f-nf-tipo').value,num:$('f-nf-num').value.trim()||'NF-'+Date.now(),data:$('f-nf-data').value||today,forn,dest:destNF,valor:total,venc:vencPrincipal,pgto:'Pendente',obs:$('f-nf-obs').value.trim(),parcelas,doc:docNFfinal};
+  const obj={oc:$('f-nf-oc').value,tipo:$('f-nf-tipo').value,num:$('f-nf-num').value.trim()||'NF-'+Date.now(),data:$('f-nf-data').value||today,forn,dest:destNF,valor:total,venc:vencPrincipal,pgto:'Pendente',obs:$('f-nf-obs').value.trim(),parcelas,doc:docNFfinal,categoria:catHerd};
 
   if(editing.nf){
     const i=NFs.findIndex(x=>x.id===editing.nf);
@@ -2217,7 +2262,8 @@ async function salvarNF(){
         venc:p.venc,
         status:'Pendente',
         placa:obj.dest,   // destino geral da NF (placa única ou "rateado")
-        obs:parcelas.length>1?`Parcela ${i+1} de ${parcelas.length} — NF ${obj.num}`:''
+        obs:parcelas.length>1?`Parcela ${i+1} de ${parcelas.length} — NF ${obj.num}`:'',
+        categoria:obj.categoria||'manutencao'
       });
     });
 
@@ -3048,6 +3094,7 @@ function renderFin(){
       :`<span style="font-size:11px;color:var(--accent)">✓ Quitado</span>`;
     return `<tr>
       <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.forn}">${t.forn}</td>
+      <td><span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(0,112,214,.09);color:var(--accent2);font-weight:600">${categoriaLabel(t.categoria||'manutencao')}</span></td>
       <td>${chip(t.tipo,'cgr')}</td>
       <td class="mono" style="font-size:11px">${t.ref}</td>
       <td class="mono" style="font-size:11px;color:var(--accent2)">${t.placa||'-'}</td>
@@ -3057,7 +3104,7 @@ function renderFin(){
       <td>${linkComprovante(t.boleto,"📄","Boleto")}</td><td>${linkComprovante(t.comprovante,"📎","Comp.")}</td>
       <td><div class="action-btns">${pgBtn}<button class="btn btn-edit btn-sm" onclick="editarTitulo(${t.id})">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirTitulo(${t.id})">🗑️</button></div></td>
     </tr>`;
-  }).join(''):'<tr><td colspan="9" class="empty">Nenhum título encontrado com esses filtros.</td></tr>';
+  }).join(''):'<tr><td colspan="10" class="empty">Nenhum título encontrado com esses filtros.</td></tr>';
 }
 
 function renderEstoque(){
