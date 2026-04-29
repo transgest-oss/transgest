@@ -1021,6 +1021,7 @@ textarea{resize:vertical;min-height:65px}
     </div>
   </div><!-- /content -->
 </div><!-- /main -->
+</div><!-- /app-wrap -->
 
 <!-- MODAL FORNECEDOR -->
 <!-- MODAL LANÇAMENTO AVULSO -->
@@ -2164,6 +2165,41 @@ window.openModal = function(id, mode, data){
       nfOCChanged(); // reset rateio aviso
     }
     if(id==='modal-titulo'){ resetTituloModal(); }
+    // Reset frota modal
+    if(id==='modal-frota'){
+      ['f-frota-placa','f-frota-modelo','f-frota-cor','f-frota-ano','f-frota-anomodelo',
+       'f-frota-chassi','f-frota-renavam','f-frota-km','f-frota-limite','f-frota-motoristas',
+       'f-frota-vcnh','f-frota-vlicen','f-frota-seguradora','f-frota-apolice',
+       'f-frota-vseguro','f-frota-vsegurado'].forEach(id=>{const el=$(id);if(el)el.value='';});
+      if($('f-frota-status')) $('f-frota-status').value='Ativo';
+      if($('f-frota-tipo')) $('f-frota-tipo').value='Caminhão';
+      editing.frota = null;
+    }
+    // Reset colaborador modal
+    if(id==='modal-colab'){
+      ['f-colab-nome','f-colab-cpf','f-colab-cargo','f-colab-cnh','f-colab-vcnh',
+       'f-colab-tel','f-colab-email','f-colab-obs'].forEach(id=>{const el=$(id);if(el)el.value='';});
+      editing.colab = null;
+    }
+    // Reset EPI saida modal
+    if(id==='modal-epi-saida'){ editing.episaida = null; }
+    // Reset usuario modal
+    if(id==='modal-usuario'){
+      ['f-usr-nome','f-usr-email','f-usr-senha','f-usr-obs'].forEach(id=>{const el=$(id);if(el)el.value='';});
+      if($('f-usr-perfil')) $('f-usr-perfil').value='Financeiro';
+      if($('f-usr-status')) $('f-usr-status').value='Ativo';
+      editing.usuario = null;
+    }
+    // Reset fornecedor modal
+    if(id==='modal-forn'){
+      ['f-forn-nome','f-forn-cnpj','f-forn-tel','f-forn-email','f-forn-obs'].forEach(id=>{const el=$(id);if(el)el.value='';});
+      editing.forn = null;
+    }
+    // Reset produto modal
+    if(id==='modal-prod'){
+      ['f-prod-cod','f-prod-nome','f-prod-cat','f-prod-uncomp','f-prod-unsaida','f-prod-fator'].forEach(id=>{const el=$(id);if(el)el.value='';});
+      editing.prod = null;
+    }
   }
 };
 
