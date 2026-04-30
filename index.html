@@ -2358,10 +2358,23 @@ function salvarOC(){
     const antes = cloneSimples(OCs[i]);
     OCs[i]={...OCs[i],...obj};
     registrarHistoricoOC(OCs[i], 'Editou OC', resumoMudancasOC(antes, OCs[i]), antes, OCs[i]);
+    registrarLog({
+      acao: 'editou',
+      tabela: 'tg_ocs',
+      registro_id: OCs[i].num || OCs[i].id,
+      descricao: `Editou OC ${OCs[i].num || OCs[i].id} — ${OCs[i].forn || 'sem fornecedor'} — ${fmt(OCs[i].valor)}`
+    });
     editing.oc=null; toast('OC atualizada com sucesso!');
   } else {
     obj.id=newId('oc'); obj.nf='Pendente'; obj.status='Ativa'; obj.criadaEm=new Date().toISOString(); obj.criadaPor=usuarioAtualNome();
-    OCs.unshift(obj); registrarHistoricoOC(obj, 'Criou OC', `OC criada no valor de ${fmt(obj.valor)} para ${obj.forn}`, null, obj); toast('OC emitida com sucesso!');
+    OCs.unshift(obj); registrarHistoricoOC(obj, 'Criou OC', `OC criada no valor de ${fmt(obj.valor)} para ${obj.forn}`, null, obj);
+    registrarLog({
+      acao: 'criou',
+      tabela: 'tg_ocs',
+      registro_id: obj.num || obj.id,
+      descricao: `Criou OC ${obj.num || obj.id} — ${obj.forn || 'sem fornecedor'} — ${fmt(obj.valor)}`
+    });
+    toast('OC emitida com sucesso!');
   }
   closeModal('modal-oc');
   $('modal-oc-title').textContent='Nova Ordem de Compra';
@@ -2384,6 +2397,12 @@ function cancelarOC(id){
     o.canceladaPor=usuarioAtualNome();
     o.motivoCancelamento=motivoLimpo;
     registrarHistoricoOC(o, 'Cancelou OC', motivoLimpo, antes, o);
+    registrarLog({
+      acao: 'cancelou',
+      tabela: 'tg_ocs',
+      registro_id: o.num || o.id,
+      descricao: `Cancelou OC ${o.num || o.id}. Motivo: ${motivoLimpo}`
+    });
     toast('OC cancelada e preservada no histórico.');
     renderAll();
   });
@@ -2557,6 +2576,12 @@ async function salvarNF(){
     const obj={oc:$('f-nf-oc').value,tipo:$('f-nf-tipo').value,num:$('f-nf-num').value.trim()||'NF-'+Date.now(),data:$('f-nf-data').value||today,forn,dest:destFat,valor:total,venc:null,pgto:'Aguardando Faturamento',obs:$('f-nf-obs').value.trim(),parcelas:[],doc:docNFfat,categoria:nfCatFat};
     obj.id=newId('nf'); NFs.unshift(obj);
     const ocFatRef=OCs.find(o=>o.num===obj.oc); if(ocFatRef) atualizarStatusOC(ocFatRef);
+    registrarLog({
+      acao: 'lancou_nf_aguardando_faturamento',
+      tabela: 'tg_nfs',
+      registro_id: obj.num || obj.id,
+      descricao: `Lançou NF ${obj.num || obj.id} aguardando faturamento — ${obj.forn || 'sem fornecedor'} — ${fmt(obj.valor)}`
+    });
     toast('NF lançada! Aguardando faturamento do fornecedor.');
     closeModal('modal-nf'); editing.nf=null; renderAll(); return;
   }
@@ -2583,11 +2608,23 @@ async function salvarNF(){
   if(editing.nf){
     const i=NFs.findIndex(x=>x.id===editing.nf);
     NFs[i]={...NFs[i],...obj};
+    registrarLog({
+      acao: 'editou_nf',
+      tabela: 'tg_nfs',
+      registro_id: NFs[i].num || NFs[i].id,
+      descricao: `Editou NF ${NFs[i].num || NFs[i].id} — ${NFs[i].forn || 'sem fornecedor'} — ${fmt(NFs[i].valor)}`
+    });
     editing.nf=null;
     toast('NF atualizada!');
   } else {
     obj.id=newId('nf');
     NFs.unshift(obj);
+    registrarLog({
+      acao: 'lancou_nf',
+      tabela: 'tg_nfs',
+      registro_id: obj.num || obj.id,
+      descricao: `Lançou NF ${obj.num || obj.id} — ${obj.forn || 'sem fornecedor'} — ${fmt(obj.valor)}`
+    });
     // atualiza status da OC vinculada (considera múltiplas NFs)
     const oc=OCs.find(o=>o.num===obj.oc);
     if(oc) atualizarStatusOC(oc);
@@ -2831,9 +2868,22 @@ async function salvarTitulo(){
     });
     if(novos.some(x=>!x)){toast('Revise vencimentos e valores das recorrências','error');return;}
     Titulos.unshift(...novos);
+    registrarLog({
+      acao: 'lancou_avulso_recorrente',
+      tabela: 'tg_titulos',
+      registro_id: grupo,
+      descricao: `Criou ${total} título(s) recorrente(s) avulso(s) — ${base.forn || 'sem fornecedor'} — total ${fmt(novos.reduce((s,t)=>s+(parseFloat(t.valor)||0),0))}`
+    });
     toast(`${total} título(s) recorrente(s) lançados com sucesso!`);
   } else {
-    base.id=newId('tit'); base.comprovante = comprovanteNovo || ''; base.boleto = boletoNovo || ''; Titulos.unshift(base); toast('Título lançado com sucesso!');
+    base.id=newId('tit'); base.comprovante = comprovanteNovo || ''; base.boleto = boletoNovo || ''; Titulos.unshift(base);
+    registrarLog({
+      acao: 'lancou_avulso',
+      tabela: 'tg_titulos',
+      registro_id: base.ref || base.id,
+      descricao: `Criou título avulso ${base.ref || base.id} — ${base.forn || 'sem fornecedor'} — ${fmt(base.valor)}`
+    });
+    toast('Título lançado com sucesso!');
   }
   if(btnTit){ btnTit.disabled = false; btnTit.textContent = '💾 Salvar'; }
   closeModal('modal-titulo');
@@ -2847,7 +2897,18 @@ function excluirTitulo(id){
   });
 }
 function marcarPago(id){
-  const t=Titulos.find(x=>x.id===id); if(t){t.status='Pago'; renderFin(); toast('Título marcado como pago!');}
+  const t=Titulos.find(x=>x.id===id);
+  if(t){
+    t.status='Pago';
+    registrarLog({
+      acao: 'baixou_pagamento',
+      tabela: 'tg_titulos',
+      registro_id: t.ref || t.id,
+      descricao: `Marcou como pago: ${t.ref || t.id} — ${t.forn || 'sem fornecedor'} — ${fmt(t.valor)}`
+    });
+    renderFin();
+    toast('Título marcado como pago!');
+  }
 }
 
 // ======================== CRUD ESTOQUE ========================
@@ -4881,6 +4942,26 @@ const { createClient } = supabase;
 const supa = createClient(SUPA_URL, SUPA_KEY);
 
 let usuarioLogado = null;
+
+// ======================== AUDITORIA / LOGS ========================
+// Registra ações importantes na tabela tg_logs.
+// Não bloqueia o sistema se o log falhar: salva no console e segue o fluxo.
+async function registrarLog({ acao, tabela, registro_id, descricao }){
+  try{
+    const email = (usuarioLogado && usuarioLogado.email) ? usuarioLogado.email : 'desconhecido';
+    const payload = {
+      usuario: email,
+      acao: acao || 'acao',
+      tabela: tabela || '',
+      registro_id: String(registro_id ?? ''),
+      descricao: descricao || ''
+    };
+    const { error } = await supa.from('tg_logs').insert([payload]);
+    if(error) console.warn('Log de auditoria não gravado:', error.message || error);
+  }catch(err){
+    console.warn('Erro ao registrar log de auditoria:', err);
+  }
+}
 
 // ======================== LOGIN / LOGOUT ========================
 
