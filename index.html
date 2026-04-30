@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -4946,9 +4946,12 @@ let usuarioLogado = null;
 // ======================== AUDITORIA / LOGS ========================
 // Registra ações importantes na tabela tg_logs.
 // Não bloqueia o sistema se o log falhar: salva no console e segue o fluxo.
-async function registrarLog({ acao, tabela, registro_id, descricao }){
-  try{
-    const email = (usuarioLogado && usuarioLogado.email) ? usuarioLogado.email : 'desconhecido';
+async function registrarLog({ acao, tabela, registro_id, descricao }) {
+  try {
+    const { data } = await supa.auth.getUser();
+
+    const email = data?.user?.email || "usuario-sem-login";
+
     const payload = {
       usuario: email,
       acao: acao || 'acao',
@@ -4956,10 +4959,17 @@ async function registrarLog({ acao, tabela, registro_id, descricao }){
       registro_id: String(registro_id ?? ''),
       descricao: descricao || ''
     };
-    const { error } = await supa.from('tg_logs').insert([payload]);
-    if(error) console.warn('Log de auditoria não gravado:', error.message || error);
-  }catch(err){
-    console.warn('Erro ao registrar log de auditoria:', err);
+
+    const { error } = await supa.from("tg_logs").insert([payload]);
+
+    if (error) {
+      console.error("Erro ao salvar log:", error);
+    } else {
+      console.log("Log salvo com sucesso");
+    }
+
+  } catch (err) {
+    console.error("Erro geral log:", err);
   }
 }
 
