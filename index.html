@@ -6642,6 +6642,9 @@ function popularFiltroMeses(){
 // ── LOGIN / SESSÃO ────────────────────────────────────────────────
 // Sobrescreve doLogin para carregar os dados do Supabase ANTES de renderizar.
 doLogin = async function(){
+  // Se a sessão já foi restaurada automaticamente, ignora
+  if(_appInitializing || usuarioLogado) return;
+
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const senha = document.getElementById('login-senha').value;
   const errEl = document.getElementById('login-err');
@@ -6692,30 +6695,42 @@ doLogin = async function(){
 };
 
 // Verifica se já há sessão ativa ao carregar a página
+// Usa flag para evitar duplo carregamento caso doLogin seja chamado junto
+let _appInitializing = false;
+
 supa.auth.getSession().then(async ({ data: { session } }) => {
-  if(session){
-    const email = session.user.email;
-    // Carrega dados primeiro, depois exibe a UI
-    const ok = await loadAppState();
-    if(!ok){
-      console.warn('Não foi possível carregar dados na restauração de sessão.');
-      return;
-    }
-    const perfil = Usuarios.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-    const nomeExibir = perfil ? perfil.nome : email.split('@')[0];
-    const perfilExibir = perfil ? perfil.perfil.replace(' (Acesso Total)','') : 'Usuário';
-    const iniciais = nomeExibir.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+  if(!session) return; // sem sessão, fica na tela de login
 
-    document.getElementById('sb-avatar').textContent = iniciais;
-    document.getElementById('sb-nome').textContent = nomeExibir;
-    document.getElementById('sb-perfil').textContent = perfilExibir;
+  if(_appInitializing) return;
+  _appInitializing = true;
 
-    usuarioLogado = { ...session.user, nome: nomeExibir, perfil: perfilExibir };
+  const email = session.user.email;
 
-    document.getElementById('login-wrap').style.display = 'none';
-    document.getElementById('app-wrap').style.display = 'flex';
-    renderAll();
+  // Esconde login imediatamente para evitar piscar
+  document.getElementById('login-wrap').style.display = 'none';
+  document.getElementById('app-wrap').style.display = 'flex';
+
+  // Carrega dados
+  const ok = await loadAppState();
+  if(!ok){
+    console.warn('Não foi possível carregar dados na restauração de sessão.');
+    _appInitializing = false;
+    return;
   }
+
+  const perfil = Usuarios.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+  const nomeExibir = perfil ? perfil.nome : email.split('@')[0];
+  const perfilExibir = perfil ? perfil.perfil.replace(' (Acesso Total)','') : 'Usuário';
+  const iniciais = nomeExibir.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+
+  document.getElementById('sb-avatar').textContent = iniciais;
+  document.getElementById('sb-nome').textContent = nomeExibir;
+  document.getElementById('sb-perfil').textContent = perfilExibir;
+
+  usuarioLogado = { ...session.user, nome: nomeExibir, perfil: perfilExibir };
+
+  renderAll();
+  _appInitializing = false;
 });
 
 // ======================== IMPORTAÇÃO SEGURA — CONTAS A PAGAR ========================
