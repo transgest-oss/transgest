@@ -1217,7 +1217,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="modal">
     <div class="modal-title"><span id="modal-oc-icon">📋</span> <span id="modal-oc-title">Nova Ordem de Compra</span></div>
     <div class="form-grid">
-      <div class="form-group" style="display:none"><label>Nº OC</label><input type="text" id="f-oc-num" placeholder="Gerado automaticamente"/></div>
+      <div class="form-group"><label>Nº OC <span style="font-size:10px;color:var(--accent);font-weight:400">(automático)</span></label><input type="text" id="f-oc-num" readonly style="background:var(--card);color:var(--accent2);font-weight:700;cursor:not-allowed" placeholder="Gerado automaticamente"/></div>
       <div class="form-group"><label>Data</label><input type="date" id="f-oc-data"/></div>
       <div class="form-group full"><label>Fornecedor</label><select id="f-oc-forn"><option value="">— Selecione o fornecedor —</option></select></div>
       <div class="form-group full"><label>Categoria</label>
@@ -2148,9 +2148,14 @@ window.openModal = function(id, mode, data){
       if($('f-oc-cat')){$('f-oc-cat').value='manutencao'; ocToggleCategoria();}
       $('f-oc-rateio').value='Não';
       $('f-oc-valor').value='';
-      $('f-oc-num').value='';
       $('f-oc-desc').value='';
       $('f-oc-placa').value='-';
+      // Gera o próximo número automático e exibe no campo (readonly)
+      const maiorOC = OCs.reduce((max, o) => {
+        const n = parseInt(String(o.num).replace(/\D/g,'')) || 0;
+        return Math.max(max, n);
+      }, 2145);
+      if($('f-oc-num')) $('f-oc-num').value = String(maiorOC + 1);
       ocToggleRateio();
     }
     // inicializar parcelas ao abrir NF nova
