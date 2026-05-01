@@ -6359,10 +6359,10 @@ async function loadAppState(){
     );
 
     nomes.forEach((nome, i) => {
-      const { data, error } = resultados[i];
+      const { data: rows, error } = resultados[i];
       if(error){ console.error(`Erro ao carregar ${nome}:`, error); return; }
       // Cada linha tem { id, data: { ...objeto } }; reconstruímos o array
-      window[nome] = (data || []).map(row => ({ ...row.data, id: Number(row.id) }));
+      window[nome] = (rows || []).map(row => ({ ...row.data, id: Number(row.id) }));
     });
 
     OCs.forEach(o=>{ if(!o.status) o.status='Ativa'; });
