@@ -6731,15 +6731,41 @@ async function importarTitulosPlanilha(event){
     const buffer = await file.arrayBuffer();
     const wb = XLSX.read(buffer, { type:'array', cellDates:true });
     const ws = wb.Sheets[wb.SheetNames[0]];
-    const linhas = XLSX.utils.sheet_to_json(ws, { defval:'', raw:false });
-    if(!linhas.length){ toast('A planilha está vazia.', 'error'); return; }
+
+    // Lê a planilha como matriz para aceitar arquivos COM ou SEM cabeçalho.
+    // Formato sem cabeçalho esperado: Nº/Ref | Fornecedor | Valor | Vencimento
+    const matriz = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:false, blankrows:false });
+    if(!matriz.length){ toast('A planilha está vazia.', 'error'); return; }
+
+    const primeiraLinha = (matriz[0] || []).map(v => normalizeTextKey(v));
+    const temCabecalho = primeiraLinha.some(k =>
+      ['fornecedor','beneficiario','beneficiário','valor','vencimento','data_vencimento','nf','referencia','referência','documento'].includes(k)
+    );
+
+    let linhas = [];
+    if(temCabecalho){
+      linhas = XLSX.utils.sheet_to_json(ws, { defval:'', raw:false });
+    } else {
+      linhas = matriz.map(r => ({
+        ref: r[0] || '',
+        fornecedor: r[1] || '',
+        valor: r[2] || '',
+        vencimento: r[3] || '',
+        emissao: r[3] || '',
+        status: 'Pendente',
+        tipo: 'Boleto NF',
+        categoria: 'outros',
+        placa: '-',
+        obs: 'Importado de planilha sem cabeçalho'
+      }));
+    }
 
     const novos = [];
     const rejeitados = [];
     linhas.forEach((linha, idx) => {
       const t = normalizarTituloImportado(linha);
       if(t){ t.id = newId('tit'); novos.push(t); }
-      else rejeitados.push(idx + 2);
+      else rejeitados.push((temCabecalho ? idx + 2 : idx + 1));
     });
 
     if(!novos.length){
@@ -6755,7 +6781,8 @@ async function importarTitulosPlanilha(event){
     renderAll();
 
     const detalhe = rejeitados.length ? (' ' + rejeitados.length + ' linha(s) ignorada(s): ' + rejeitados.slice(0,8).join(', ') + (rejeitados.length>8?'...':'')) : '';
-    toast(novos.length + ' título(s) importado(s) e salvo(s) no Supabase.' + detalhe);
+    const modo = temCabecalho ? 'com cabeçalho' : 'sem cabeçalho';
+    toast(novos.length + ' título(s) importado(s) de planilha ' + modo + ' e salvo(s) no Supabase.' + detalhe);
   }catch(e){
     console.error(e);
     toast('Erro ao importar planilha: ' + e.message, 'error');
