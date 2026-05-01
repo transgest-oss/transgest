@@ -1937,10 +1937,10 @@ textarea{resize:vertical;min-height:65px}
 
 <!-- ============================================================ JAVASCRIPT ============================================================ -->
 <script>
-const supabaseClient = supabase.createClient(
-  "https://oevzvetthuvnawjuhfeq.supabase.co",
-  "sb_publishable_rsY8opUVpHRekTRFTKoKiw_EVfBr_rM"
-);
+// ── CLIENTE SUPABASE (único, declarado aqui para estar disponível em todo o código) ──
+const SUPA_URL = 'https://oevzvetthuvnawjuhfeq.supabase.co';
+const SUPA_KEY = 'sb_publishable_rsY8opUVpHRekTRFTKoKiw_EVfBr_rM';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 const $ = id => document.getElementById(id);
 const today = new Date().toISOString().split('T')[0];
@@ -4938,11 +4938,7 @@ function saidaProdutoChanged(){
 }
 
 // ======================== SUPABASE ========================
-
-const SUPA_URL = 'https://oevzvetthuvnawjuhfeq.supabase.co';
-const SUPA_KEY = 'sb_publishable_rsY8opUVpHRekTRFTKoKiw_EVfBr_rM';
-const { createClient } = supabase;
-const supa = createClient(SUPA_URL, SUPA_KEY);
+// (cliente já declarado no início do script — ver const supa = ...)
 
 let usuarioLogado = null;
 
@@ -5185,6 +5181,12 @@ function salvarAvulso(){
 
   closeModal('modal-avulso');
   toast(`${qtd} título(s) criado(s) no Contas a Pagar! ✅`);
+  // Persiste os novos títulos no Supabase
+  const novosTitulos = Titulos.slice(0, qtd);
+  saveEntidade('Titulos', novosTitulos);
+  saveCounters();
+  popularFiltroMeses();
+  populateSelects();
   renderAll();
 }
 
@@ -5871,20 +5873,23 @@ function salvarPipa(){
     obs: document.getElementById('f-pipa-obs').value.trim(),
   };
 
+  let objParaSalvar;
   if(window._editingPipa){
     const i = ViagensPipa.findIndex(x => x.id === window._editingPipa);
     ViagensPipa[i] = { ...ViagensPipa[i], ...obj };
+    objParaSalvar = ViagensPipa[i];
     window._editingPipa = null;
     toast('Viagem atualizada!');
   } else {
     obj.id = newPipaId();
     ViagensPipa.unshift(obj);
+    objParaSalvar = obj;
     toast('Viagem registrada! ✅');
   }
   closeModal('modal-pipa');
   renderPipas();
-  // Persiste no Supabase
-  saveEntidade('ViagensPipa', obj);
+  // Persiste no Supabase (objeto completo com id)
+  saveEntidade('ViagensPipa', objParaSalvar);
   saveCounters();
 }
 
@@ -6413,16 +6418,19 @@ async function saveEntidade(nomeJS, objetos){
   const tabela = TG_TABLES[nomeJS];
   if(!tabela){ console.warn('Tabela desconhecida:', nomeJS); return; }
 
-  const rows = (Array.isArray(objetos) ? objetos : [objetos]).map(o => ({
+  const lista = Array.isArray(objetos) ? objetos : [objetos];
+  if(!lista.length) return;
+
+  // Monta os rows no formato { id: number, data: objeto } que o Supabase espera
+  const rows = lista.map(o => ({
     id: Number(o.id),
     data: o,
-    updated_at: new Date().toISOString()
   }));
 
-  const { error } = await supa.from(tabela).upsert(rows);
+  const { error } = await supa.from(tabela).upsert(rows, { onConflict: 'id' });
   if(error){
     toast(`Erro ao salvar ${nomeJS}: ${error.message}`, 'error');
-    console.error(error);
+    console.error('saveEntidade error:', nomeJS, error);
   }
 }
 
@@ -6432,7 +6440,10 @@ async function deleteEntidade(nomeJS, id){
   const tabela = TG_TABLES[nomeJS];
   if(!tabela) return;
   const { error } = await supa.from(tabela).delete().eq('id', Number(id));
-  if(error){ toast(`Erro ao excluir: ${error.message}`, 'error'); console.error(error); }
+  if(error){
+    toast(`Erro ao excluir: ${error.message}`, 'error');
+    console.error('deleteEntidade error:', nomeJS, id, error);
+  }
 }
 
 // Salva contadores de IDs
@@ -6452,7 +6463,8 @@ async function saveCounters(){
     { key: 'nextId_episaida',value: nextId.episaida },
     { key: 'nextId_epient',  value: nextId.epient },
   ];
-  await supa.from('tg_counters').upsert(rows);
+  const { error } = await supa.from('tg_counters').upsert(rows, { onConflict: 'key' });
+  if(error) console.error('saveCounters error:', error);
 }
 
 // ── HOOKS NAS FUNÇÕES DE SALVAR ───────────────────────────────────
@@ -6488,11 +6500,12 @@ const FN_ENTIDADES = {
 
 function wrapSalvar(fnName){
   window[fnName] = async function(...args){
-    // Snapshot antes
+    // Snapshot antes — guarda o JSON de cada registro para comparar depois
     const snapAntes = {};
     const entidades = FN_ENTIDADES[fnName] || [];
     entidades.forEach(e => {
-      snapAntes[e] = new Set((window[e] || []).map(x => x.id));
+      snapAntes[e] = {};
+      (window[e] || []).forEach(x => { snapAntes[e][x.id] = JSON.stringify(x); });
     });
 
     const ret = _orig[fnName].apply(this, args);
@@ -6502,13 +6515,16 @@ function wrapSalvar(fnName){
     const promises = [];
     entidades.forEach(e => {
       const lista = window[e] || [];
-      const idsAntes = snapAntes[e] || new Set();
-      // Novos: id não existia antes
-      const novos = lista.filter(x => !idsAntes.has(x.id));
-      // Modificados: filtramos todos (simples e seguro para listas pequenas)
-      // Para listas grandes, poderia comparar JSON; aqui fazemos upsert de todos
-      if(novos.length > 0) promises.push(saveEntidade(e, novos));
-      else if(lista.length > 0) promises.push(saveEntidade(e, lista));
+      const antes = snapAntes[e] || {};
+      // Novos: id não existia antes. Modificados: JSON mudou.
+      const alterados = lista.filter(x => {
+        const jsonAntes = antes[x.id];
+        if(jsonAntes === undefined) return true;          // novo
+        return jsonAntes !== JSON.stringify(x);           // modificado
+      });
+      if(alterados.length > 0){
+        promises.push(saveEntidade(e, alterados));
+      }
     });
     promises.push(saveCounters());
     await Promise.all(promises);
@@ -6600,36 +6616,81 @@ function popularFiltroMeses(){
 }
 
 // ── LOGIN / SESSÃO ────────────────────────────────────────────────
-const _doLoginOriginal = doLogin;
+// Sobrescreve doLogin para carregar os dados do Supabase ANTES de renderizar.
 doLogin = async function(){
-  await _doLoginOriginal();
-  if(usuarioLogado){
-    await loadAppState();
-    renderAll();
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const senha = document.getElementById('login-senha').value;
+  const errEl = document.getElementById('login-err');
+  const btn = document.querySelector('.login-btn');
+
+  if(!email || !senha){ errEl.textContent='Preencha e-mail e senha.'; errEl.style.display='block'; return; }
+
+  btn.textContent = 'Entrando...';
+  btn.disabled = true;
+
+  const { data, error } = await supa.auth.signInWithPassword({ email, password: senha });
+
+  btn.textContent = 'Entrar no Sistema →';
+  btn.disabled = false;
+
+  if(error){
+    errEl.textContent = 'E-mail ou senha incorretos.';
+    errEl.style.display = 'block';
+    document.getElementById('login-senha').value = '';
+    return;
   }
+
+  errEl.style.display = 'none';
+  const user = data.user;
+
+  // Carrega todos os dados do Supabase antes de qualquer render
+  const ok = await loadAppState();
+  if(!ok){
+    toast('Falha ao carregar dados. Tente novamente.', 'error');
+    return;
+  }
+
+  // Agora busca o perfil (Usuarios já está populado)
+  const perfil = Usuarios.find(u => u.email && u.email.toLowerCase() === email);
+  const nomeExibir = perfil ? perfil.nome : (user.email.split('@')[0]);
+  const perfilExibir = perfil ? perfil.perfil.replace(' (Acesso Total)','') : 'Usuário';
+  const iniciais = nomeExibir.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+
+  document.getElementById('sb-avatar').textContent = iniciais;
+  document.getElementById('sb-nome').textContent = nomeExibir;
+  document.getElementById('sb-perfil').textContent = perfilExibir;
+
+  usuarioLogado = { ...user, nome: nomeExibir, perfil: perfilExibir };
+
+  document.getElementById('login-wrap').style.display = 'none';
+  document.getElementById('app-wrap').style.display = 'flex';
+  renderAll();
 };
 
 // Verifica se já há sessão ativa ao carregar a página
-supa.auth.getSession().then(({ data: { session } }) => {
+supa.auth.getSession().then(async ({ data: { session } }) => {
   if(session){
     const email = session.user.email;
-    // Usuarios ainda está vazio aqui; vamos carregar e depois buscar
-    loadAppState().then(() => {
-      const perfil = Usuarios.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-      const nomeExibir = perfil ? perfil.nome : email.split('@')[0];
-      const perfilExibir = perfil ? perfil.perfil.replace(' (Acesso Total)','') : 'Usuário';
-      const iniciais = nomeExibir.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+    // Carrega dados primeiro, depois exibe a UI
+    const ok = await loadAppState();
+    if(!ok){
+      console.warn('Não foi possível carregar dados na restauração de sessão.');
+      return;
+    }
+    const perfil = Usuarios.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+    const nomeExibir = perfil ? perfil.nome : email.split('@')[0];
+    const perfilExibir = perfil ? perfil.perfil.replace(' (Acesso Total)','') : 'Usuário';
+    const iniciais = nomeExibir.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
 
-      document.getElementById('sb-avatar').textContent = iniciais;
-      document.getElementById('sb-nome').textContent = nomeExibir;
-      document.getElementById('sb-perfil').textContent = perfilExibir;
+    document.getElementById('sb-avatar').textContent = iniciais;
+    document.getElementById('sb-nome').textContent = nomeExibir;
+    document.getElementById('sb-perfil').textContent = perfilExibir;
 
-      usuarioLogado = { ...session.user, nome: nomeExibir, perfil: perfilExibir };
+    usuarioLogado = { ...session.user, nome: nomeExibir, perfil: perfilExibir };
 
-      document.getElementById('login-wrap').style.display = 'none';
-      document.getElementById('app-wrap').style.display = 'flex';
-      renderAll();
-    });
+    document.getElementById('login-wrap').style.display = 'none';
+    document.getElementById('app-wrap').style.display = 'flex';
+    renderAll();
   }
 });
 
@@ -6703,8 +6764,13 @@ function normalizarTituloImportado(row){
 }
 
 function normalizeFromSupabaseData(nome, row){
+  // row tem a estrutura: { id: number, data: { ...campos } }
+  // Precisa achatar: { id: number, ...campos }
   const data = row && row.data && typeof row.data === 'object' ? row.data : {};
+  // Garante que o id do row (chave primária) sobrescreve qualquer id dentro de data
   const obj = { ...data, id: Number(row.id) };
+
+  // Normalizações específicas por entidade
   if(nome === 'Titulos'){
     if(!obj.forn && obj.fornecedor) obj.forn = obj.fornecedor;
     if(!obj.fornecedor && obj.forn) obj.fornecedor = obj.forn;
@@ -6715,6 +6781,27 @@ function normalizeFromSupabaseData(nome, row){
     if(!obj.tipo) obj.tipo = 'Boleto NF';
     if(!obj.categoria) obj.categoria = 'outros';
     if(!obj.placa) obj.placa = '-';
+  }
+  if(nome === 'OCs'){
+    if(!obj.status) obj.status = 'Ativa';
+    if(!obj.nf) obj.nf = 'Pendente';
+  }
+  if(nome === 'Frota'){
+    if(!obj.status) obj.status = 'Ativo';
+    if(obj.gasto === undefined) obj.gasto = 0;
+    if(obj.limite === undefined) obj.limite = 0;
+  }
+  if(nome === 'Fornecedores'){
+    if(!obj.status) obj.status = 'Ativo';
+  }
+  if(nome === 'Produtos'){
+    if(obj.qtdEstoque === undefined) obj.qtdEstoque = 0;
+    if(obj.fator === undefined || !obj.fator) obj.fator = 1;
+    if(obj.minimo === undefined) obj.minimo = 0;
+    if(obj.valorUnitCompra === undefined) obj.valorUnitCompra = 0;
+  }
+  if(nome === 'Colaboradores' || nome === 'Usuarios'){
+    if(!obj.status) obj.status = 'Ativo';
   }
   return obj;
 }
