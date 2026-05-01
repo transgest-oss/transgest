@@ -1217,7 +1217,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="modal">
     <div class="modal-title"><span id="modal-oc-icon">📋</span> <span id="modal-oc-title">Nova Ordem de Compra</span></div>
     <div class="form-grid">
-      <div class="form-group"><label>Nº OC</label><input type="text" id="f-oc-num" placeholder="OC-2025-XXXX"/></div>
+      <div class="form-group" style="display:none"><label>Nº OC</label><input type="text" id="f-oc-num" placeholder="Gerado automaticamente"/></div>
       <div class="form-group"><label>Data</label><input type="date" id="f-oc-data"/></div>
       <div class="form-group full"><label>Fornecedor</label><select id="f-oc-forn"><option value="">— Selecione o fornecedor —</option></select></div>
       <div class="form-group full"><label>Categoria</label>
@@ -2328,7 +2328,6 @@ function ocPopulatePlacaSelect(){
 }
 
 function salvarOC(){
-  const num=$('f-oc-num').value.trim()||'OC-'+new Date().getFullYear()+'-'+String(OCs.length+26).padStart(4,'0');
   const data=$('f-oc-data').value||today;
   const forn=$('f-oc-forn').value.trim(); if(!forn){toast('Selecione o fornecedor','error');return;}
   const valor=parseFloat($('f-oc-valor').value)||0;
@@ -2346,7 +2345,6 @@ function salvarOC(){
       if(!(parseFloat(valInps[i].value)>0)){ toast('Informe o valor do caminhão '+(i+1),'error'); return; }
       rateio.push({ placa: placaSels[i].value, valor: Math.round(parseFloat(valInps[i].value)*100)/100 });
     }
-    // Verifica se soma bate
     const soma = Math.round(rateio.reduce((a,r)=>a+r.valor,0)*100)/100;
     if(Math.abs(soma - valor) > 0.02){ toast('A soma do rateio (R$ '+soma.toLocaleString('pt-BR',{minimumFractionDigits:2})+') não bate com o valor total','error'); return; }
     placas = rateio.map(r=>r.placa).join(' / ');
@@ -2355,6 +2353,23 @@ function salvarOC(){
   }
 
   const catOC = ($('f-oc-cat')||{value:'manutencao'}).value;
+
+  // Número da OC: sempre automático e sequencial, nunca editável
+  // Garante que o próximo número seja sempre maior que qualquer OC existente
+  let num;
+  if(editing.oc){
+    // Na edição, mantém o número original
+    const ocAtual = OCs.find(x=>x.id===editing.oc);
+    num = ocAtual ? ocAtual.num : String(nextId.oc);
+  } else {
+    // Nova OC: próximo número sequencial, mínimo 2147
+    const maiorExistente = OCs.reduce((max, o) => {
+      const n = parseInt(String(o.num).replace(/\D/g,'')) || 0;
+      return Math.max(max, n);
+    }, 2145);
+    num = String(maiorExistente + 1);
+  }
+
   const obj={num,data,forn,placas,valor,tipo:categoriaLabel(catOC),categoria:catOC,nf:'Pendente',nfsEsperadas:1,desc:$('f-oc-desc').value.trim(),rateio,isRateio};
 
   if(editing.oc){
