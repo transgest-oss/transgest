@@ -1948,27 +1948,29 @@ const today = new Date().toISOString().split('T')[0];
 // ======================== DADOS ========================
 // Produção: sem dados de demonstração hardcoded.
 // O estado do sistema é carregado/salvo no Supabase (tabela transgest_state).
-let Fornecedores = [];
-let OCs = [];
-let NFs = [];
-let Titulos = [];
-let Produtos = [];
-let Estoque = [];
-let Saidas = [];
-let Frota = [];
-let EPIEstoque = [];
-let EPIEntregas = [];
-let Colaboradores = [];
-let Usuarios = [];
-let Faturamentos = [];
-let HistoricoOC = [];
-let filtroOCAtual = 'todas';
+// IMPORTANTE: usar var (não let/const) para que window['Frota'] === Frota seja true
+var Fornecedores = [];
+var OCs = [];
+var NFs = [];
+var Titulos = [];
+var Produtos = [];
+var Estoque = [];
+var Saidas = [];
+var Frota = [];
+var EPIEstoque = [];
+var EPIEntregas = [];
+var Colaboradores = [];
+var Usuarios = [];
+var Faturamentos = [];
+var HistoricoOC = [];
+var ViagensPipa = [];
+var filtroOCAtual = 'todas';
 
-let nextFornId = 1;
-let nextProdId = 1;
-let nextIdColab = 1, nextIdUser = 1;
-let nextFatId = 1;
-let nextId = {oc:1,nf:1,tit:1,est:1,saida:1,frota:1,episaida:1,epient:1};
+var nextFornId = 1;
+var nextProdId = 1;
+var nextIdColab = 1, nextIdUser = 1;
+var nextFatId = 1;
+var nextId = {oc:1,nf:1,tit:1,est:1,saida:1,frota:1,episaida:1,epient:1};
 function newId(k){return nextId[k]++;}
 function usuarioAtualNome(){
   return (window.usuarioLogado && (usuarioLogado.nome || usuarioLogado.email)) || 'Usuário do sistema';
@@ -5805,13 +5807,12 @@ function exportDespesasXLSX(){
 
 // ======================== PIPAS ========================
 
-let ViagensPipa = [];
-let _nextPipaId = 1;
+// ViagensPipa já declarada no bloco de dados globais (var ViagensPipa = [])
+var _nextPipaId = 1;
 
 function newPipaId(){ return _nextPipaId++; }
 
 function pipasInit(){
-  // Carrega do Supabase via TG_TABLES se disponível
   if(!window.ViagensPipa) window.ViagensPipa = [];
 }
 
