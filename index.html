@@ -6358,19 +6358,41 @@ function proximoId(lista){
 }
 
 // ── CARREGAMENTO INICIAL ──────────────────────────────────────────
+// Carrega todas as linhas de uma tabela, lidando com paginação do Supabase
+async function loadTabelaCompleta(tabela){
+  const PAGE = 1000;
+  let allRows = [];
+  let from = 0;
+  while(true){
+    const { data: rows, error } = await supa
+      .from(tabela)
+      .select('id, data')
+      .order('id', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if(error){
+      console.error(`Erro ao carregar ${tabela} (offset ${from}):`, error);
+      throw error;
+    }
+    if(!rows || rows.length === 0) break;
+    allRows = allRows.concat(rows);
+    if(rows.length < PAGE) break; // última página
+    from += PAGE;
+  }
+  return allRows;
+}
+
 async function loadAppState(){
   try {
     const nomes = Object.keys(TG_TABLES);
-    // Busca todas as tabelas em paralelo
+    // Busca todas as tabelas em paralelo, com suporte a paginação
     const resultados = await Promise.all(
-      nomes.map(nome => supa.from(TG_TABLES[nome]).select('id, data').order('id', { ascending: true }))
+      nomes.map(nome => loadTabelaCompleta(TG_TABLES[nome]))
     );
 
     nomes.forEach((nome, i) => {
-      const { data: rows, error } = resultados[i];
-      if(error){ console.error(`Erro ao carregar ${nome}:`, error); return; }
-      // Cada linha tem { id, data: { ...objeto } }; reconstruímos o array com normalização segura
-      window[nome] = (rows || []).map(row => normalizeFromSupabaseData(nome, row));
+      const rows = resultados[i];
+      window[nome] = rows.map(row => normalizeFromSupabaseData(nome, row));
+      console.log(`✅ ${nome}: ${window[nome].length} registros carregados`);
     });
 
     OCs.forEach(o=>{ if(!o.status) o.status='Ativa'; });
@@ -6378,7 +6400,8 @@ async function loadAppState(){
     _nextPipaId = ViagensPipa.length ? Math.max(...ViagensPipa.map(v=>Number(v.id)||0))+1 : 1;
 
     // Carrega contadores
-    const { data: ctrs } = await supa.from('tg_counters').select('key, value');
+    const { data: ctrs, error: ctrErr } = await supa.from('tg_counters').select('key, value');
+    if(ctrErr){ console.error('Erro ao carregar contadores:', ctrErr); }
     if(ctrs){
       const m = {};
       ctrs.forEach(r => m[r.key] = Number(r.value));
@@ -6401,11 +6424,11 @@ async function loadAppState(){
 
     _stateLoaded = true;
     populateSelects();
-    popularFiltroMeses(); // filtro dinâmico de meses
+    popularFiltroMeses();
     return true;
   } catch(e){
     toast('Erro ao carregar dados: ' + e.message, 'error');
-    console.error(e);
+    console.error('loadAppState FALHOU:', e);
     return false;
   }
 }
@@ -6421,10 +6444,11 @@ async function saveEntidade(nomeJS, objetos){
   const lista = Array.isArray(objetos) ? objetos : [objetos];
   if(!lista.length) return;
 
-  // Monta os rows no formato { id: number, data: objeto } que o Supabase espera
+  // Monta os rows no formato { id, data, updated_at } que o Supabase espera
   const rows = lista.map(o => ({
     id: Number(o.id),
     data: o,
+    updated_at: new Date().toISOString(),
   }));
 
   const { error } = await supa.from(tabela).upsert(rows, { onConflict: 'id' });
