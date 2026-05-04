@@ -4276,116 +4276,112 @@ function gerarPDFOC(id){
   const { jsPDF } = window.jspdf || {};
   if(!jsPDF){ toast('Biblioteca PDF não carregou. Atualize a página.','error'); return; }
 
-  // A5 horizontal: 210mm x 148mm
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a5' });
-  const W = 210, H = 148, M = 5;
-  const verde = [20,55,34], ouro = [170,125,42], vinho = [120,26,22];
+  // A4 Portrait: 210mm x 297mm — fiel ao modelo AJBAM
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = 210, M = 20; // largura útil com margens de 20mm cada lado
+  const PW = W - M*2;   // 170mm de área útil
 
   const txt = v => String(v || '').trim() || '-';
   const dataBR = v => (typeof formatarDataBR === 'function' ? formatarDataBR(v) : txt(v));
   const moeda = v => (typeof fmt === 'function' ? fmt(Number(v)||0) : ('R$ ' + (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2})));
-  const oneLine = (s, max) => {
-    s = txt(s);
-    return s.length > max ? s.slice(0, max - 3) + '...' : s;
-  };
 
+  // ── Fundo branco ──
   doc.setFillColor(255,255,255);
-  doc.rect(0,0,W,H,'F');
+  doc.rect(0,0,W,297,'F');
 
-  // Borda externa dourada arredondada
-  doc.setDrawColor(...ouro);
-  doc.setLineWidth(0.45);
-  doc.roundedRect(3,3,W-6,H-6,3,3,'D');
+  // ── Borda simples ao redor da página (como no PDF de referência) ──
+  doc.setDrawColor(180,180,180);
+  doc.setLineWidth(0.4);
+  doc.rect(M-5, 10, PW+10, 277, 'D');
 
-  // Logo real da tela
-  const logoEl = document.querySelector('.logo-img');
+  // ── Logo da AJBAM ──
+  const logoEl = document.querySelector('.logo img') || document.querySelector('img[src^="data:image"]');
   const logoSrc = logoEl ? logoEl.src : '';
   if(logoSrc){
-    try { doc.addImage(logoSrc, 'JPEG', 8, 8, 100, 23); }
-    catch(e){ try { doc.addImage(logoSrc, 'PNG', 8, 8, 100, 23); } catch(e2){} }
+    try { doc.addImage(logoSrc, 'JPEG', M, 18, 70, 22); }
+    catch(e){ try { doc.addImage(logoSrc, 'PNG', M, 18, 70, 22); } catch(e2){
+      // Fallback texto
+      doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(140,25,22);
+      doc.text('AJBAM', M, 30);
+      doc.setFontSize(8); doc.setTextColor(80,80,80); doc.setFont('helvetica','normal');
+      doc.text('Soluções em transportes', M, 36);
+    }}
   } else {
-    doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(...vinho);
-    doc.text('AJBAM', 50, 21, {align:'center'});
-    doc.setFontSize(6); doc.setTextColor(80,80,80);
-    doc.text('SOLUÇÕES EM TRANSPORTES', 50, 28, {align:'center'});
+    doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(140,25,22);
+    doc.text('AJBAM', M, 30);
+    doc.setFontSize(8); doc.setTextColor(80,80,80); doc.setFont('helvetica','normal');
+    doc.text('Soluções em transportes', M, 36);
   }
 
-  // Título à direita
-  doc.setDrawColor(...ouro); doc.setLineWidth(0.8);
-  doc.line(123,13,198,13); doc.line(123,29,198,29);
-  doc.setTextColor(...verde); doc.setFont('helvetica','bold'); doc.setFontSize(19);
-  doc.text('ORDEM DE COMPRA', 160.5, 24, {align:'center'});
+  // ── Linha separadora horizontal abaixo do cabeçalho ──
+  doc.setDrawColor(180,180,180);
+  doc.setLineWidth(0.4);
+  doc.line(M-5, 44, M+PW+5, 44);
 
-  function campo(label, value, x, y, w, h, labelW){
-    doc.setDrawColor(140,140,140); doc.setLineWidth(0.25);
-    doc.roundedRect(x,y,w,h,1.2,1.2,'D');
-    doc.setFillColor(...verde);
-    doc.roundedRect(x,y,labelW,h,1.2,1.2,'F');
-    doc.rect(x+labelW-1,y,1,h,'F');
-    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(7);
-    doc.text(label, x+labelW/2, y+h/2+2, {align:'center'});
-    doc.setTextColor(25,25,25); doc.setFont('helvetica','bold'); doc.setFontSize(8);
-    const linhas = doc.splitTextToSize(txt(value), w-labelW-4);
-    doc.text(linhas.slice(0,2), x+labelW+3, y+h/2+2);
+  // ── Título ORDEM DE COMPRA (centralizado) ──
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(14);
+  doc.setTextColor(30,30,30);
+  doc.text('ORDEM DE COMPRA', W/2, 55, {align:'center'});
+
+  // ── Campos principais (estilo negrito, como no PDF modelo) ──
+  let cy = 68;
+  const lh = 9; // line height
+
+  function campoBold(label, value, yPos){
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.setTextColor(30,30,30);
+    doc.text(label + ':', M, yPos);
+    doc.setFont('helvetica','normal');
+    doc.text(txt(value), M + doc.getTextWidth(label + ': '), yPos);
   }
 
-  campo('NÚMERO DA ORDEM', o.num, 8, 38, 122, 8, 38);
-  campo('DATA', dataBR(o.data || new Date().toISOString().slice(0,10)), 134, 38, 64, 8, 22);
-  campo('FORNECEDOR', o.forn, 8, 49, 190, 8, 38);
-  campo('EQUIPAMENTO', o.placas || o.equipamento || o.dest || '-', 8, 60, 190, 8, 38);
+  campoBold('N\u00B0', o.num, cy); cy += lh;
+  campoBold('Data', dataBR(o.data || new Date().toISOString().slice(0,10)), cy); cy += lh;
+  campoBold('Fornecedor', o.forn, cy); cy += lh;
+  campoBold('Equipamento', o.placas || o.equipamento || o.dest || '-', cy); cy += lh;
 
-  // Tabela principal
-  const tx = 8, ty = 72, tw = 190, th = 50, valW = 51, descW = tw-valW;
-  doc.setDrawColor(110,110,110); doc.setLineWidth(0.25);
-  doc.roundedRect(tx,ty,tw,th,1.2,1.2,'D');
-  doc.setFillColor(...verde);
-  doc.roundedRect(tx,ty,tw,7,1.2,1.2,'F'); doc.rect(tx,ty+4,tw,3,'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8);
-  doc.text('DESCRIÇÃO', tx+descW/2, ty+5, {align:'center'});
-  doc.text('VALOR', tx+descW+valW/2, ty+5, {align:'center'});
-  doc.setDrawColor(120,120,120); doc.line(tx+descW,ty,tx+descW,ty+th);
+  // Descrição com wrap
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(11);
+  doc.setTextColor(30,30,30);
+  const descLabel = 'Descri\u00E7\u00E3o: ';
+  doc.text(descLabel, M, cy);
+  const descValue = txt(o.desc || o.obs || '-');
+  doc.setFont('helvetica','normal');
+  const descLines = doc.splitTextToSize(descValue, PW - doc.getTextWidth(descLabel));
+  doc.text(descLines, M + doc.getTextWidth(descLabel), cy);
+  cy += lh * descLines.length;
 
-  const itens = Array.isArray(o.itens) && o.itens.length ? o.itens : [{desc:o.desc || o.obs || 'Ordem de compra', vtotal:o.valor}];
-  const rowH = 7;
-  let y = ty+7;
-  for(let i=0;i<6;i++){
-    doc.setDrawColor(210,210,210); doc.line(tx, y+rowH, tx+tw, y+rowH);
-    const it = itens[i];
-    if(it){
-      const descricao = it.desc || it.descricao || it.codigo || it.cod || o.desc || o.obs || '-';
-      const valor = Number(it.vtotal || it.valorTotal || it.valor || (Number(it.quant||it.qtd||1)*Number(it.vunit||it.valorUnit||0)) || (i===0 ? Number(o.valor)||0 : 0));
-      doc.setTextColor(25,25,25); doc.setFont('helvetica','normal'); doc.setFontSize(6.8);
-      doc.text(oneLine(descricao, 80), tx+3, y+4.8);
-      doc.setFont('helvetica','bold');
-      doc.text(moeda(valor), tx+tw-3, y+4.8, {align:'right'});
-    }
-    y += rowH;
-  }
+  campoBold('Valor Total', moeda(o.valor || 0), cy); cy += lh;
 
-  // Rodapé informativo
-  const fy = 126;
-  doc.setDrawColor(...ouro); doc.setLineWidth(0.35);
-  doc.line(68,fy-4,68,fy+13); doc.line(132,fy-4,132,fy+13);
+  cy += 6;
 
-  doc.setFillColor(...verde); doc.circle(17,fy+3,6,'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text('✓',17,fy+5,{align:'center'});
-  doc.setTextColor(35,35,35); doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
-  doc.text(['Ciente do valor já acordado na','cotação de valores.'],27,fy+1.5);
+  // ── Linha separadora ──
+  doc.setDrawColor(180,180,180);
+  doc.setLineWidth(0.3);
+  doc.line(M-5, cy, M+PW+5, cy);
+  cy += 8;
 
-  doc.setFillColor(...verde); doc.circle(82,fy+3,6,'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.text('OC',82,fy+5,{align:'center'});
-  doc.setTextColor(35,35,35); doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
-  doc.text(['Ordem de Compra liberada','após aprovação dos gestores.'],93,fy+1.5);
+  // ── Textos informativos (como no PDF modelo) ──
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10);
+  doc.setTextColor(50,50,50);
+  doc.text('Ciente do valor j\u00E1 acordado na cota\u00E7\u00E3o de valores.', M, cy); cy += lh;
+  doc.text('Ordem de Compra Liberada ap\u00F3s Aprova\u00E7\u00E3o dos Gestores.', M, cy); cy += lh + 4;
 
-  doc.setFillColor(145,25,24); doc.circle(146,fy+3,6,'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text('!',146,fy+6,{align:'center'});
-  doc.setTextColor(145,25,24); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-  doc.text('INDISPENSÁVEL', 156, fy-1.5);
-  doc.setTextColor(35,35,35); doc.setFont('helvetica','normal'); doc.setFontSize(6.2);
-  doc.text(['ENVIAR A NF ACOMPANHADO','DO PIX OU BOLETO PARA:'],156,fy+4);
-  doc.setTextColor(145,25,24); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
-  doc.text('ajbamtransportes@gmail.com',156,fy+14);
+  // ── Aviso INDISPENSÁVEL (em negrito/vermelho, como no modelo) ──
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(10);
+  doc.setTextColor(140,25,22);
+  const avisoText = 'INDISPENS\u00C1VEL ENVIAR A NF ACOMPANHADO DO PIX OU BOLETO PARA: ';
+  const avisoLines = doc.splitTextToSize(avisoText, PW);
+  doc.text(avisoLines, M, cy);
+  cy += lh * avisoLines.length;
+  doc.text('ajbamtransportes@gmail.com', M, cy);
 
+  // ── Salvar ──
   const nomeForn = (o.forn||'SEM_FORN').replace(/[^a-zA-Z0-9\u00C0-\u00FF\s]/g,'').trim().replace(/\s+/g,'_');
   const nomePlaca = (o.placas||'-').replace(/[^a-zA-Z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
   doc.save(`${o.num || 'OC'}_${nomeForn}_${nomePlaca}.pdf`);
