@@ -435,6 +435,7 @@ textarea{resize:vertical;min-height:65px}
         <div style="display:flex;gap:8px;align-items:center">
           <span id="fat-aguard-badge" style="font-size:11px;color:var(--amber)"></span>
           <button class="btn btn-secondary btn-sm" onclick="recarregarFaturamentos()" title="Recarregar lista do servidor">🔄 Recarregar</button>
+          <button class="btn btn-amber btn-sm" onclick="recuperarFaturamentosDosTitulos()" title="Reconstrói faturamentos perdidos a partir dos títulos existentes">🛠️ Recuperar Perdidos</button>
           <button class="btn btn-primary" onclick="openModalFaturamento()">+ Registrar Faturamento</button>
         </div>
       </div>
@@ -4773,6 +4774,87 @@ async function recarregarFaturamentos(){
   } catch(e) {
     console.error('Erro ao recarregar faturamentos:', e);
     toast('Erro ao recarregar: ' + e.message, 'error');
+  }
+}
+
+// Recupera faturamentos perdidos reconstruindo-os a partir dos Títulos com ref FAT-*
+async function recuperarFaturamentosDosTitulos(){
+  // Agrupa títulos cujo ref começa com FAT-
+  const titsFat = Titulos.filter(t => t.ref && t.ref.match(/^FAT-/));
+  if(!titsFat.length){
+    toast('Nenhum título com referência FAT- encontrado.', 'error');
+    return;
+  }
+
+  // Extrai os números de faturamento únicos (ex: "FAT-2025-001 — Parcela 1/3" → "FAT-2025-001")
+  const gruposMap = {};
+  titsFat.forEach(t => {
+    const numFat = t.ref.split(' ')[0]; // pega só o "FAT-XXXX-XXX"
+    if(!gruposMap[numFat]) gruposMap[numFat] = [];
+    gruposMap[numFat].push(t);
+  });
+
+  const numsFat = Object.keys(gruposMap);
+
+  // Verifica quais já existem em Faturamentos (para não duplicar)
+  const existentes = new Set(Faturamentos.map(f => f.num));
+  const paraRecuperar = numsFat.filter(n => !existentes.has(n));
+
+  if(!paraRecuperar.length){
+    toast('Todos os faturamentos já estão listados (' + numsFat.length + ').', 'error');
+    return;
+  }
+
+  if(!confirm('Foram encontrados ' + paraRecuperar.length + ' faturamento(s) não listado(s):\n' + paraRecuperar.join('\n') + '\n\nDeseja recuperá-los?')) return;
+
+  let maxId = Faturamentos.reduce((m,f) => Math.max(m, Number(f.id)||0), 0);
+  const recuperados = [];
+
+  paraRecuperar.forEach(numFat => {
+    const tits = gruposMap[numFat];
+    // Tenta pegar forn do primeiro título
+    const forn = tits[0].forn || tits[0].fornecedor || '';
+    const valor = tits.reduce((s,t) => s + (parseFloat(t.valor)||0), 0);
+    // Monta parcelas a partir dos títulos
+    const parcelas = tits.map(t => ({ venc: t.venc || t.vencimento || '', val: parseFloat(t.valor)||0 }));
+    // Extrai nfNums do campo obs ("NFs: NF-001, NF-002")
+    const obsRef = tits[0].obs || '';
+    const nfMatch = obsRef.match(/NFs?:\s*([^|]+)/i);
+    const nfNums = nfMatch ? nfMatch[1].split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+    maxId++;
+    const fat = {
+      id: maxId,
+      num: numFat,
+      data: tits[0].emissao || tits[0].emissão || '',
+      venc: parcelas[0] ? parcelas[0].venc : '',
+      forn,
+      nfIds: [],
+      nfNums,
+      valor: Math.round(valor * 100) / 100,
+      forma: '',
+      obs: 'Recuperado automaticamente a partir dos títulos existentes.',
+      parcelas,
+      status: tits.every(t => t.status === 'Pago') ? 'Pago' : 'Pendente'
+    };
+    recuperados.push(fat);
+    Faturamentos.unshift(fat);
+  });
+
+  // Atualiza nextFatId se necessário
+  if(maxId >= nextFatId) nextFatId = maxId + 1;
+
+  // Salva no Supabase
+  try {
+    await saveEntidade('Faturamentos', recuperados);
+    await saveCounters();
+    renderFaturamentos();
+    toast(recuperados.length + ' faturamento(s) recuperado(s) e salvos no Supabase!');
+    console.log('[recuperar] Faturamentos recuperados:', recuperados);
+  } catch(e) {
+    console.error('[recuperar] Erro ao salvar:', e);
+    toast('Recuperado localmente mas erro ao salvar: ' + e.message, 'error');
+    renderFaturamentos();
   }
 }
 
