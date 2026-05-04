@@ -466,6 +466,8 @@ textarea{resize:vertical;min-height:65px}
           <input type="file" id="import-titulos-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarTitulosPlanilha(event)"/>
           <button class="btn btn-secondary" onclick="document.getElementById('import-titulos-file').click()">📥 Importar Planilha</button>
           <button class="btn btn-secondary" onclick="backupTitulosJSON()">💾 Backup JSON</button>
+          <button class="btn btn-amber" onclick="exportBoletosHojePDF()">📅 Boletos do Dia</button>
+          <button class="btn btn-secondary" onclick="exportFinPDFFiltrado()">📄 PDF do Filtro</button>
           <button class="btn btn-primary" onclick="openModalAvulso()">+ Lançamento Avulso</button>
         </div>
       </div>
@@ -1418,9 +1420,9 @@ textarea{resize:vertical;min-height:65px}
       <div class="form-group full"><label>Observações</label><textarea id="f-nf-obs" placeholder="Observações adicionais..."></textarea></div>
       <div class="form-group full">
         <label>Arquivo da NF / Boleto</label>
-        <input type="file" id="f-nf-file" accept="image/*,application/pdf"/>
+        <input type="file" id="f-nf-file" accept="image/*,application/pdf" multiple/>
         <div id="nf-doc-atual" style="display:none;margin-top:6px;font-size:12px;color:var(--text2)"></div>
-        <div style="font-size:10.5px;color:var(--text3);margin-top:4px">Aceita PDF ou imagem. Anexe a NF ou boleto para consulta futura.</div>
+        <div style="font-size:10.5px;color:var(--text3);margin-top:4px">Aceita PDF ou imagem. Você pode selecionar múltiplos arquivos de uma vez.</div>
       </div>
     </div>
 
@@ -2102,7 +2104,7 @@ function populateSelects(){
   ['f-oc-placa','f-nf-dest','f-saida-placa','f-tit-placa'].forEach(sid=>{
     const s=$(sid); if(!s)return;
     const isNfDest=sid==='f-nf-dest';
-    s.innerHTML=(isNfDest?'<option value="Estoque">Estoque</option>':'<option value="-">Nenhuma (geral)</option>');
+    s.innerHTML=(isNfDest?'<option value="">— Sem placa / Administrativo —</option><option value="Estoque">Estoque</option>':'<option value="-">Nenhuma (geral)</option>');
     if(isNfDest){
       // Adiciona placas da frota
       Frota.forEach(f=>{ if(f.placa) s.innerHTML+=`<option value="${f.placa}">${f.placa}${f.modelo?' — '+f.modelo:''}</option>`; });
@@ -2526,7 +2528,13 @@ function editarNF(id){
   if($('f-nf-file')) $('f-nf-file').value='';
   if($('nf-doc-atual')){
     $('nf-doc-atual').style.display = o.doc ? 'block' : 'none';
-    $('nf-doc-atual').innerHTML = o.doc ? `📎 Arquivo atual: <a href="${o.doc}" target="_blank" rel="noopener">abrir arquivo</a><br><span style="color:var(--text3)">Escolha outro arquivo somente se quiser substituir.</span>` : '';
+    if(o.doc){
+      const docUrls = o.doc.split('|').filter(Boolean);
+      const links = docUrls.length===1
+        ? `<a href="${docUrls[0]}" target="_blank" rel="noopener">abrir arquivo</a>`
+        : docUrls.map((u,i)=>`<a href="${u}" target="_blank" rel="noopener">Arquivo ${i+1}</a>`).join(' · ');
+      $('nf-doc-atual').innerHTML = `📎 Arquivo(s) atual(is): ${links}<br><span style="color:var(--text3)">Escolha outro(s) arquivo(s) somente se quiser substituir.</span>`;
+    } else { $('nf-doc-atual').innerHTML = ''; }
   }
   nfOCChanged(); // exibe aviso de rateio se OC for rateada
   // restaurar parcelas salvas (se houver) ou gerar 1 parcela
@@ -2795,23 +2803,27 @@ function limparNomeArquivo(nome){
 }
 async function uploadDocNF(){
   const input = $('f-nf-file');
-  const file = input && input.files && input.files[0] ? input.files[0] : null;
-  if(!file) return '';
+  const files = input && input.files && input.files.length ? Array.from(input.files) : [];
+  if(!files.length) return '';
   const maxMB = 12;
-  if(file.size > maxMB * 1024 * 1024){
-    toast(`Arquivo muito grande. Limite: ${maxMB}MB.`, 'error');
-    return null;
-  }
   const pasta = new Date().toISOString().slice(0,10);
-  const nome = `nf/${pasta}/${Date.now()}_${limparNomeArquivo(file.name)}`;
-  const { error } = await supa.storage.from('transgest-docs').upload(nome, file, { upsert:false, contentType:file.type || undefined });
-  if(error){
-    console.error(error);
-    toast('Erro ao enviar arquivo: ' + error.message, 'error');
-    return null;
+  const urls = [];
+  for(const file of files){
+    if(file.size > maxMB * 1024 * 1024){
+      toast(`Arquivo "${file.name}" muito grande. Limite: ${maxMB}MB.`, 'error');
+      return null;
+    }
+    const nome = `nf/${pasta}/${Date.now()}_${limparNomeArquivo(file.name)}`;
+    const { error } = await supa.storage.from('transgest-docs').upload(nome, file, { upsert:false, contentType:file.type || undefined });
+    if(error){
+      console.error(error);
+      toast('Erro ao enviar arquivo: ' + error.message, 'error');
+      return null;
+    }
+    const { data } = supa.storage.from('transgest-docs').getPublicUrl(nome);
+    if(data && data.publicUrl) urls.push(data.publicUrl);
   }
-  const { data } = supa.storage.from('transgest-docs').getPublicUrl(nome);
-  return data && data.publicUrl ? data.publicUrl : '';
+  return urls.join('|');
 }
 
 async function uploadDocTitulo(){
@@ -2856,7 +2868,10 @@ async function uploadComprovanteTitulo(){
   return data && data.publicUrl ? data.publicUrl : '';
 }
 function linkComprovante(url, icone='📎', label='Ver'){
-  return url ? `<a href="${url}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent2);font-weight:600">${icone} ${label}</a>` : '<span style="font-size:11px;color:var(--text3)">—</span>';
+  if(!url) return '<span style="font-size:11px;color:var(--text3)">—</span>';
+  const urls = url.split('|').filter(Boolean);
+  if(urls.length === 1) return `<a href="${urls[0]}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent2);font-weight:600">${icone} ${label}</a>`;
+  return urls.map((u,i)=>`<a href="${u}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent2);font-weight:600">${icone} Arq.${i+1}</a>`).join(' ');
 }
 async function salvarTitulo(){
   const fornSel=$('f-tit-forn').value.trim(); const fornMan=($('f-tit-forn-manual')||{value:''}).value.trim(); const forn=fornMan||fornSel; if(!forn){toast('Selecione ou informe o fornecedor','error');return;}
@@ -4268,6 +4283,87 @@ function exportRelFinPDF(){
   doc.save('Relatorio_Financeiro.pdf');
   toast('PDF gerado com sucesso!');
 }
+// ======================== PDF FINANCEIRO ========================
+
+function exportFinPDFFiltrado(){
+  const{jsPDF}=window.jspdf||{};
+  if(!jsPDF){toast('Biblioteca PDF não carregou','error');return;}
+  const lista = getTitulosFinanceiroFiltrados();
+  if(!lista.length){toast('Nenhum título no filtro atual','error');return;}
+  const periodoEl = document.getElementById('fin-filtro-periodo');
+  const statusEl  = document.getElementById('fin-filtro-status');
+  const periodo = periodoEl ? periodoEl.options[periodoEl.selectedIndex].text : '';
+  const status  = statusEl  ? (statusEl.value  || 'Todos') : 'Todos';
+  gerarPDFTitulos(lista, 'AJBAM — Contas a Pagar', `Período: ${periodo} | Status: ${status}`, 'Contas_a_Pagar_Filtrado');
+}
+
+function exportBoletosHojePDF(){
+  const{jsPDF}=window.jspdf||{};
+  if(!jsPDF){toast('Biblioteca PDF não carregou','error');return;}
+  const hoje=new Date(); const h=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate());
+  const lista = Titulos.filter(t=>{
+    if(t.status!=='Pendente') return false;
+    const v = parseISODateLocal(t.venc);
+    return v && v.getFullYear()===h.getFullYear() && v.getMonth()===h.getMonth() && v.getDate()===h.getDate();
+  });
+  if(!lista.length){toast('Nenhum boleto vence hoje!','error');return;}
+  const dataFmt = h.toLocaleDateString('pt-BR');
+  gerarPDFTitulos(lista, 'AJBAM — Boletos do Dia', `Vencimento: ${dataFmt} | Apenas Pendentes`, 'Boletos_do_Dia');
+}
+
+function gerarPDFTitulos(lista, titulo, subtitulo, nomeArquivo){
+  const{jsPDF}=window.jspdf||{};
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const W=297;
+  // Cabeçalho
+  doc.setFillColor(11,22,40); doc.rect(0,0,W,22,'F');
+  const logoEl = document.querySelector('.logo img');
+  const logoSrc = logoEl ? logoEl.src : '';
+  if(logoSrc){ try{doc.addImage(logoSrc,'JPEG',8,2,30,18);}catch(e){} }
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text(titulo, W/2, 12, {align:'center'});
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text(subtitulo, W/2, 18, {align:'center'});
+  doc.setTextColor(180,180,180); doc.setFontSize(7);
+  doc.text('Gerado em: '+new Date().toLocaleString('pt-BR'), W-10, 18, {align:'right'});
+  // Totalizador
+  const total = lista.reduce((a,t)=>a+(parseFloat(t.valor)||0),0);
+  doc.setFillColor(0,120,100); doc.rect(0,22,W,8,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text(`Total: ${fmt(total)}  |  ${lista.length} título(s)`, W/2, 27.5, {align:'center'});
+  // Cabeçalho da tabela
+  const cols=['Fornecedor','Referência','Categoria','Tipo','Placa','Valor','Vencimento','Status'];
+  const widths=[60,40,28,22,22,28,26,20];
+  let x=8, y=40;
+  doc.setFillColor(220,228,236); doc.rect(8,32,281,8,'F');
+  doc.setTextColor(11,22,40); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+  cols.forEach((c,i)=>{doc.text(c,x+1,37);x+=widths[i];});
+  // Linhas
+  doc.setFont('helvetica','normal'); doc.setFontSize(7);
+  const sorted = [...lista].sort((a,b)=>parseISODateLocal(a.venc)-parseISODateLocal(b.venc));
+  sorted.forEach((t,ri)=>{
+    if(y>185){doc.addPage();y=20;}
+    if(ri%2===0){doc.setFillColor(245,248,252);doc.rect(8,y-4,281,7,'F');}
+    const diasV = diasAte(t.venc);
+    const corStatus = t.status==='Pago'?[0,130,100]:(diasV<0?[180,20,20]:(diasV===0?[180,80,0]:[30,40,60]));
+    doc.setTextColor(...corStatus);
+    const vals=[
+      (t.forn||'-').slice(0,30),
+      (t.ref||'-').slice(0,22),
+      (categoriaLabel(t.categoria||'manutencao')||'-').slice(0,16),
+      (t.tipo||'-').slice(0,12),
+      (t.placa||'-').slice(0,10),
+      fmt(t.valor),
+      formatarDataBR(t.venc),
+      t.status||'-'
+    ];
+    x=8; vals.forEach((v,i)=>{doc.text(String(v),x+1,y);x+=widths[i];});
+    y+=7; doc.setTextColor(30,40,60);
+  });
+  doc.save(nomeArquivo+'_'+new Date().toISOString().slice(0,10)+'.pdf');
+  toast('PDF gerado com sucesso!');
+}
+
 // ======================== PDF ========================
 
 function gerarPDFOC(id){
@@ -4573,6 +4669,11 @@ function salvarFaturamento(){
     ? `Boleto consolidado gerado! ${nfNums.length} NF(s) · ${fmt(total)} · ${parcelas.length} parcelas no Contas a Pagar.`
     : `Boleto consolidado gerado! ${nfNums.length} NF(s) · ${fmt(total)} · Venc. ${parcelas[0].venc}`;
   toast(msg);
+  // Persiste no Supabase
+  saveEntidade('Faturamentos', [fat]);
+  const novosTitFat = Titulos.filter(t => t.ref.startsWith(num)).slice(0, parcelas.length);
+  if(novosTitFat.length) saveEntidade('Titulos', novosTitFat);
+  saveCounters();
   renderAll();
 }
 
