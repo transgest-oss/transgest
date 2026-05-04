@@ -434,6 +434,7 @@ textarea{resize:vertical;min-height:65px}
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <span id="fat-aguard-badge" style="font-size:11px;color:var(--amber)"></span>
+          <button class="btn btn-secondary btn-sm" onclick="recarregarFaturamentos()" title="Recarregar lista do servidor">🔄 Recarregar</button>
           <button class="btn btn-primary" onclick="openModalFaturamento()">+ Registrar Faturamento</button>
         </div>
       </div>
@@ -1461,9 +1462,9 @@ textarea{resize:vertical;min-height:65px}
       ℹ️ Você pode lançar boletos de NF, impostos, folha de pagamento, compromissos anteriores ou qualquer título manualmente.
     </div>
     <div class="form-grid">
-      <div class="form-group full"><label>Fornecedor / Descrição</label>
+      <div class="form-group full"><label>Fornecedor / Colaborador / Beneficiário</label>
         <div style="display:flex;gap:8px">
-          <select id="f-tit-forn" style="flex:1"><option value="">— Selecione o fornecedor —</option></select>
+          <select id="f-tit-forn" style="flex:1"><option value="">— Selecione o fornecedor ou colaborador —</option></select>
           <input type="text" id="f-tit-forn-manual" placeholder="Ou digite livremente..." style="flex:1" oninput="if(this.value)document.getElementById('f-tit-forn').value=''"/>
         </div>
       </div>
@@ -2116,12 +2117,16 @@ function populateSelects(){
   ['f-oc-forn','f-nf-forn','f-nfr-forn','f-tit-forn','f-fat-forn'].forEach(sid=>{
     const s=$(sid); if(!s)return;
     const curVal = s.value;
-    if(sid==='f-fat-forn'){
-      s.innerHTML='<option value="">— Selecione o fornecedor —</option>';
-    } else {
-      s.innerHTML='<option value="">— Selecione o fornecedor —</option>';
-    }
+    s.innerHTML='<option value="">— Selecione o fornecedor —</option>';
     fornsAtivos.forEach(f=>s.innerHTML+=`<option value="${f.nome}">${f.nome}</option>`);
+    // Para o lançamento avulso (Contas a Pagar), também lista colaboradores ativos
+    if(sid==='f-tit-forn'){
+      const colabsAtivos = Colaboradores.filter(c=>c.status==='Ativo');
+      if(colabsAtivos.length){
+        s.innerHTML+=`<option value="" disabled>── Colaboradores ──</option>`;
+        colabsAtivos.forEach(c=>s.innerHTML+=`<option value="${c.nome}">${c.nome}${c.cargo?' ('+c.cargo+')':''}</option>`);
+      }
+    }
     if(curVal) s.value=curVal;
   });
   // Produtos para selects de entrada e saída
@@ -4675,12 +4680,19 @@ async function salvarFaturamento(){
 
   // Persiste diretamente no Supabase (sem depender do wrapper para garantir)
   const nfsAfetadas = nfIds.map(id => NFs.find(x=>x.id===id)).filter(Boolean);
-  await Promise.all([
-    saveEntidade('Faturamentos', [fat]),
-    saveEntidade('Titulos', novosTits),
-    ...(nfsAfetadas.length ? [saveEntidade('NFs', nfsAfetadas)] : []),
-  ]);
-  await saveCounters();
+  console.log('[salvarFaturamento] Salvando faturamento:', JSON.stringify(fat));
+  try {
+    await Promise.all([
+      saveEntidade('Faturamentos', [fat]),
+      saveEntidade('Titulos', novosTits),
+      ...(nfsAfetadas.length ? [saveEntidade('NFs', nfsAfetadas)] : []),
+    ]);
+    await saveCounters();
+    console.log('[salvarFaturamento] Salvo com sucesso. Total Faturamentos em memoria:', Faturamentos.length);
+  } catch(e) {
+    console.error('[salvarFaturamento] Erro ao persistir:', e);
+    toast('Faturamento salvo localmente, mas erro ao persistir no servidor: ' + e.message, 'error');
+  }
   renderAll();
 }
 
@@ -4746,7 +4758,22 @@ function renderFaturamentos(){
       <td>${chipS(f.status)}</td>
       <td><div class="action-btns">${pgBtn}<button class="btn btn-danger btn-sm" onclick="excluirFaturamento(${f.id})">🗑️</button></div></td>
     </tr>`;
-  }).join('') : '<tr><td colspan="8" class="empty">Nenhum faturamento registrado ainda</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="empty">Nenhum faturamento registrado ainda.<br><span style="font-size:11px;color:var(--text3)">Se você já registrou faturamentos, clique em 🔄 Recarregar ou reabra a tela.</span></td></tr>';
+}
+
+// Recarrega faturamentos diretamente do Supabase e re-renderiza
+async function recarregarFaturamentos(){
+  try {
+    toast('Recarregando faturamentos...');
+    const rows = await loadTabelaCompleta(TG_TABLES['Faturamentos']);
+    Faturamentos = rows.map(row => normalizeFromSupabaseData('Faturamentos', row));
+    console.log('Faturamentos recarregados:', Faturamentos.length, Faturamentos);
+    renderFaturamentos();
+    toast('Faturamentos atualizados: ' + Faturamentos.length + ' registro(s).');
+  } catch(e) {
+    console.error('Erro ao recarregar faturamentos:', e);
+    toast('Erro ao recarregar: ' + e.message, 'error');
+  }
 }
 
 // Atalho: abre modal de faturamento já com o fornecedor da NF pré-selecionado (todas as NFs do forn marcadas)
@@ -6474,12 +6501,18 @@ async function loadTabelaCompleta(tabela){
       .order('id', { ascending: true })
       .range(from, from + PAGE - 1);
     if(error){
-      console.error(`Erro ao carregar ${tabela} (offset ${from}):`, error);
-      throw error;
+      console.error('Erro ao carregar tabela "' + tabela + '" (offset ' + from + '):', error.message, error);
+      // Retorna o que já carregou — evita travar todo o sistema por uma tabela
+      return allRows;
     }
     if(!rows || rows.length === 0) break;
+    rows.forEach(r => {
+      if(!r.data || typeof r.data !== 'object'){
+        console.warn('Linha sem campo "data" valido em "' + tabela + '" id=' + r.id, r);
+      }
+    });
     allRows = allRows.concat(rows);
-    if(rows.length < PAGE) break; // última página
+    if(rows.length < PAGE) break;
     from += PAGE;
   }
   return allRows;
