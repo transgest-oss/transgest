@@ -4601,7 +4601,7 @@ function fatAtualizarSoma(){
   else { somaEl.className='parcela-diff err'; msgEl.textContent=(diff>0?'Excesso':'Falta')+': R$ '+Math.abs(diff).toLocaleString('pt-BR',{minimumFractionDigits:2}); msgEl.style.color='var(--red)'; }
 }
 
-function salvarFaturamento(){
+async function salvarFaturamento(){
   const forn = $('f-fat-forn').value;
   if(!forn){ toast('Selecione o fornecedor','error'); return; }
   const checks = [...document.querySelectorAll('.fat-nf-check:checked')];
@@ -4648,9 +4648,10 @@ function salvarFaturamento(){
   const descNFs = nfNums.length <= 3
     ? 'NFs: ' + nfNums.join(', ')
     : 'NFs: ' + nfNums.slice(0,3).join(', ') + ' e mais ' + (nfNums.length-3);
+  const novosTits = [];
   parcelas.forEach((p,i)=>{
     const label = parcelas.length > 1 ? ` — Parcela ${i+1}/${parcelas.length}` : '';
-    Titulos.unshift({
+    const tit = {
       id: newId('tit'),
       forn,
       tipo: 'Boleto NF',
@@ -4661,7 +4662,9 @@ function salvarFaturamento(){
       status: 'Pendente',
       placa: '-',
       obs: descNFs + (fat.obs ? ' | ' + fat.obs : '')
-    });
+    };
+    Titulos.unshift(tit);
+    novosTits.push(tit);
   });
 
   closeModal('modal-faturamento');
@@ -4669,11 +4672,15 @@ function salvarFaturamento(){
     ? `Boleto consolidado gerado! ${nfNums.length} NF(s) · ${fmt(total)} · ${parcelas.length} parcelas no Contas a Pagar.`
     : `Boleto consolidado gerado! ${nfNums.length} NF(s) · ${fmt(total)} · Venc. ${parcelas[0].venc}`;
   toast(msg);
-  // Persiste no Supabase
-  saveEntidade('Faturamentos', [fat]);
-  const novosTitFat = Titulos.filter(t => t.ref.startsWith(num)).slice(0, parcelas.length);
-  if(novosTitFat.length) saveEntidade('Titulos', novosTitFat);
-  saveCounters();
+
+  // Persiste diretamente no Supabase (sem depender do wrapper para garantir)
+  const nfsAfetadas = nfIds.map(id => NFs.find(x=>x.id===id)).filter(Boolean);
+  await Promise.all([
+    saveEntidade('Faturamentos', [fat]),
+    saveEntidade('Titulos', novosTits),
+    ...(nfsAfetadas.length ? [saveEntidade('NFs', nfsAfetadas)] : []),
+  ]);
+  await saveCounters();
   renderAll();
 }
 
@@ -6596,7 +6603,7 @@ const _orig = {};
 [
   'salvarOC','salvarNF','salvarTitulo','salvarSaida','salvarFrota',
   'salvarEPIEntrada','salvarEPISaida','salvarColab','salvarUsuario',
-  'salvarFornecedor','salvarProduto','salvarFaturamento','salvarNFRapida',
+  'salvarFornecedor','salvarProduto','salvarNFRapida',
   'marcarPago','cancelarOC'
 ].forEach(fn => { _orig[fn] = window[fn]; });
 
@@ -6613,7 +6620,7 @@ const FN_ENTIDADES = {
   salvarUsuario:    ['Usuarios'],
   salvarFornecedor: ['Fornecedores'],
   salvarProduto:    ['Produtos'],
-  salvarFaturamento:['Faturamentos', 'NFs', 'Titulos'],
+  // salvarFaturamento gerencia o próprio save diretamente (função async)
   salvarNFRapida:   ['NFs', 'OCs'],
   marcarPago:       ['Titulos'],
   cancelarOC:       ['OCs', 'HistoricoOC'],
