@@ -1998,7 +1998,7 @@ function verHistoricoOC(id){
 
 
 // ======================== HELPERS ========================
-const fmt = v => 'R$ ' + Math.round(parseFloat(v)||0).toLocaleString('pt-BR');
+const fmt = v => 'R$ ' + (parseFloat(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtD = v => parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
 const CL={manutencao:'Manutenção',pecas:'Peças',impostos:'Impostos',pessoal:'Pessoal',admin:'Administrativo'};
 const CC={manutencao:'#0099FF',pecas:'#00C4A1',impostos:'#F5A623',pessoal:'#A78BFA',admin:'#FB923C'};
@@ -4247,7 +4247,7 @@ function exportRelGastosPDF(){
   Frota.forEach((f,ri)=>{
     if(ri%2===0){doc.setFillColor(240,245,250);doc.rect(10,y-4,277,7,'F');}
     const serv=Math.round(f.gasto*0.6),pcs=Math.round(f.gasto*0.3),est=Math.round(f.gasto*0.1);
-    const vals=[f.placa,'R$ '+serv.toLocaleString('pt-BR'),'R$ '+pcs.toLocaleString('pt-BR'),'R$ '+est.toLocaleString('pt-BR'),'R$ '+f.gasto.toLocaleString('pt-BR'),'R$ '+f.limite.toLocaleString('pt-BR'),'R$ '+(f.limite-f.gasto).toLocaleString('pt-BR'),Math.round(f.gasto/f.limite*100)+'%'];
+    const vals=[f.placa,'R$ '+serv.toLocaleString('pt-BR',{minimumFractionDigits:2}),'R$ '+pcs.toLocaleString('pt-BR',{minimumFractionDigits:2}),'R$ '+est.toLocaleString('pt-BR',{minimumFractionDigits:2}),'R$ '+f.gasto.toLocaleString('pt-BR',{minimumFractionDigits:2}),'R$ '+f.limite.toLocaleString('pt-BR',{minimumFractionDigits:2}),'R$ '+(f.limite-f.gasto).toLocaleString('pt-BR',{minimumFractionDigits:2}),Math.round(f.gasto/f.limite*100)+'%'];
     x=10; vals.forEach((v,i)=>{doc.text(v,x+2,y);x+=widths[i];});
     y+=7; if(y>190){doc.addPage();y=20;}
   });
@@ -4276,7 +4276,7 @@ function exportRelFinPDF(){
   doc.setFont('helvetica','normal'); doc.setTextColor(30,40,60);
   d.forEach((x2,ri)=>{
     if(ri%2===0){doc.setFillColor(240,245,250);doc.rect(10,y-4,277,7,'F');}
-    const vals=[x2.forn.slice(0,28),CL[x2.cat]||x2.cat,x2.ref.slice(0,18),'R$ '+x2.valor.toLocaleString('pt-BR'),x2.venc,x2.placa,x2.status];
+    const vals=[x2.forn.slice(0,28),CL[x2.cat]||x2.cat,x2.ref.slice(0,18),'R$ '+x2.valor.toLocaleString('pt-BR',{minimumFractionDigits:2}),x2.venc,x2.placa,x2.status];
     let px=10; vals.forEach((v,i)=>{doc.text(v,px+2,y);px+=widths[i];});
     y+=7; if(y>190){doc.addPage();y=20;}
   });
@@ -4727,12 +4727,12 @@ function renderFaturamentos(){
       ? `<button class="btn btn-save btn-sm" onclick="marcarFatPago(${f.id})">✓ Pago</button>`
       : `<span style="font-size:11px;color:var(--accent)">✓ Quitado</span>`;
     const vencDisplay = f.venc || (f.parcelas && f.parcelas[0] ? f.parcelas[0].venc : '—');
-    const qtdBadge = f.nfNums.length > 1
+    const qtdBadge = (f.nfNums||[]).length > 1
       ? `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(0,196,161,.12);color:var(--accent);border:1px solid rgba(0,196,161,.25);margin-left:5px">${f.nfNums.length} NFs</span>` : '';
     return `<tr>
       <td class="mono" style="color:var(--accent2);font-size:11px">${f.num}${qtdBadge}</td>
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.forn}</td>
-      <td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${f.nfNums.map(n=>'NF '+n).join(', ')}">${f.nfNums.map(n=>'NF '+n).join(', ')}</td>
+      <td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(f.nfNums||[]).map(n=>'NF '+n).join(', ')}">${(f.nfNums||[]).map(n=>'NF '+n).join(', ')||'—'}</td>
       <td class="mono" style="font-weight:600">${fmt(f.valor)}</td>
       <td style="font-size:11px">${vencDisplay}</td>
       <td style="font-size:11px">${f.forma}</td>
@@ -6938,6 +6938,17 @@ function normalizeFromSupabaseData(nome, row){
   }
   if(nome === 'Colaboradores' || nome === 'Usuarios'){
     if(!obj.status) obj.status = 'Ativo';
+  }
+  if(nome === 'Faturamentos'){
+    if(!obj.status) obj.status = 'Pendente';
+    if(!Array.isArray(obj.nfIds))   obj.nfIds   = obj.nfIds   ? (typeof obj.nfIds==='string'   ? JSON.parse(obj.nfIds)   : []) : [];
+    if(!Array.isArray(obj.nfNums))  obj.nfNums  = obj.nfNums  ? (typeof obj.nfNums==='string'  ? JSON.parse(obj.nfNums)  : []) : [];
+    if(!Array.isArray(obj.parcelas))obj.parcelas= obj.parcelas? (typeof obj.parcelas==='string'? JSON.parse(obj.parcelas): []) : [];
+    if(!obj.num)  obj.num  = 'FAT-?';
+    if(!obj.forn) obj.forn = '';
+    if(!obj.forma)obj.forma= '';
+    if(!obj.venc && obj.parcelas && obj.parcelas[0]) obj.venc = obj.parcelas[0].venc;
+    if(obj.valor !== undefined) obj.valor = parseFloat(obj.valor) || 0;
   }
   return obj;
 }
