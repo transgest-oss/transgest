@@ -5247,11 +5247,26 @@ async function doLogout(){
 // ======================== LANÇAMENTO AVULSO ========================
 
 function openModalAvulso(){
-  // Popula fornecedores
+  // Popula fornecedores e colaboradores em grupos separados
   const sel = document.getElementById('f-av-forn');
   if(sel){
     sel.innerHTML = '<option value="">— Selecione —</option>';
-    Fornecedores.forEach(f => sel.innerHTML += `<option value="${f.nome}">${f.nome}</option>`);
+    // Grupo Fornecedores
+    const fornsAtivos = Fornecedores.filter(f => f.status === 'Ativo' || !f.status);
+    if(fornsAtivos.length){
+      let grpForn = '<optgroup label="🏢 Fornecedores">';
+      fornsAtivos.forEach(f => grpForn += `<option value="${f.nome}">${f.nome}</option>`);
+      grpForn += '</optgroup>';
+      sel.innerHTML += grpForn;
+    }
+    // Grupo Colaboradores
+    const colabsAtivos = Colaboradores.filter(c => c.status === 'Ativo' || !c.status);
+    if(colabsAtivos.length){
+      let grpColab = '<optgroup label="👤 Colaboradores">';
+      colabsAtivos.forEach(c => grpColab += `<option value="${c.nome}">${c.nome}${c.cargo ? ' (' + c.cargo + ')' : ''}</option>`);
+      grpColab += '</optgroup>';
+      sel.innerHTML += grpColab;
+    }
   }
   document.getElementById('f-av-cat').value = 'seguros';
   document.getElementById('f-av-valor').value = '';
