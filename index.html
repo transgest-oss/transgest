@@ -435,7 +435,7 @@ textarea{resize:vertical;min-height:65px}
         <div style="display:flex;gap:8px;align-items:center">
           <span id="fat-aguard-badge" style="font-size:11px;color:var(--amber)"></span>
           <button class="btn btn-secondary btn-sm" onclick="recarregarFaturamentos()" title="Recarregar lista do servidor">🔄 Recarregar</button>
-          <button class="btn btn-amber btn-sm" onclick="recuperarFaturamentosDosTitulos()" title="Reconstrói faturamentos perdidos a partir dos títulos">🛠️ Recuperar Perdidos</button>
+          <button class="btn btn-amber btn-sm" onclick="forcaNFsAguardando()" title="Recarrega as NFs aguardando faturamento do servidor">🔄 Recarregar NFs para Faturar</button>
           <button class="btn btn-primary" onclick="openModalFaturamento()">+ Registrar Faturamento</button>
         </div>
       </div>
@@ -4777,150 +4777,47 @@ async function recarregarFaturamentos(){
   }
 }
 
-// Recupera faturamentos perdidos a partir dos Títulos existentes.
-// Estratégia: títulos gerados por salvarFaturamento têm obs com "NFs: ..."
-// e forn = fornecedor da NF faturada. Agrupa por forn+venc+valor aproximado.
-async function recuperarFaturamentosDosTitulos(){
-
-  // Títulos candidatos: têm obs com padrão "NFs:" OU ref com "FAT"
-  const candidatos = Titulos.filter(t => {
-    const obs = String(t.obs || '');
-    const ref = String(t.ref || '');
-    return obs.includes('NFs:') || obs.includes('NF:') ||
-           ref.toUpperCase().includes('FAT');
-  });
-
-  console.log('[recuperar] Candidatos encontrados:', candidatos.length);
-  candidatos.forEach(t => console.log(' ref:', t.ref, '| obs:', t.obs, '| forn:', t.forn, '| valor:', t.valor, '| venc:', t.venc));
-
-  if (!candidatos.length) {
-    // Estratégia alternativa: usa NFs com pgto=Faturado para reconstruir
-    const nfsFaturadas = NFs.filter(n => n.pgto === 'Faturado');
-    console.log('[recuperar] NFs com pgto=Faturado:', nfsFaturadas.length);
-
-    if (!nfsFaturadas.length) {
-      alert('Não foi possível encontrar títulos ou NFs relacionados a faturamentos.\n\nOs títulos dos faturamentos não possuem o padrão esperado.\n\nSugestão: registre os faturamentos novamente usando o botão "+ Registrar Faturamento".');
-      toast('Nenhum dado de faturamento encontrado para recuperar.', 'error');
-      return;
-    }
-
-    // Agrupa NFs faturadas por fatNum (se disponível) ou por forn
-    const gruposPorFatNum = {};
-    nfsFaturadas.forEach(nf => {
-      const chave = nf.fatNum || ('_SEM_FAT_' + nf.forn);
-      if (!gruposPorFatNum[chave]) gruposPorFatNum[chave] = [];
-      gruposPorFatNum[chave].push(nf);
-    });
-
-    const existentes = new Set(Faturamentos.map(f => f.num));
-    const grupos = Object.entries(gruposPorFatNum).filter(([k]) => !existentes.has(k));
-
-    if (!grupos.length) {
-      toast('Todos os faturamentos já estão registrados.', 'error');
-      return;
-    }
-
-    if (!confirm('Encontrados ' + grupos.length + ' grupo(s) de NFs faturadas sem faturamento registrado.\nDeseja recuperar?')) return;
-
-    let maxId = Faturamentos.reduce((m, f) => Math.max(m, Number(f.id)||0), 0);
-    const recuperados = [];
-
-    grupos.forEach(([fatNum, nfs]) => {
-      const forn = nfs[0].forn || '';
-      const valor = Math.round(nfs.reduce((s, n) => s + (parseFloat(n.valor)||0), 0) * 100) / 100;
-      const nfNums = nfs.map(n => n.num);
-      const nfIds  = nfs.map(n => n.id);
-      const num = fatNum.startsWith('_SEM_FAT_') ? ('FAT-REC-' + (++maxId)) : fatNum;
-      maxId = Math.max(maxId, Faturamentos.reduce((m,f)=>Math.max(m,Number(f.id)||0),0) + recuperados.length + 1);
-
-      const fat = {
-        id: ++maxId,
-        num,
-        data: nfs[0].data || nfs[0].emissao || '',
-        venc: nfs[0].venc || nfs[0].vencimento || '',
-        forn,
-        nfIds,
-        nfNums,
-        valor,
-        forma: '',
-        obs: 'Recuperado automaticamente. NFs: ' + nfNums.join(', '),
-        parcelas: [{ venc: nfs[0].venc || nfs[0].vencimento || '', val: valor }],
-        status: 'Pendente'
-      };
-      recuperados.push(fat);
-      Faturamentos.unshift(fat);
-    });
-
-    if (maxId >= nextFatId) nextFatId = maxId + 1;
-    await saveEntidade('Faturamentos', recuperados);
-    await saveCounters();
-    renderFaturamentos();
-    toast(recuperados.length + ' faturamento(s) recuperado(s) das NFs faturadas!');
-    return;
-  }
-
-  // Agrupa candidatos por ref (extraindo número do faturamento)
-  const gruposMap = {};
-  candidatos.forEach(t => {
-    // Chave = ref sem " — Parcela X/Y"
-    const chave = String(t.ref || '').split(' — ')[0].split(' - ')[0].trim() || t.forn + '_' + t.venc;
-    if (!gruposMap[chave]) gruposMap[chave] = [];
-    gruposMap[chave].push(t);
-  });
-
-  const existentes = new Set(Faturamentos.map(f => f.num));
-  const paraRecuperar = Object.entries(gruposMap).filter(([k]) => !existentes.has(k));
-
-  if (!paraRecuperar.length) {
-    toast('Todos os faturamentos já estão listados.', 'error');
-    return;
-  }
-
-  if (!confirm('Encontrados ' + paraRecuperar.length + ' faturamento(s) para recuperar:\n' +
-    paraRecuperar.map(([k]) => k).join('\n') + '\n\nDeseja recuperar?')) return;
-
-  let maxId = Faturamentos.reduce((m, f) => Math.max(m, Number(f.id)||0), 0);
-  const recuperados = [];
-
-  paraRecuperar.forEach(([chave, tits]) => {
-    const forn = tits[0].forn || tits[0].fornecedor || '';
-    const valor = Math.round(tits.reduce((s,t) => s+(parseFloat(t.valor)||0),0)*100)/100;
-    const parcelas = tits.map(t => ({ venc: t.venc||t.vencimento||'', val: parseFloat(t.valor)||0 }));
-    // Extrai nfNums do campo obs ("NFs: NF-001, NF-002 | ...")
-    const obsRef = tits[0].obs || '';
-    const nfMatch = obsRef.match(/NFs?:\s*([^|\n]+)/i);
-    const nfNums = nfMatch ? nfMatch[1].split(',').map(s=>s.trim()).filter(Boolean) : [];
-
-    const fat = {
-      id: ++maxId,
-      num: chave,
-      data: tits[0].emissao || '',
-      venc: parcelas[0] ? parcelas[0].venc : '',
-      forn,
-      nfIds: [],
-      nfNums,
-      valor,
-      forma: '',
-      obs: 'Recuperado automaticamente a partir dos títulos existentes.',
-      parcelas,
-      status: tits.every(t => t.status === 'Pago') ? 'Pago' : 'Pendente'
-    };
-    recuperados.push(fat);
-    Faturamentos.unshift(fat);
-  });
-
-  if (maxId >= nextFatId) nextFatId = maxId + 1;
-
+// Recarrega NFs diretamente do Supabase e força exibição das que estão Aguardando Faturamento
+async function forcaNFsAguardando(){
+  toast('Recarregando NFs do servidor...');
   try {
-    await saveEntidade('Faturamentos', recuperados);
-    await saveCounters();
+    const rows = await loadTabelaCompleta(TG_TABLES['NFs']);
+    NFs = rows.map(row => normalizeFromSupabaseData('NFs', row));
+    console.log('[forcaNFs] NFs recarregadas:', NFs.length);
+
+    const aguardando = NFs.filter(n => n.pgto === 'Aguardando Faturamento');
+    console.log('[forcaNFs] NFs aguardando faturamento:', aguardando.length, aguardando);
+
+    if (!aguardando.length) {
+      // Tenta também NFs sem pgto definido ou com pgto vazio
+      const semPgto = NFs.filter(n => !n.pgto || n.pgto === '' || n.pgto === '-');
+      console.log('[forcaNFs] NFs sem pgto:', semPgto.length, semPgto);
+
+      if (semPgto.length) {
+        if (confirm(semPgto.length + ' NF(s) encontrada(s) sem status de pagamento definido:\n' +
+          semPgto.map(n => n.num + ' - ' + n.forn + ' - ' + n.valor).join('\n') +
+          '\n\nDeseja marcar como "Aguardando Faturamento" para poder refaturar?')) {
+          semPgto.forEach(n => { n.pgto = 'Aguardando Faturamento'; });
+          await saveEntidade('NFs', semPgto);
+          renderFaturamentos();
+          toast(semPgto.length + ' NF(s) prontas para faturamento!');
+        }
+      } else {
+        // Último recurso: lista TODAS as NFs para o usuário escolher
+        const todasNFs = NFs.slice(0,20);
+        const lista = todasNFs.map((n,i) => i+'. '+n.num+' | '+n.forn+' | R$'+n.valor+' | pgto='+n.pgto).join('\n');
+        alert('Nenhuma NF aguardando faturamento encontrada.\n\nTodas as NFs (primeiras 20):\n' + lista +
+              '\n\nSe as NFs que você faturou aparecem como "Faturado", o sistema já registrou corretamente no Supabase mas o Faturamento não foi salvo.\n\nUse "+ Registrar Faturamento" para relançar manualmente.');
+        toast('Nenhuma NF aguardando faturamento. Veja o alert para detalhes.', 'error');
+      }
+      return;
+    }
+
     renderFaturamentos();
-    toast(recuperados.length + ' faturamento(s) recuperado(s) e salvos no Supabase!');
-    console.log('[recuperar] Sucesso:', recuperados);
+    toast(aguardando.length + ' NF(s) aguardando faturamento carregada(s)! Clique em 💼 Faturar.');
   } catch(e) {
-    console.error('[recuperar] Erro ao salvar:', e);
-    toast('Recuperado localmente mas erro ao salvar: ' + e.message, 'error');
-    renderFaturamentos();
+    console.error('[forcaNFs] Erro:', e);
+    toast('Erro ao recarregar NFs: ' + e.message, 'error');
   }
 }
 
