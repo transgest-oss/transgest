@@ -4674,27 +4674,48 @@ async function salvarFaturamento(){
   });
 
   closeModal('modal-faturamento');
-  const msg = parcelas.length > 1
-    ? `Boleto consolidado gerado! ${nfNums.length} NF(s) · ${fmt(total)} · ${parcelas.length} parcelas no Contas a Pagar.`
-    : `Boleto consolidado gerado! ${nfNums.length} NF(s) · ${fmt(total)} · Venc. ${parcelas[0].venc}`;
-  toast(msg);
-
-  // Persiste diretamente no Supabase (sem depender do wrapper para garantir)
-  const nfsAfetadas = nfIds.map(id => NFs.find(x=>x.id===id)).filter(Boolean);
-  console.log('[salvarFaturamento] Salvando faturamento:', JSON.stringify(fat));
-  try {
-    await Promise.all([
-      saveEntidade('Faturamentos', [fat]),
-      saveEntidade('Titulos', novosTits),
-      ...(nfsAfetadas.length ? [saveEntidade('NFs', nfsAfetadas)] : []),
-    ]);
-    await saveCounters();
-    console.log('[salvarFaturamento] Salvo com sucesso. Total Faturamentos em memoria:', Faturamentos.length);
-  } catch(e) {
-    console.error('[salvarFaturamento] Erro ao persistir:', e);
-    toast('Faturamento salvo localmente, mas erro ao persistir no servidor: ' + e.message, 'error');
-  }
   renderAll();
+
+  // ── Upsert direto no Supabase — sem wrapper, com feedback visual imediato ──
+  const nfsAfetadas = nfIds.map(id => NFs.find(x=>x.id===id)).filter(Boolean);
+  const _ts = new Date().toISOString();
+  console.log('[FAT] Persistindo. id=', fat.id, 'num=', fat.num, 'forn=', fat.forn, 'valor=', fat.valor);
+
+  // 1) Salva o Faturamento
+  const _r1 = await supa.from('tg_faturamentos').upsert(
+    [{ id: Number(fat.id), data: fat, updated_at: _ts }], { onConflict: 'id' }
+  );
+  if(_r1.error){
+    alert('❌ ERRO ao salvar Faturamento no servidor:\n\n' + _r1.error.message +
+          '\nCódigo: ' + (_r1.error.code||'?') +
+          '\n\nO registro ficou apenas nesta sessão. Sem relogar, ele será perdido.');
+    console.error('[FAT] Erro faturamento:', _r1.error);
+  } else {
+    console.log('[FAT] ✅ Faturamento salvo. id=', fat.id);
+    toast('✅ Faturamento ' + fat.num + ' salvo no servidor!');
+  }
+
+  // 2) Salva os Títulos gerados
+  if(novosTits.length){
+    const _r2 = await supa.from('tg_titulos').upsert(
+      novosTits.map(t => ({ id: Number(t.id), data: t, updated_at: _ts })), { onConflict: 'id' }
+    );
+    if(_r2.error){ console.error('[FAT] Erro títulos:', _r2.error); }
+    else { console.log('[FAT] ✅ Títulos salvos. qtd=', novosTits.length); }
+  }
+
+  // 3) Atualiza NFs para Faturado
+  if(nfsAfetadas.length){
+    const _r3 = await supa.from('tg_nfs').upsert(
+      nfsAfetadas.map(n => ({ id: Number(n.id), data: n, updated_at: _ts })), { onConflict: 'id' }
+    );
+    if(_r3.error){ console.error('[FAT] Erro NFs:', _r3.error); }
+    else { console.log('[FAT] ✅ NFs atualizadas. qtd=', nfsAfetadas.length); }
+  }
+
+  // 4) Contadores
+  await saveCounters();
+  console.log('[FAT] Concluído. Faturamentos em memória:', Faturamentos.length);
 }
 
 function excluirFaturamento(id){
@@ -4789,27 +4810,33 @@ async function forcaNFsAguardando(){
     console.log('[forcaNFs] NFs aguardando faturamento:', aguardando.length, aguardando);
 
     if (!aguardando.length) {
-      // Tenta também NFs sem pgto definido ou com pgto vazio
-      const semPgto = NFs.filter(n => !n.pgto || n.pgto === '' || n.pgto === '-');
-      console.log('[forcaNFs] NFs sem pgto:', semPgto.length, semPgto);
+      // Mostra TODAS as NFs e deixa o usuário escolher quais reabrir para faturamento
+      const lista = NFs.map((n, i) =>
+        i + ': NF ' + (n.num||'?') + ' | ' + (n.forn||'?') + ' | R$ ' + (n.valor||0) + ' | ' + (n.pgto||'sem pgto')
+      ).join('\n');
 
-      if (semPgto.length) {
-        if (confirm(semPgto.length + ' NF(s) encontrada(s) sem status de pagamento definido:\n' +
-          semPgto.map(n => n.num + ' - ' + n.forn + ' - ' + n.valor).join('\n') +
-          '\n\nDeseja marcar como "Aguardando Faturamento" para poder refaturar?')) {
-          semPgto.forEach(n => { n.pgto = 'Aguardando Faturamento'; });
-          await saveEntidade('NFs', semPgto);
-          renderFaturamentos();
-          toast(semPgto.length + ' NF(s) prontas para faturamento!');
-        }
-      } else {
-        // Último recurso: lista TODAS as NFs para o usuário escolher
-        const todasNFs = NFs.slice(0,20);
-        const lista = todasNFs.map((n,i) => i+'. '+n.num+' | '+n.forn+' | R$'+n.valor+' | pgto='+n.pgto).join('\n');
-        alert('Nenhuma NF aguardando faturamento encontrada.\n\nTodas as NFs (primeiras 20):\n' + lista +
-              '\n\nSe as NFs que você faturou aparecem como "Faturado", o sistema já registrou corretamente no Supabase mas o Faturamento não foi salvo.\n\nUse "+ Registrar Faturamento" para relançar manualmente.');
-        toast('Nenhuma NF aguardando faturamento. Veja o alert para detalhes.', 'error');
-      }
+      const resposta = prompt(
+        'Nenhuma NF com status "Aguardando Faturamento" encontrada.\n\n' +
+        'NFs salvas no servidor:\n' + lista +
+        '\n\nDigite os números (0, 1, 2...) das NFs que quer reabrir para faturar, separados por vírgula.\n' +
+        'Exemplo: 0,1'
+      );
+      if(!resposta && resposta !== '0') return;
+
+      const indices = resposta.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n >= 0 && n < NFs.length);
+      if(!indices.length){ toast('Nenhum índice válido.', 'error'); return; }
+
+      const paraReabrir = indices.map(i => NFs[i]);
+      paraReabrir.forEach(n => { n.pgto = 'Aguardando Faturamento'; delete n.fatNum; });
+
+      const _ts2 = new Date().toISOString();
+      const { error: _eReab } = await supa.from('tg_nfs').upsert(
+        paraReabrir.map(n => ({ id: Number(n.id), data: n, updated_at: _ts2 })), { onConflict: 'id' }
+      );
+      if(_eReab){ alert('Erro ao reabrir NFs: ' + _eReab.message); return; }
+
+      renderFaturamentos();
+      toast(paraReabrir.length + ' NF(s) reabertas! Clique em 💼 Faturar.');
       return;
     }
 
