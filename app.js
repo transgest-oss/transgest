@@ -225,6 +225,7 @@ window.openModal = function(id, mode, data){
     }
     // inicializar parcelas ao abrir NF nova
     if(id==='modal-nf'){
+      window._nfEditandoId = null; // nova NF, nenhuma sendo editada
       if($('f-nf-cat')){$('f-nf-cat').value='manutencao'; nfToggleCategoria();}
       if(document.getElementById('f-nf-acrescimo')) document.getElementById('f-nf-acrescimo').value='';
       if(document.getElementById('f-nf-desconto')) document.getElementById('f-nf-desconto').value='';
@@ -621,7 +622,7 @@ function nfAtualizarSoma(){
 
 function editarNF(id){
   const o=NFs.find(x=>x.id===id); if(!o)return;
-  editing.nf=id; populateSelects();
+  editing.nf=id; window._nfEditandoId=id; populateSelects();
   $('f-nf-oc').value=o.oc; $('f-nf-tipo').value=o.tipo;
   $('f-nf-num').value=o.num; $('f-nf-data').value=o.data||today;
   $('f-nf-forn').value=o.forn||''; $('f-nf-dest').value=o.dest;
@@ -848,7 +849,7 @@ async function salvarNF(){
   closeModal('modal-nf');
   $('modal-nf-title').textContent='Lançar Nota Fiscal';
   $('btn-save-nf').textContent='💾 Lançar e Criar Parcelas';
-  editing.nf=null; renderAll();
+  editing.nf=null; window._nfEditandoId=null; renderAll();
 }
 function excluirNF(id){
   const o=NFs.find(x=>x.id===id);
@@ -3674,27 +3675,44 @@ function salvarAvulso(){
 function nfCalcDivergencia(){
   const ocNum = ($('f-nf-oc')||{value:'Sem OC'}).value;
   const oc = OCs.find(o => o.num === ocNum);
-  if(!oc){ 
+  if(!oc){
     document.getElementById('nf-diverg-aviso').style.display = 'none';
-    return; 
+    return;
   }
 
+  // Valor da NF sendo lancada agora
   const valorNF = parseFloat(($('f-nf-valor')||{value:0}).value)||0;
   const acrescimo = parseFloat(document.getElementById('f-nf-acrescimo')?.value)||0;
   const desconto = parseFloat(document.getElementById('f-nf-desconto')?.value)||0;
   const valorFinal = valorNF + acrescimo - desconto;
+
+  // Soma das NFs ja lancadas para esta OC (exceto a que esta sendo editada agora)
+  const nfEditandoId = window._nfEditandoId || null;
+  const nfsExistentes = NFs.filter(nf => nf.oc === ocNum && nf.id !== nfEditandoId);
+  const somaExistentes = nfsExistentes.reduce((acc, nf) => acc + (parseFloat(nf.valor)||0), 0);
+  const somaTotal = Math.round((somaExistentes + valorFinal) * 100) / 100;
+
   const valorOC = oc.valor || 0;
-  const diff = Math.round((valorFinal - valorOC)*100)/100;
+  const diff = Math.round((somaTotal - valorOC) * 100) / 100;
 
   const aviso = document.getElementById('nf-diverg-aviso');
   const msg = document.getElementById('nf-diverg-msg');
+  const qtdNFs = nfsExistentes.length;
 
   if(Math.abs(diff) > 0.02){
     aviso.style.display = '';
     if(diff > 0){
-      msg.textContent = `⚠️ NF maior que a OC em ${fmt(Math.abs(diff))} (OC: ${fmt(valorOC)} → NF + acréscimos: ${fmt(valorFinal)})`;
+      if(qtdNFs > 0){
+        msg.textContent = `\u26a0\ufe0f Soma das ${qtdNFs + 1} NFs desta OC (${fmt(somaTotal)}) maior que a OC em ${fmt(Math.abs(diff))} (OC: ${fmt(valorOC)})`;
+      } else {
+        msg.textContent = `\u26a0\ufe0f NF maior que a OC em ${fmt(Math.abs(diff))} (OC: ${fmt(valorOC)} \u2192 NF + acr\u00e9scimos: ${fmt(valorFinal)})`;
+      }
     } else {
-      msg.textContent = `⚠️ NF menor que a OC em ${fmt(Math.abs(diff))} (OC: ${fmt(valorOC)} → NF com descontos: ${fmt(valorFinal)})`;
+      if(qtdNFs > 0){
+        msg.textContent = `\u26a0\ufe0f Soma das ${qtdNFs + 1} NFs desta OC (${fmt(somaTotal)}) ainda menor que a OC em ${fmt(Math.abs(diff))} — OC: ${fmt(valorOC)} | J\u00e1 lan\u00e7ado: ${fmt(somaExistentes)} | Esta NF: ${fmt(valorFinal)}`;
+      } else {
+        msg.textContent = `\u26a0\ufe0f NF menor que a OC em ${fmt(Math.abs(diff))} (OC: ${fmt(valorOC)} \u2192 NF com descontos: ${fmt(valorFinal)})`;
+      }
     }
   } else {
     aviso.style.display = 'none';
