@@ -421,7 +421,7 @@ textarea{resize:vertical;min-height:65px}
         <button class="btn btn-primary" onclick="openModal('modal-nf','novo')">+ Lançar NF</button>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>OC Vinc.</th><th>Tipo</th><th>Nº NF</th><th>Fornecedor</th><th>Destino</th><th>Valor Total</th><th>Vencimento(s)</th><th>Pgto</th><th>Doc</th><th style="width:120px">Ações</th></tr></thead>
+        <thead><tr><th>OC Vinc.</th><th>Tipo</th><th>Nº NF</th><th>Fornecedor</th><th>Destino</th><th>Valor Total</th><th>Vencimento(s)</th><th>Modalidade</th><th>Doc</th><th style="width:120px">Ações</th></tr></thead>
         <tbody id="tb-nf"></tbody>
       </table></div>
     </div>
@@ -1360,7 +1360,7 @@ textarea{resize:vertical;min-height:65px}
         </div>
       </div>
 
-      <!-- Aviso de OC rateada (aparece automaticamente) -->
+      <!-- Aviso de OC rateada (aparece automaticamente quando OC tem rateio) -->
       <div class="form-group full" id="nf-rateio-aviso" style="display:none;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:12px 14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span style="font-size:13px">🔀</span>
@@ -1371,8 +1371,40 @@ textarea{resize:vertical;min-height:65px}
           ℹ️ Um título separado será criado no Contas a Pagar para cada caminhão do rateio.
         </div>
       </div>
+
+      <!-- Destino / Placa + toggle rateio manual -->
       <div class="form-group" id="nf-dest-wrap"><label>Destino / Placa</label>
         <select id="f-nf-dest"><option value="Estoque">Estoque</option></select>
+      </div>
+      <div class="form-group" id="nf-rateio-manual-toggle-wrap" style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;text-transform:none;letter-spacing:0;color:var(--text2)">
+          <input type="checkbox" id="nf-rateio-manual-ativo" onchange="nfToggleRateioManual()" style="width:auto;padding:0;border:none;background:none;cursor:pointer"/>
+          Ratear entre placas
+        </label>
+      </div>
+
+      <!-- Painel de rateio manual (oculto por padrão) -->
+      <div class="form-group full" id="nf-rateio-manual-wrap" style="display:none;background:rgba(0,149,122,.06);border:1px solid rgba(0,149,122,.22);border-radius:10px;padding:13px 15px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <span style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.07em">🔀 Rateio por Caminhão</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:11px;color:var(--text2);text-transform:none;letter-spacing:0">Qtd. placas:</label>
+            <select id="nf-rateio-manual-qtd" onchange="nfGerarLinhasRateioManual()" style="font-size:12px;padding:4px 8px;width:65px">
+              <option>2</option><option>3</option><option>4</option><option>5</option>
+              <option>6</option><option>7</option><option>8</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-save" onclick="nfGerarLinhasRateioManual()">↺ Gerar</button>
+          </div>
+        </div>
+        <div id="nf-rateio-manual-linhas"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,149,122,.15)">
+          <span style="font-size:11px;color:var(--text2)">Soma do rateio:</span>
+          <span id="nf-rateio-manual-soma" style="font-size:12px;font-weight:700;font-family:var(--mono);color:var(--accent)">R$ 0,00</span>
+          <span id="nf-rateio-manual-diff" style="font-size:10px;color:var(--text3)"></span>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:var(--accent);opacity:.8">
+          ℹ️ Um título separado será criado no Contas a Pagar para cada caminhão.
+        </div>
       </div>
       <div class="form-group full" style="background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.18);border-radius:8px;padding:10px 12px">
         <label style="color:var(--amber)">Modalidade de Cobrança</label>
@@ -2004,7 +2036,7 @@ const CL={manutencao:'Manutenção',pecas:'Peças',impostos:'Impostos',pessoal:'
 const CC={manutencao:'#0099FF',pecas:'#00C4A1',impostos:'#F5A623',pessoal:'#A78BFA',admin:'#FB923C'};
 
 function chip(txt,cls){return `<span class="chip ${cls}">${txt}</span>`;}
-function chipS(s){return s==='Cancelada'?chip('🚫 Cancelada','cr'):s==='Recebida'||s==='Pago'?chip(s,'cg'):s==='Parcialmente Recebida'?chip('⚡ Parc. Recebida','cb'):s==='Pendente'?chip(s,'ca'):s==='Aguardando Faturamento'?chip('⏳ Aguard.Fat.','ca'):s==='Faturado'?chip('💼 Faturado','cb'):chip(s,'cgr');}
+function chipS(s){return s==='Cancelada'?chip('🚫 Cancelada','cr'):s==='Recebida'||s==='Pago'?chip(s,'cg'):s==='Parcialmente Recebida'?chip('⚡ Parc. Recebida','cb'):s==='Pendente'?chip('📄 Cobr. Direta','cgr'):s==='Aguardando Faturamento'?chip('⏳ Aguard.Fat.','ca'):s==='Faturado'?chip('💼 Faturado','cb'):chip(s,'cgr');}
 function acts(editFn,delFn){return `<div class="action-btns"><button class="btn btn-edit btn-sm" onclick="${editFn}">✏️</button><button class="btn btn-danger btn-sm" onclick="${delFn}">🗑️</button></div>`;}
 
 // ======================== TOAST ========================
@@ -2179,6 +2211,9 @@ window.openModal = function(id, mode, data){
       nfToggleModalidade();
       nfGerarParcelas();
       nfOCChanged(); // reset rateio aviso
+      nfDesativarRateioManual();
+      if($('nf-rateio-manual-linhas')) $('nf-rateio-manual-linhas').innerHTML='';
+      if($('nf-dest-wrap')) $('nf-dest-wrap').style.display='';
     }
     if(id==='modal-titulo'){ resetTituloModal(); }
     // Reset frota modal
@@ -2277,12 +2312,14 @@ function nfOCChanged(){
   }
   const aviso = $('nf-rateio-aviso');
   const destWrap = $('nf-dest-wrap');
+  const rateioManualToggle = $('nf-rateio-manual-toggle-wrap');
 
   if(oc && oc.isRateio && oc.rateio && oc.rateio.length > 0){
-    // Exibe painel de rateio e oculta campo de destino/placa
+    // OC já tem rateio definido — exibe painel info e oculta destino e rateio manual
     aviso.style.display = 'block';
     destWrap.style.display = 'none';
-    // Monta as linhas com placa e valor de cada caminhão
+    if(rateioManualToggle) rateioManualToggle.style.display = 'none';
+    nfDesativarRateioManual();
     $('nf-rateio-linhas').innerHTML = oc.rateio.map((r, i) => `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(167,139,250,.12)">
         <span style="display:flex;align-items:center;gap:8px">
@@ -2294,7 +2331,47 @@ function nfOCChanged(){
   } else {
     aviso.style.display = 'none';
     destWrap.style.display = '';
+    if(rateioManualToggle) rateioManualToggle.style.display = '';
   }
+}
+
+// ── Rateio manual na NF ──
+function nfToggleRateioManual(){
+  const ativo = $('nf-rateio-manual-ativo') && $('nf-rateio-manual-ativo').checked;
+  $('nf-rateio-manual-wrap').style.display = ativo ? 'block' : 'none';
+  $('nf-dest-wrap').style.display = ativo ? 'none' : '';
+  if(ativo) nfGerarLinhasRateioManual();
+}
+function nfDesativarRateioManual(){
+  if($('nf-rateio-manual-ativo')) $('nf-rateio-manual-ativo').checked = false;
+  if($('nf-rateio-manual-wrap')) $('nf-rateio-manual-wrap').style.display = 'none';
+}
+function nfGerarLinhasRateioManual(){
+  const n = parseInt($('nf-rateio-manual-qtd').value) || 2;
+  const total = parseFloat($('f-nf-valor').value) || 0;
+  const base = Math.floor((total / n) * 100) / 100;
+  const resto = Math.round((total - base * n) * 100) / 100;
+  const placas = Frota.filter(f => f.status !== 'Inativo').map(f => f.placa);
+  const cont = $('nf-rateio-manual-linhas');
+  cont.innerHTML = Array.from({length: n}, (_, i) => {
+    const val = i === n - 1 ? Math.round((base + resto) * 100) / 100 : base;
+    const opts = placas.map(p => `<option value="${p}">${p}</option>`).join('');
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
+      <select class="nf-rat-placa" onchange="nfAtualizarSomaRateio()" style="font-size:12px;padding:5px 8px"><option value="">— Placa —</option>${opts}</select>
+      <input type="number" class="nf-rat-val" value="${val.toFixed(2)}" step="0.01" min="0" oninput="nfAtualizarSomaRateio()" style="font-size:12px;padding:5px 8px"/>
+    </div>`;
+  }).join('');
+  nfAtualizarSomaRateio();
+}
+function nfAtualizarSomaRateio(){
+  const total = parseFloat($('f-nf-valor').value) || 0;
+  const vals = [...document.querySelectorAll('.nf-rat-val')].map(i => parseFloat(i.value) || 0);
+  const soma = Math.round(vals.reduce((a, b) => a + b, 0) * 100) / 100;
+  const diff = Math.round((soma - total) * 100) / 100;
+  $('nf-rateio-manual-soma').textContent = 'R$ ' + soma.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+  const diffEl = $('nf-rateio-manual-diff');
+  if(Math.abs(diff) < 0.01){ diffEl.textContent = '✓ Correto'; diffEl.style.color = 'var(--accent)'; }
+  else { diffEl.textContent = (diff > 0 ? 'Excesso' : 'Falta') + ': R$ ' + Math.abs(diff).toLocaleString('pt-BR', {minimumFractionDigits: 2}); diffEl.style.color = 'var(--red)'; }
 }
 
 function editarOC(id){
@@ -2623,11 +2700,28 @@ async function salvarNF(){
     closeModal('modal-nf'); editing.nf=null; renderAll(); return;
   }
 
-  // Define destino: se OC tem rateio, usa as placas do rateio; senão, usa o campo dest
+  // Define destino: prioridade: OC com rateio > rateio manual > campo dest
   const ocVincNF = OCs.find(o => o.num === $('f-nf-oc').value);
+  const rateioManualAtivo = $('nf-rateio-manual-ativo') && $('nf-rateio-manual-ativo').checked;
+
+  // Coleta rateio manual se ativo
+  let rateioManual = [];
+  if(rateioManualAtivo){
+    const placaSels = [...document.querySelectorAll('.nf-rat-placa')];
+    const valInps   = [...document.querySelectorAll('.nf-rat-val')];
+    for(let i = 0; i < placaSels.length; i++){
+      if(!placaSels[i].value){ toast('Selecione a placa na linha '+(i+1)+' do rateio','error'); return; }
+      rateioManual.push({ placa: placaSels[i].value, valor: Math.round(parseFloat(valInps[i].value)*100)/100 });
+    }
+    const somaRM = Math.round(rateioManual.reduce((a,r)=>a+r.valor,0)*100)/100;
+    if(Math.abs(somaRM - total) > 0.02){ toast('A soma do rateio (R$ '+somaRM.toLocaleString('pt-BR',{minimumFractionDigits:2})+') não bate com o valor total','error'); return; }
+  }
+
   const destNF = (ocVincNF && ocVincNF.isRateio && ocVincNF.rateio && ocVincNF.rateio.length > 0)
-    ? ocVincNF.placas  // ex: "ABC-1234 / DEF-5678"
-    : $('f-nf-dest').value;
+    ? ocVincNF.placas
+    : rateioManualAtivo
+      ? rateioManual.map(r=>r.placa).join(' / ')
+      : $('f-nf-dest').value;
 
   const docNF = await uploadDocNF();
   if(docNF === null){ toast('Erro ao enviar arquivo. Tente novamente.','error'); return; }
@@ -2666,40 +2760,59 @@ async function salvarNF(){
     const oc=OCs.find(o=>o.num===obj.oc);
     if(oc) atualizarStatusOC(oc);
 
-    // ── Contas a Pagar: sempre 1 título por parcela (obrigação com o fornecedor) ──
-    parcelas.forEach((p,i)=>{
-      const label=parcelas.length>1?` — Parcela ${i+1}/${parcelas.length}`:'';
-      Titulos.unshift({
-        id:newId('tit'),
-        forn:obj.forn,
-        tipo:'Boleto NF',
-        ref:obj.num+label,
-        valor:p.val,
-        emissao:obj.data,
-        venc:p.venc,
-        status:'Pendente',
-        placa:obj.dest,   // destino geral da NF (placa única ou "rateado")
-        obs:parcelas.length>1?`Parcela ${i+1} de ${parcelas.length} — NF ${obj.num}`:'',
-        categoria:obj.categoria||'manutencao',
-        combPlaca:obj.combPlaca||''
-      });
-    });
+    // ── Contas a Pagar ──
+    const temRateioOC = oc && oc.isRateio && oc.rateio && oc.rateio.length > 0;
 
-    // ── Custo por frota: se OC tem rateio, registra o gasto em cada caminhão ──
-    if(oc && oc.isRateio && oc.rateio && oc.rateio.length > 0){
-      oc.rateio.forEach(r => {
-        const cam = Frota.find(f => f.placa === r.placa);
-        // gasto calculado automaticamente por calcGastoMesAtual() — não atualizar manualmente
+    if(temRateioOC){
+      // Rateio via OC: 1 título por caminhão por parcela
+      parcelas.forEach((p,i)=>{
+        const label=parcelas.length>1?` — Parcela ${i+1}/${parcelas.length}`:'';
+        oc.rateio.forEach(r=>{
+          Titulos.unshift({
+            id:newId('tit'), forn:obj.forn, tipo:'Boleto NF',
+            ref:obj.num+label+' ('+r.placa+')',
+            valor:Math.round((p.val*(r.valor/total))*100)/100,
+            emissao:obj.data, venc:p.venc, status:'Pendente',
+            placa:r.placa, obs:`Rateio OC — ${r.placa}`, categoria:obj.categoria||'manutencao'
+          });
+        });
       });
-      const msg = parcelas.length > 1
-        ? `NF lançada! ${parcelas.length} parcelas criadas no Contas a Pagar. Custo rateado em ${oc.rateio.length} caminhão(ões) no Relatório de Gastos.`
-        : `NF lançada! Custo rateado em ${oc.rateio.length} caminhão(ões) no Relatório de Gastos.`;
+      const msg = parcelas.length>1
+        ? `NF lançada! ${parcelas.length} parcelas × ${oc.rateio.length} caminhões criadas no Contas a Pagar.`
+        : `NF lançada! Custo rateado em ${oc.rateio.length} caminhão(ões) no Contas a Pagar.`;
+      toast(msg);
+    } else if(rateioManualAtivo && rateioManual.length > 0){
+      // Rateio manual: 1 título por caminhão por parcela
+      parcelas.forEach((p,i)=>{
+        const label=parcelas.length>1?` — Parcela ${i+1}/${parcelas.length}`:'';
+        rateioManual.forEach(r=>{
+          const proporcao = total > 0 ? r.valor / total : 1 / rateioManual.length;
+          Titulos.unshift({
+            id:newId('tit'), forn:obj.forn, tipo:'Boleto NF',
+            ref:obj.num+label+' ('+r.placa+')',
+            valor:Math.round((p.val*proporcao)*100)/100,
+            emissao:obj.data, venc:p.venc, status:'Pendente',
+            placa:r.placa, obs:`Rateio manual — ${r.placa}`, categoria:obj.categoria||'manutencao'
+          });
+        });
+      });
+      const msg = parcelas.length>1
+        ? `NF lançada! ${parcelas.length} parcelas × ${rateioManual.length} caminhões criadas no Contas a Pagar.`
+        : `NF lançada! Custo rateado em ${rateioManual.length} caminhão(ões) no Contas a Pagar.`;
       toast(msg);
     } else {
-      // Sem rateio: registra custo no caminhão da placa (se for uma placa da frota)
-      const cam = Frota.find(f => f.placa === obj.dest);
-      // gasto calculado automaticamente por calcGastoMesAtual() — não atualizar manualmente
-      const msg = parcelas.length > 1
+      // Sem rateio: 1 título por parcela
+      parcelas.forEach((p,i)=>{
+        const label=parcelas.length>1?` — Parcela ${i+1}/${parcelas.length}`:'';
+        Titulos.unshift({
+          id:newId('tit'), forn:obj.forn, tipo:'Boleto NF',
+          ref:obj.num+label, valor:p.val,
+          emissao:obj.data, venc:p.venc, status:'Pendente',
+          placa:obj.dest, obs:parcelas.length>1?`Parcela ${i+1} de ${parcelas.length} — NF ${obj.num}`:'',
+          categoria:obj.categoria||'manutencao', combPlaca:obj.combPlaca||''
+        });
+      });
+      const msg = parcelas.length>1
         ? `NF lançada! ${parcelas.length} parcelas criadas no Contas a Pagar.`
         : 'NF lançada e título criado no Contas a Pagar!';
       toast(msg);
@@ -2936,7 +3049,7 @@ async function salvarTitulo(){
 }
 function excluirTitulo(id){
   const o=Titulos.find(x=>x.id===id);
-  confirmDelete(`Excluir título de ${o.forn}?`,`Valor: ${fmt(o.valor)} | Vencimento: ${o.venc}`,()=>{
+  confirmDelete(`Excluir título de ${o.forn}?`,`Valor: ${fmt(o.valor)} | Vencimento: ${formatarDataBR(o.venc)}`,()=>{
     Titulos=Titulos.filter(x=>x.id!==id); toast('Título excluído.'); renderAll();
   });
 }
@@ -3415,7 +3528,7 @@ function renderOC(){
       : `<button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button><button class="btn btn-edit btn-sm" onclick="editarOC(${o.id})">✏️</button><button class="btn btn-amber btn-sm" onclick="cancelarOC(${o.id})">🚫 Cancelar</button><button class="btn btn-muted btn-sm" onclick="verHistoricoOC(${o.id})">🕘</button>`;
     return `<tr class="${cancelada?'tr-cancelada':''}" data-status="${cancelada?'cancelada':'ativa'}">
     <td class="mono" style="color:var(--accent2);font-size:11px">${num}</td>
-    <td style="font-size:11px">${o.data}</td>
+    <td style="font-size:11px">${formatarDataBR(o.data)}</td>
     <td style="max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.forn}">${o.forn}${motivo}</td>
     <td class="mono" style="font-size:11px">${o.placas}${rBadge}</td>
     <td>${chip(o.tipo,'cgr')}</td>
@@ -3431,7 +3544,7 @@ function renderNF(){
   $('nf-count').textContent=NFs.length;
   $('tb-nf').innerHTML=NFs.length?NFs.map(n=>{
     const nParc=(n.parcelas&&n.parcelas.length>1)?`<span style="font-size:10px;padding:1px 5px;border-radius:8px;background:rgba(167,139,250,.14);color:var(--purple);border:1px solid rgba(167,139,250,.25);margin-left:4px">${n.parcelas.length}×</span>`:'';
-    const vencDisplay=n.parcelas&&n.parcelas.length>1?`${n.parcelas[0].venc} → ${n.parcelas[n.parcelas.length-1].venc}`:n.venc;
+    const vencDisplay=n.parcelas&&n.parcelas.length>1?`${formatarDataBR(n.parcelas[0].venc)} → ${formatarDataBR(n.parcelas[n.parcelas.length-1].venc)}`:formatarDataBR(n.venc);
     return `<tr>
       <td class="mono" style="color:var(--accent2);font-size:10px">${n.oc}</td>
       <td>${chip(n.tipo,'cgr')}</td>
@@ -3581,7 +3694,7 @@ function renderEstoque(){
   // Tabela histórico de saídas
   $('saidas-count').textContent=Saidas.length;
   $('tb-saidas').innerHTML=Saidas.length?Saidas.map(s=>`<tr>
-    <td style="font-size:11px">${s.data}</td>
+    <td style="font-size:11px">${formatarDataBR(s.data)}</td>
     <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.peca}</td>
     <td class="mono">${(s.qtd||0).toLocaleString('pt-BR',{maximumFractionDigits:3})} ${s.unSaida||''}</td>
     <td class="mono" style="color:var(--accent)">${s.placa}</td>
@@ -3631,9 +3744,9 @@ function renderFrota(){
         ${f.chassi?`<div>Chassi: <span style="color:var(--text);font-family:var(--mono);font-size:9px">${f.chassi}</span></div>`:''}
         ${f.renavam?`<div>RENAVAM: <span style="color:var(--text);font-family:var(--mono)">${f.renavam}</span></div>`:''}
         ${f.seguradora&&f.seguradora!=='-'?`<div>Seguro: <span style="color:var(--text)">${f.seguradora}</span></div>`:''}
-        ${f.vseguro?`<div>Venc. seguro: <span style="color:var(--text)">${f.vseguro}</span></div>`:''}
-        ${f.vcnh?`<div>Venc. CNH: <span style="color:var(--text)">${f.vcnh}</span></div>`:''}
-        ${f.vlicen?`<div>Venc. licenc.: <span style="color:var(--text)">${f.vlicen}</span></div>`:''}
+        ${f.vseguro?`<div>Venc. seguro: <span style="color:var(--text)">${formatarDataBR(f.vseguro)}</span></div>`:''}
+        ${f.vcnh?`<div>Venc. CNH: <span style="color:var(--text)">${formatarDataBR(f.vcnh)}</span></div>`:''}
+        ${f.vlicen?`<div>Venc. licenc.: <span style="color:var(--text)">${formatarDataBR(f.vlicen)}</span></div>`:''}
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
         <span style="color:var(--text3)">Gasto mensal</span>
@@ -3703,8 +3816,8 @@ function renderEPI(){
   }).join(''):'<tr><td colspan="10" class="empty">Sem EPIs cadastrados no estoque</td></tr>';
   $('tb-epi-ent').innerHTML=EPIEntregas.length?EPIEntregas.map(e=>`<tr>
     <td>${e.colab}</td><td style="font-size:11px">${e.epi}</td>
-    <td class="mono">${e.qtd}</td><td style="font-size:11px">${e.data}</td>
-    <td style="font-size:11px;color:var(--text3)"${vencCls(e.troca)}>${e.troca||'-'}</td>
+    <td class="mono">${e.qtd}</td><td style="font-size:11px">${formatarDataBR(e.data)}</td>
+    <td style="font-size:11px;color:var(--text3)"${vencCls(e.troca)}>${formatarDataBR(e.troca)||'-'}</td>
     <td>${acts(`editarEPISaida(${e.id})`,`excluirEPISaida(${e.id})`)}</td>
   </tr>`).join(''):'<tr><td colspan="6" class="empty">Sem entregas registradas</td></tr>';
 }
@@ -3715,9 +3828,10 @@ function renderFrotaTabela(){
   function vc(data){
     if(!data) return '-';
     const dt=new Date(data+'T00:00:00');
-    if(dt<hoje) return `<span style="color:var(--red);font-weight:600">⚠ ${data}</span>`;
-    if(dt<=d30) return `<span style="color:var(--amber);font-weight:600">⏰ ${data}</span>`;
-    return `<span style="font-size:11px">${data}</span>`;
+    const br=formatarDataBR(data);
+    if(dt<hoje) return `<span style="color:var(--red);font-weight:600">⚠ ${br}</span>`;
+    if(dt<=d30) return `<span style="color:var(--amber);font-weight:600">⏰ ${br}</span>`;
+    return `<span style="font-size:11px">${br}</span>`;
   }
   const statusMap={'Ativo':'cg','Manutenção':'ca','Inativo':'cgr'};
   const tb=$('tb-frota-tabela');
@@ -3918,7 +4032,7 @@ function renderPendentes(){
       : '';
     return `<tr>
       <td class="mono" style="color:var(--accent2)">${o.num}</td>
-      <td style="font-size:11px">${o.data}</td>
+      <td style="font-size:11px">${formatarDataBR(o.data)}</td>
       <td>${o.forn}</td>
       <td class="mono" style="font-size:11px">${o.placas}</td>
       <td class="mono">${fmt(o.valor)}</td>
@@ -4029,7 +4143,7 @@ function relLista(d){
     <td><span style="font-size:10px;padding:2px 6px;border-radius:10px;background:${CC[x.cat]||'#888'}22;color:${CC[x.cat]||'#888'};border:1px solid ${CC[x.cat]||'#888'}33">${CL[x.cat]||x.cat}</span></td>
     <td class="mono" style="font-size:11px;color:var(--text2)">${x.ref}</td>
     <td class="mono">${fmt(x.valor)}</td>
-    <td style="font-size:11px;color:var(--text3)">${x.venc}</td>
+    <td style="font-size:11px;color:var(--text3)">${formatarDataBR(x.venc)}</td>
     <td class="mono" style="font-size:11px;color:var(--accent2)">${x.placa}</td>
     <td>${chipS(x.status)}</td>
   </tr>`).join(''):'<tr><td colspan="7" class="empty">Nenhum lançamento no período</td></tr>';
@@ -4052,7 +4166,7 @@ function renderColab(){
       <td class="mono" style="font-size:11px">${c.cpf}</td>
       <td>${c.cargo}</td>
       <td>${chip(c.setor,'cgr')}</td>
-      <td style="font-size:11px">${c.admissao}</td>
+      <td style="font-size:11px">${formatarDataBR(c.admissao)}</td>
       <td style="font-size:11px">${c.tel}</td>
       <td>${chip(c.status,sc)}</td>
       <td>${acts('editarColab('+c.id+')','excluirColab('+c.id+')')}</td>
@@ -4591,7 +4705,7 @@ function fatFiltrarNFs(){
       <input type="checkbox" class="fat-nf-check" data-id="${n.id}" data-valor="${n.valor}" onchange="fatRecalcTotal()" checked style="width:auto;padding:0;border:none;background:none;accent-color:var(--accent);flex-shrink:0"/>
       <span style="flex:1;min-width:0">
         <span style="font-size:12px;font-weight:600;color:var(--accent2)">NF ${n.num}</span>
-        <span style="font-size:11px;color:var(--text3);margin-left:8px">${n.data||''}</span>
+        <span style="font-size:11px;color:var(--text3);margin-left:8px">${formatarDataBR(n.data)||''}</span>
         ${n.oc && n.oc!=='Sem OC'?`<span style="font-size:10px;color:var(--text3);margin-left:6px">· OC: ${n.oc}</span>`:''}
       </span>
       <span style="font-size:11px;color:var(--text3);margin-right:4px">${n.tipo||''}</span>
@@ -4814,7 +4928,7 @@ function renderFaturamentos(){
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.forn}</td>
       <td style="font-size:11px;color:var(--text3)">${n.oc}</td>
       <td class="mono">${fmt(n.valor)}</td>
-      <td style="font-size:11px">${n.data||'—'}</td>
+      <td style="font-size:11px">${formatarDataBR(n.data)||'—'}</td>
       <td>${chip(dias+'d',dias>15?'cr':dias>7?'ca':'cgr')}</td>
       <td><button class="btn btn-primary btn-sm" onclick="abrirFatParaNF(${n.id})">💼 Faturar</button></td>
     </tr>`;
@@ -4825,7 +4939,7 @@ function renderFaturamentos(){
     const pgBtn = f.status==='Pendente'
       ? `<button class="btn btn-save btn-sm" onclick="marcarFatPago(${f.id})">✓ Pago</button>`
       : `<span style="font-size:11px;color:var(--accent)">✓ Quitado</span>`;
-    const vencDisplay = f.venc || (f.parcelas && f.parcelas[0] ? f.parcelas[0].venc : '—');
+    const vencDisplay = formatarDataBR(f.venc || (f.parcelas && f.parcelas[0] ? f.parcelas[0].venc : null)) || '—';
     const qtdBadge = (f.nfNums||[]).length > 1
       ? `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(0,196,161,.12);color:var(--accent);border:1px solid rgba(0,196,161,.25);margin-left:5px">${f.nfNums.length} NFs</span>` : '';
     return `<tr>
