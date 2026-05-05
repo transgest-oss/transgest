@@ -465,9 +465,7 @@ textarea{resize:vertical;min-height:65px}
       <div class="section-header">
         <div class="section-title">Contas a Pagar (<span id="fin-count">0</span>)</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <input type="file" id="import-titulos-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarTitulosPlanilha(event)"/>
-          <button class="btn btn-secondary" onclick="document.getElementById('import-titulos-file').click()">📥 Importar Planilha</button>
-          <button class="btn btn-secondary" onclick="backupTitulosJSON()">💾 Backup JSON</button>
+
           <button class="btn btn-amber" onclick="exportBoletosHojePDF()">📅 Boletos do Dia</button>
           <button class="btn btn-secondary" onclick="exportFinPDFFiltrado()">📄 PDF do Filtro</button>
           <button class="btn btn-primary" onclick="openModalAvulso()">+ Lançamento Avulso</button>
@@ -4321,51 +4319,111 @@ function gerarPDFTitulos(lista, titulo, subtitulo, nomeArquivo){
   const{jsPDF}=window.jspdf||{};
   const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
   const W=297;
-  // Cabeçalho
-  doc.setFillColor(11,22,40); doc.rect(0,0,W,22,'F');
+  const M=8; // margem esquerda
+  const TW=281; // largura total da tabela
+
+  // ── Cabeçalho: fundo branco (cor da logo) ──
+  doc.setFillColor(255,255,255); doc.rect(0,0,W,22,'F');
+  // Linha separadora sutil embaixo do cabeçalho
+  doc.setDrawColor(220,228,236); doc.setLineWidth(0.5); doc.line(0,22,W,22);
+
   const logoEl = document.querySelector('.logo img');
   const logoSrc = logoEl ? logoEl.src : '';
-  if(logoSrc){ try{doc.addImage(logoSrc,'JPEG',8,2,30,18);}catch(e){} }
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(13);
-  doc.text(titulo, W/2, 12, {align:'center'});
-  doc.setFontSize(8); doc.setFont('helvetica','normal');
-  doc.text(subtitulo, W/2, 18, {align:'center'});
-  doc.setTextColor(180,180,180); doc.setFontSize(7);
-  doc.text('Gerado em: '+new Date().toLocaleString('pt-BR'), W-10, 18, {align:'right'});
-  // Totalizador
+  if(logoSrc){
+    try{ doc.addImage(logoSrc,'PNG',M,2,36,18); }
+    catch(e){ try{ doc.addImage(logoSrc,'JPEG',M,2,36,18); }catch(e2){} }
+  }
+  doc.setTextColor(11,22,40); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text(titulo, W/2, 11, {align:'center'});
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(80,100,120);
+  doc.text(subtitulo, W/2, 17, {align:'center'});
+  doc.setFontSize(7); doc.setTextColor(140,155,170);
+  doc.text('Gerado em: '+new Date().toLocaleString('pt-BR'), W-M, 17, {align:'right'});
+
+  // ── Totalizador geral ──
   const total = lista.reduce((a,t)=>a+(parseFloat(t.valor)||0),0);
   doc.setFillColor(0,120,100); doc.rect(0,22,W,8,'F');
   doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
   doc.text(`Total: ${fmt(total)}  |  ${lista.length} título(s)`, W/2, 27.5, {align:'center'});
-  // Cabeçalho da tabela
-  const cols=['Fornecedor','Referência','Categoria','Tipo','Placa','Valor','Vencimento','Status'];
-  const widths=[60,40,28,22,22,28,26,20];
-  let x=8, y=40;
-  doc.setFillColor(220,228,236); doc.rect(8,32,281,8,'F');
-  doc.setTextColor(11,22,40); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-  cols.forEach((c,i)=>{doc.text(c,x+1,37);x+=widths[i];});
-  // Linhas
-  doc.setFont('helvetica','normal'); doc.setFontSize(7);
+
+  // ── Colunas (sem Referência, Tipo, Placa) ──
+  const cols   = ['Fornecedor','Categoria','Valor','Vencimento','Status'];
+  const widths = [110, 60, 38, 42, 31];
+  // widths soma = 281 = TW ✓
+
+  function drawTableHeader(yH){
+    doc.setFillColor(220,228,236); doc.rect(M,yH,TW,8,'F');
+    doc.setTextColor(11,22,40); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+    let xH=M;
+    cols.forEach((c,i)=>{ doc.text(c, xH+2, yH+5.5); xH+=widths[i]; });
+  }
+
+  // ── Ordenar e agrupar por dia de vencimento ──
   const sorted = [...lista].sort((a,b)=>parseISODateLocal(a.venc)-parseISODateLocal(b.venc));
-  sorted.forEach((t,ri)=>{
-    if(y>185){doc.addPage();y=20;}
-    if(ri%2===0){doc.setFillColor(245,248,252);doc.rect(8,y-4,281,7,'F');}
-    const diasV = diasAte(t.venc);
-    const corStatus = t.status==='Pago'?[0,130,100]:(diasV<0?[180,20,20]:(diasV===0?[180,80,0]:[30,40,60]));
-    doc.setTextColor(...corStatus);
-    const vals=[
-      (t.forn||'-').slice(0,30),
-      (t.ref||'-').slice(0,22),
-      (categoriaLabel(t.categoria||'manutencao')||'-').slice(0,16),
-      (t.tipo||'-').slice(0,12),
-      (t.placa||'-').slice(0,10),
-      fmt(t.valor),
-      formatarDataBR(t.venc),
-      t.status||'-'
-    ];
-    x=8; vals.forEach((v,i)=>{doc.text(String(v),x+1,y);x+=widths[i];});
-    y+=7; doc.setTextColor(30,40,60);
+
+  // Agrupa: { 'YYYY-MM-DD': [titulos] }
+  const grupos = {};
+  sorted.forEach(t => {
+    const dia = t.venc ? t.venc.slice(0,10) : '0000-00-00';
+    if(!grupos[dia]) grupos[dia]=[];
+    grupos[dia].push(t);
   });
+  const dias = Object.keys(grupos).sort();
+
+  let y = 32; // posição Y inicial após a barra verde
+  drawTableHeader(y);
+  y += 10;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(7);
+  let rowIndex = 0;
+
+  dias.forEach(dia => {
+    const itens = grupos[dia];
+    const totalDia = itens.reduce((a,t)=>a+(parseFloat(t.valor)||0),0);
+
+    // Verifica se cabe o grupo inteiro + subtotal (aprox); se não, nova página
+    const alturaGrupo = itens.length * 7 + 8; // linhas + subtotal
+    if(y + alturaGrupo > 196){
+      doc.addPage();
+      y = 12;
+      drawTableHeader(y);
+      y += 10;
+      rowIndex = 0;
+    }
+
+    itens.forEach((t)=>{
+      if(y > 196){ doc.addPage(); y=12; drawTableHeader(y); y+=10; rowIndex=0; }
+      if(rowIndex%2===0){ doc.setFillColor(245,248,252); doc.rect(M,y-4,TW,7,'F'); }
+      const diasV = diasAte(t.venc);
+      const corStatus = t.status==='Pago'?[0,130,100]:(diasV<0?[180,20,20]:(diasV===0?[180,80,0]:[30,40,60]));
+      doc.setTextColor(...corStatus);
+      const vals=[
+        (t.forn||'-').slice(0,52),
+        (categoriaLabel(t.categoria||'manutencao')||'-').slice(0,28),
+        fmt(t.valor),
+        formatarDataBR(t.venc),
+        t.status||'-'
+      ];
+      let x=M; vals.forEach((v,i)=>{ doc.text(String(v), x+2, y); x+=widths[i]; });
+      y+=7; rowIndex++;
+    });
+
+    // ── Subtotal do dia ──
+    doc.setFillColor(230,240,235); doc.rect(M, y-4, TW, 7, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,100,80);
+    doc.text(`Subtotal ${formatarDataBR(dia)}`, M+2, y);
+    doc.text(`${fmt(totalDia)}  (${itens.length} título${itens.length!==1?'s':''})`, M+TW-2, y, {align:'right'});
+    doc.setFont('helvetica','normal'); doc.setTextColor(30,40,60);
+    y += 9;
+  });
+
+  // ── Total Geral no final ──
+  if(y > 188){ doc.addPage(); y=12; }
+  doc.setFillColor(0,100,80); doc.rect(M, y, TW, 9, 'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+  doc.text('TOTAL GERAL DO PERÍODO', M+2, y+6);
+  doc.text(`${fmt(total)}  (${lista.length} título${lista.length!==1?'s':''})`, M+TW-2, y+6, {align:'right'});
+
   doc.save(nomeArquivo+'_'+new Date().toISOString().slice(0,10)+'.pdf');
   toast('PDF gerado com sucesso!');
 }
