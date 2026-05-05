@@ -468,6 +468,7 @@ textarea{resize:vertical;min-height:65px}
 
           <button class="btn btn-amber" onclick="exportBoletosHojePDF()">📅 Boletos do Dia</button>
           <button class="btn btn-secondary" onclick="exportFinPDFFiltrado()">📄 PDF do Filtro</button>
+          <button class="btn btn-save" onclick="openModalPagRapido()">⚡ Pagamento Rápido</button>
           <button class="btn btn-primary" onclick="openModalAvulso()">+ Lançamento Avulso</button>
         </div>
       </div>
@@ -1030,6 +1031,57 @@ textarea{resize:vertical;min-height:65px}
 
 <!-- MODAL FORNECEDOR -->
 <!-- MODAL LANÇAMENTO AVULSO -->
+<!-- MODAL PAGAMENTO RÁPIDO -->
+<div class="modal-overlay" id="modal-pag-rapido">
+  <div class="modal" style="width:460px">
+    <div class="modal-title">⚡ Pagamento Rápido</div>
+    <div style="background:rgba(0,149,122,.07);border:1px solid rgba(0,149,122,.22);border-radius:8px;padding:9px 13px;margin-bottom:16px;font-size:12px;color:var(--accent)">
+      Lança e já marca como <strong>Pago</strong> — ideal para almoços, diárias e pequenas despesas do dia a dia.
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Beneficiário</label>
+        <select id="f-pr-forn"><option value="">— Selecione —</option></select>
+      </div>
+      <div class="form-group full">
+        <label>Categoria</label>
+        <select id="f-pr-cat">
+          <option value="diarias">Diárias</option>
+          <option value="gratificacoes">Gratificações</option>
+          <option value="combustiveis">Combustíveis</option>
+          <option value="funcionarios">Funcionários</option>
+          <option value="adiantamentos">Adiantamentos</option>
+          <option value="colaboradores">Colaboradores</option>
+          <option value="outros">Outros</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Descrição</label>
+        <input type="text" id="f-pr-desc" placeholder="Ex: Almoço estrada — Joinville 05/05"/>
+      </div>
+      <div class="form-group">
+        <label>Valor (R$)</label>
+        <input type="number" id="f-pr-valor" placeholder="0.00" step="0.01" min="0"/>
+      </div>
+      <div class="form-group">
+        <label>Data do Pagamento</label>
+        <input type="date" id="f-pr-data"/>
+      </div>
+      <div class="form-group full">
+        <label>Forma de Pagamento</label>
+        <select id="f-pr-forma">
+          <option>PIX</option><option>Dinheiro</option>
+          <option>Boleto</option><option>Cartão</option><option>Débito Automático</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-pag-rapido')">Cancelar</button>
+      <button class="btn btn-primary" style="background:var(--accent)" onclick="salvarPagRapido()">⚡ Lançar e Marcar Pago</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-avulso">
   <div class="modal" style="width:640px">
     <div class="modal-title">📋 Lançamento Avulso — Sem Nota Fiscal</div>
@@ -3049,7 +3101,7 @@ async function salvarTitulo(){
 }
 function excluirTitulo(id){
   const o=Titulos.find(x=>x.id===id);
-  confirmDelete(`Excluir título de ${o.forn}?`,`Valor: ${fmt(o.valor)} | Vencimento: ${formatarDataBR(o.venc)}`,()=>{
+  confirmDelete(`Excluir título de ${o.forn}?`,`Valor: ${fmt(o.valor)} | Vencimento: ${o.venc}`,()=>{
     Titulos=Titulos.filter(x=>x.id!==id); toast('Título excluído.'); renderAll();
   });
 }
@@ -3528,7 +3580,7 @@ function renderOC(){
       : `<button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button><button class="btn btn-edit btn-sm" onclick="editarOC(${o.id})">✏️</button><button class="btn btn-amber btn-sm" onclick="cancelarOC(${o.id})">🚫 Cancelar</button><button class="btn btn-muted btn-sm" onclick="verHistoricoOC(${o.id})">🕘</button>`;
     return `<tr class="${cancelada?'tr-cancelada':''}" data-status="${cancelada?'cancelada':'ativa'}">
     <td class="mono" style="color:var(--accent2);font-size:11px">${num}</td>
-    <td style="font-size:11px">${formatarDataBR(o.data)}</td>
+    <td style="font-size:11px">${o.data}</td>
     <td style="max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.forn}">${o.forn}${motivo}</td>
     <td class="mono" style="font-size:11px">${o.placas}${rBadge}</td>
     <td>${chip(o.tipo,'cgr')}</td>
@@ -3544,7 +3596,7 @@ function renderNF(){
   $('nf-count').textContent=NFs.length;
   $('tb-nf').innerHTML=NFs.length?NFs.map(n=>{
     const nParc=(n.parcelas&&n.parcelas.length>1)?`<span style="font-size:10px;padding:1px 5px;border-radius:8px;background:rgba(167,139,250,.14);color:var(--purple);border:1px solid rgba(167,139,250,.25);margin-left:4px">${n.parcelas.length}×</span>`:'';
-    const vencDisplay=n.parcelas&&n.parcelas.length>1?`${formatarDataBR(n.parcelas[0].venc)} → ${formatarDataBR(n.parcelas[n.parcelas.length-1].venc)}`:formatarDataBR(n.venc);
+    const vencDisplay=n.parcelas&&n.parcelas.length>1?`${n.parcelas[0].venc} → ${n.parcelas[n.parcelas.length-1].venc}`:n.venc;
     return `<tr>
       <td class="mono" style="color:var(--accent2);font-size:10px">${n.oc}</td>
       <td>${chip(n.tipo,'cgr')}</td>
@@ -3694,7 +3746,7 @@ function renderEstoque(){
   // Tabela histórico de saídas
   $('saidas-count').textContent=Saidas.length;
   $('tb-saidas').innerHTML=Saidas.length?Saidas.map(s=>`<tr>
-    <td style="font-size:11px">${formatarDataBR(s.data)}</td>
+    <td style="font-size:11px">${s.data}</td>
     <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.peca}</td>
     <td class="mono">${(s.qtd||0).toLocaleString('pt-BR',{maximumFractionDigits:3})} ${s.unSaida||''}</td>
     <td class="mono" style="color:var(--accent)">${s.placa}</td>
@@ -3744,9 +3796,9 @@ function renderFrota(){
         ${f.chassi?`<div>Chassi: <span style="color:var(--text);font-family:var(--mono);font-size:9px">${f.chassi}</span></div>`:''}
         ${f.renavam?`<div>RENAVAM: <span style="color:var(--text);font-family:var(--mono)">${f.renavam}</span></div>`:''}
         ${f.seguradora&&f.seguradora!=='-'?`<div>Seguro: <span style="color:var(--text)">${f.seguradora}</span></div>`:''}
-        ${f.vseguro?`<div>Venc. seguro: <span style="color:var(--text)">${formatarDataBR(f.vseguro)}</span></div>`:''}
-        ${f.vcnh?`<div>Venc. CNH: <span style="color:var(--text)">${formatarDataBR(f.vcnh)}</span></div>`:''}
-        ${f.vlicen?`<div>Venc. licenc.: <span style="color:var(--text)">${formatarDataBR(f.vlicen)}</span></div>`:''}
+        ${f.vseguro?`<div>Venc. seguro: <span style="color:var(--text)">${f.vseguro}</span></div>`:''}
+        ${f.vcnh?`<div>Venc. CNH: <span style="color:var(--text)">${f.vcnh}</span></div>`:''}
+        ${f.vlicen?`<div>Venc. licenc.: <span style="color:var(--text)">${f.vlicen}</span></div>`:''}
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
         <span style="color:var(--text3)">Gasto mensal</span>
@@ -3816,8 +3868,8 @@ function renderEPI(){
   }).join(''):'<tr><td colspan="10" class="empty">Sem EPIs cadastrados no estoque</td></tr>';
   $('tb-epi-ent').innerHTML=EPIEntregas.length?EPIEntregas.map(e=>`<tr>
     <td>${e.colab}</td><td style="font-size:11px">${e.epi}</td>
-    <td class="mono">${e.qtd}</td><td style="font-size:11px">${formatarDataBR(e.data)}</td>
-    <td style="font-size:11px;color:var(--text3)"${vencCls(e.troca)}>${formatarDataBR(e.troca)||'-'}</td>
+    <td class="mono">${e.qtd}</td><td style="font-size:11px">${e.data}</td>
+    <td style="font-size:11px;color:var(--text3)"${vencCls(e.troca)}>${e.troca||'-'}</td>
     <td>${acts(`editarEPISaida(${e.id})`,`excluirEPISaida(${e.id})`)}</td>
   </tr>`).join(''):'<tr><td colspan="6" class="empty">Sem entregas registradas</td></tr>';
 }
@@ -3828,10 +3880,9 @@ function renderFrotaTabela(){
   function vc(data){
     if(!data) return '-';
     const dt=new Date(data+'T00:00:00');
-    const br=formatarDataBR(data);
-    if(dt<hoje) return `<span style="color:var(--red);font-weight:600">⚠ ${br}</span>`;
-    if(dt<=d30) return `<span style="color:var(--amber);font-weight:600">⏰ ${br}</span>`;
-    return `<span style="font-size:11px">${br}</span>`;
+    if(dt<hoje) return `<span style="color:var(--red);font-weight:600">⚠ ${data}</span>`;
+    if(dt<=d30) return `<span style="color:var(--amber);font-weight:600">⏰ ${data}</span>`;
+    return `<span style="font-size:11px">${data}</span>`;
   }
   const statusMap={'Ativo':'cg','Manutenção':'ca','Inativo':'cgr'};
   const tb=$('tb-frota-tabela');
@@ -4032,7 +4083,7 @@ function renderPendentes(){
       : '';
     return `<tr>
       <td class="mono" style="color:var(--accent2)">${o.num}</td>
-      <td style="font-size:11px">${formatarDataBR(o.data)}</td>
+      <td style="font-size:11px">${o.data}</td>
       <td>${o.forn}</td>
       <td class="mono" style="font-size:11px">${o.placas}</td>
       <td class="mono">${fmt(o.valor)}</td>
@@ -4143,7 +4194,7 @@ function relLista(d){
     <td><span style="font-size:10px;padding:2px 6px;border-radius:10px;background:${CC[x.cat]||'#888'}22;color:${CC[x.cat]||'#888'};border:1px solid ${CC[x.cat]||'#888'}33">${CL[x.cat]||x.cat}</span></td>
     <td class="mono" style="font-size:11px;color:var(--text2)">${x.ref}</td>
     <td class="mono">${fmt(x.valor)}</td>
-    <td style="font-size:11px;color:var(--text3)">${formatarDataBR(x.venc)}</td>
+    <td style="font-size:11px;color:var(--text3)">${x.venc}</td>
     <td class="mono" style="font-size:11px;color:var(--accent2)">${x.placa}</td>
     <td>${chipS(x.status)}</td>
   </tr>`).join(''):'<tr><td colspan="7" class="empty">Nenhum lançamento no período</td></tr>';
@@ -4166,7 +4217,7 @@ function renderColab(){
       <td class="mono" style="font-size:11px">${c.cpf}</td>
       <td>${c.cargo}</td>
       <td>${chip(c.setor,'cgr')}</td>
-      <td style="font-size:11px">${formatarDataBR(c.admissao)}</td>
+      <td style="font-size:11px">${c.admissao}</td>
       <td style="font-size:11px">${c.tel}</td>
       <td>${chip(c.status,sc)}</td>
       <td>${acts('editarColab('+c.id+')','excluirColab('+c.id+')')}</td>
@@ -4705,7 +4756,7 @@ function fatFiltrarNFs(){
       <input type="checkbox" class="fat-nf-check" data-id="${n.id}" data-valor="${n.valor}" onchange="fatRecalcTotal()" checked style="width:auto;padding:0;border:none;background:none;accent-color:var(--accent);flex-shrink:0"/>
       <span style="flex:1;min-width:0">
         <span style="font-size:12px;font-weight:600;color:var(--accent2)">NF ${n.num}</span>
-        <span style="font-size:11px;color:var(--text3);margin-left:8px">${formatarDataBR(n.data)||''}</span>
+        <span style="font-size:11px;color:var(--text3);margin-left:8px">${n.data||''}</span>
         ${n.oc && n.oc!=='Sem OC'?`<span style="font-size:10px;color:var(--text3);margin-left:6px">· OC: ${n.oc}</span>`:''}
       </span>
       <span style="font-size:11px;color:var(--text3);margin-right:4px">${n.tipo||''}</span>
@@ -4928,7 +4979,7 @@ function renderFaturamentos(){
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n.forn}</td>
       <td style="font-size:11px;color:var(--text3)">${n.oc}</td>
       <td class="mono">${fmt(n.valor)}</td>
-      <td style="font-size:11px">${formatarDataBR(n.data)||'—'}</td>
+      <td style="font-size:11px">${n.data||'—'}</td>
       <td>${chip(dias+'d',dias>15?'cr':dias>7?'ca':'cgr')}</td>
       <td><button class="btn btn-primary btn-sm" onclick="abrirFatParaNF(${n.id})">💼 Faturar</button></td>
     </tr>`;
@@ -4939,7 +4990,7 @@ function renderFaturamentos(){
     const pgBtn = f.status==='Pendente'
       ? `<button class="btn btn-save btn-sm" onclick="marcarFatPago(${f.id})">✓ Pago</button>`
       : `<span style="font-size:11px;color:var(--accent)">✓ Quitado</span>`;
-    const vencDisplay = formatarDataBR(f.venc || (f.parcelas && f.parcelas[0] ? f.parcelas[0].venc : null)) || '—';
+    const vencDisplay = f.venc || (f.parcelas && f.parcelas[0] ? f.parcelas[0].venc : '—');
     const qtdBadge = (f.nfNums||[]).length > 1
       ? `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(0,196,161,.12);color:var(--accent);border:1px solid rgba(0,196,161,.25);margin-left:5px">${f.nfNums.length} NFs</span>` : '';
     return `<tr>
@@ -5417,6 +5468,68 @@ async function doLogout(){
 // ======================== PERSISTÊNCIA SUPABASE — TABELAS SEPARADAS ========================
 
 // ======================== LANÇAMENTO AVULSO ========================
+
+// ======================== PAGAMENTO RÁPIDO ========================
+function openModalPagRapido(){
+  const sel = document.getElementById('f-pr-forn');
+  if(sel){
+    sel.innerHTML = '<option value="">— Selecione —</option>';
+    const fornsAtivos = Fornecedores.filter(f => f.status === 'Ativo' || !f.status);
+    if(fornsAtivos.length){
+      let g = '<optgroup label="🏢 Fornecedores">';
+      fornsAtivos.forEach(f => g += `<option value="${f.nome}">${f.nome}</option>`);
+      sel.innerHTML += g + '</optgroup>';
+    }
+    const colabsAtivos = Colaboradores.filter(c => c.status === 'Ativo' || !c.status);
+    if(colabsAtivos.length){
+      let g = '<optgroup label="👤 Colaboradores">';
+      colabsAtivos.forEach(c => g += `<option value="${c.nome}">${c.nome}${c.cargo?' ('+c.cargo+')':''}</option>`);
+      sel.innerHTML += g + '</optgroup>';
+    }
+  }
+  document.getElementById('f-pr-cat').value   = 'diarias';
+  document.getElementById('f-pr-valor').value = '';
+  document.getElementById('f-pr-desc').value  = '';
+  document.getElementById('f-pr-data').value  = today;
+  document.getElementById('f-pr-forma').value = 'PIX';
+  document.getElementById('modal-pag-rapido').classList.add('open');
+}
+
+function salvarPagRapido(){
+  const forn  = document.getElementById('f-pr-forn').value.trim();
+  if(!forn){ toast('Selecione o beneficiário','error'); return; }
+  const desc  = document.getElementById('f-pr-desc').value.trim();
+  if(!desc){ toast('Informe a descrição','error'); return; }
+  const valor = parseFloat(document.getElementById('f-pr-valor').value)||0;
+  if(!valor){ toast('Informe o valor','error'); return; }
+  const data  = document.getElementById('f-pr-data').value || today;
+  const forma = document.getElementById('f-pr-forma').value;
+  const cat   = document.getElementById('f-pr-cat').value;
+
+  const titulo = {
+    id: newId('tit'),
+    forn,
+    tipo: 'Avulso',
+    ref: desc,
+    valor,
+    emissao: data,
+    venc: data,
+    status: 'Pago',
+    placa: '-',
+    obs: `Pagamento Rápido — ${forma}`,
+    categoria: cat,
+    competencia: data.slice(0,7),
+  };
+
+  Titulos.unshift(titulo);
+  saveEntidade('Titulos', [titulo]);
+  saveCounters();
+  popularFiltroMeses();
+  populateSelects();
+  renderAll();
+  closeModal('modal-pag-rapido');
+  toast(`✅ Pagamento de ${fmt(valor)} lançado e marcado como Pago!`);
+}
 
 function openModalAvulso(){
   // Popula fornecedores e colaboradores em grupos separados
