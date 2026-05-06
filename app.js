@@ -2670,7 +2670,7 @@ function nfToggleModalidade(){
 
 function openModalFaturamento(){
   const fornsSel = $('f-fat-forn');
-  const forns = [...new Set(NFs.filter(n=>n.pgto==='Aguardando Faturamento').map(n=>n.forn))];
+  const forns = [...new Set(NFs.filter(n=>n.pgto==='Aguardando Faturamento').map(n=>n.forn))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   fornsSel.innerHTML = '<option value="">— Selecione o fornecedor —</option>';
   forns.forEach(f => fornsSel.innerHTML += `<option value="${f}">${f}</option>`);
   $('f-fat-num').value = '';
@@ -3428,13 +3428,13 @@ function openModalPagRapido(){
   const sel = document.getElementById('f-pr-forn');
   if(sel){
     sel.innerHTML = '<option value="">— Selecione —</option>';
-    const fornsAtivos = Fornecedores.filter(f => f.status === 'Ativo' || !f.status);
+    const fornsAtivos = Fornecedores.filter(f => f.status === 'Ativo' || !f.status).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
     if(fornsAtivos.length){
       let g = '<optgroup label="🏢 Fornecedores">';
       fornsAtivos.forEach(f => g += `<option value="${f.nome}">${f.nome}</option>`);
       sel.innerHTML += g + '</optgroup>';
     }
-    const colabsAtivos = Colaboradores.filter(c => c.status === 'Ativo' || !c.status);
+    const colabsAtivos = Colaboradores.filter(c => c.status === 'Ativo' || !c.status).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
     if(colabsAtivos.length){
       let g = '<optgroup label="👤 Colaboradores">';
       colabsAtivos.forEach(c => g += `<option value="${c.nome}">${c.nome}${c.cargo?' ('+c.cargo+')':''}</option>`);
@@ -3491,7 +3491,7 @@ function openModalAvulso(){
   if(sel){
     sel.innerHTML = '<option value="">— Selecione —</option>';
     // Grupo Fornecedores
-    const fornsAtivos = Fornecedores.filter(f => f.status === 'Ativo' || !f.status);
+    const fornsAtivos = Fornecedores.filter(f => f.status === 'Ativo' || !f.status).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
     if(fornsAtivos.length){
       let grpForn = '<optgroup label="🏢 Fornecedores">';
       fornsAtivos.forEach(f => grpForn += `<option value="${f.nome}">${f.nome}</option>`);
@@ -3499,7 +3499,7 @@ function openModalAvulso(){
       sel.innerHTML += grpForn;
     }
     // Grupo Colaboradores
-    const colabsAtivos = Colaboradores.filter(c => c.status === 'Ativo' || !c.status);
+    const colabsAtivos = Colaboradores.filter(c => c.status === 'Ativo' || !c.status).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
     if(colabsAtivos.length){
       let grpColab = '<optgroup label="👤 Colaboradores">';
       colabsAtivos.forEach(c => grpColab += `<option value="${c.nome}">${c.nome}${c.cargo ? ' (' + c.cargo + ')' : ''}</option>`);
