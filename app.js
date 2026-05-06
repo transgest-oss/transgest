@@ -1897,7 +1897,6 @@ function calcGastoPorPlaca(){
   Frota.forEach(f => { gastos[f.placa] = { serv: 0, pcs: 0, total: 0 }; });
 
   NFs.forEach(nf => {
-    if(nf.pgto === 'Aguardando Faturamento') return; // não conta ainda
     const oc = OCs.find(o => o.num === nf.oc);
     const isPeca = nf.tipo && nf.tipo.toLowerCase().includes('peça');
 
@@ -1932,7 +1931,6 @@ function calcGastoMesAtual(){
   Frota.forEach(f => { gastos[f.placa] = 0; });
 
   NFs.forEach(nf => {
-    if(nf.pgto === 'Aguardando Faturamento') return;
     // filtra pelo mês da data da NF
     const d = nf.data ? new Date(nf.data + 'T00:00:00') : null;
     if(!d || d.getFullYear() !== anoAtual || d.getMonth() !== mesAtual) return;
