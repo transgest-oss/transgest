@@ -1732,13 +1732,13 @@ function renderFrota(){
     return '';
   }
   const statusMap={'Ativo':'cg','Manutenção':'ca','Inativo':'cgr'};
-  $('frota-cards').innerHTML=Frota.length?Frota.map(f=>{
+  $('frota-cards').innerHTML=Frota.length?[...Frota].sort((a,b)=>a.placa.localeCompare(b.placa,'pt-BR')).map(f=>{
     const pct=Math.min(100,Math.round((f.gasto||0)/(f.limite||1)*100));
     const cls=pct>85?'danger':pct>65?'warn':'';
     const color=pct>85?'var(--red)':pct>65?'var(--amber)':'var(--accent)';
     const chipCls=pct>85?'cr':pct>65?'ca':'cg';
     const stCls=statusMap[f.status||'Ativo']||'cg';
-    const alertas=vencBadge(f.vlicen,'Licenc.')+vencBadge(f.vseguro,'Seguro');
+    const alertas=vencBadge(f.vlicen,'Licenc.');
     return `<div class="card-block" style="margin-bottom:0;border-left:3px solid ${f.status==='Inativo'?'var(--text3)':f.status==='Manutenção'?'var(--amber)':'var(--accent)'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div>
@@ -1757,7 +1757,6 @@ function renderFrota(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;color:var(--text3);margin-bottom:7px">
         ${f.chassi?`<div>Chassi: <span style="color:var(--text);font-family:var(--mono);font-size:9px">${f.chassi}</span></div>`:''}
         ${f.renavam?`<div>RENAVAM: <span style="color:var(--text);font-family:var(--mono)">${f.renavam}</span></div>`:''}
-        ${f.vseguro?`<div>Venc. seguro: <span style="color:var(--text)">${f.vseguro}</span></div>`:''}
         ${f.vlicen?`<div>Venc. licenc.: <span style="color:var(--text)">${f.vlicen}</span></div>`:''}
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
@@ -1782,7 +1781,6 @@ function renderFrota(){
         else if(dt<=d30) alertas.push(`⏰ ${f.placa}: ${label} vence em ${Math.ceil((dt-hoje)/864e5)} dias`);
       }
       checkDoc(f.vlicen,'Licenciamento');
-      checkDoc(f.vseguro,'Seguro');
     });
     if(alertas.length){
       alertasBar.style.display='flex';
@@ -1846,7 +1844,7 @@ function renderFrotaTabela(){
   const statusMap={'Ativo':'cg','Manutenção':'ca','Inativo':'cgr'};
   const tb=$('tb-frota-tabela');
   if(!tb)return;
-  tb.innerHTML=Frota.length?Frota.map(f=>{
+  tb.innerHTML=Frota.length?[...Frota].sort((a,b)=>a.placa.localeCompare(b.placa,'pt-BR')).map(f=>{
     const pct=Math.min(100,Math.round((f.gasto||0)/(f.limite||1)*100));
     const chipCls=pct>85?'cr':pct>65?'ca':'cg';
     return `<tr>
@@ -2670,7 +2668,7 @@ function nfToggleModalidade(){
 
 function openModalFaturamento(){
   const fornsSel = $('f-fat-forn');
-  const forns = [...new Set(NFs.filter(n=>n.pgto==='Aguardando Faturamento').map(n=>n.forn))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const forns = [...new Set(NFs.filter(n=>n.pgto==='Aguardando Faturamento').map(n=>n.forn))];
   fornsSel.innerHTML = '<option value="">— Selecione o fornecedor —</option>';
   forns.forEach(f => fornsSel.innerHTML += `<option value="${f}">${f}</option>`);
   $('f-fat-num').value = '';
@@ -3428,13 +3426,13 @@ function openModalPagRapido(){
   const sel = document.getElementById('f-pr-forn');
   if(sel){
     sel.innerHTML = '<option value="">— Selecione —</option>';
-    const fornsAtivos = Fornecedores.filter(f => f.status === 'Ativo' || !f.status).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    const fornsAtivos = Fornecedores.filter(f => f.status === 'Ativo' || !f.status);
     if(fornsAtivos.length){
       let g = '<optgroup label="🏢 Fornecedores">';
       fornsAtivos.forEach(f => g += `<option value="${f.nome}">${f.nome}</option>`);
       sel.innerHTML += g + '</optgroup>';
     }
-    const colabsAtivos = Colaboradores.filter(c => c.status === 'Ativo' || !c.status).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    const colabsAtivos = Colaboradores.filter(c => c.status === 'Ativo' || !c.status);
     if(colabsAtivos.length){
       let g = '<optgroup label="👤 Colaboradores">';
       colabsAtivos.forEach(c => g += `<option value="${c.nome}">${c.nome}${c.cargo?' ('+c.cargo+')':''}</option>`);
@@ -3491,7 +3489,7 @@ function openModalAvulso(){
   if(sel){
     sel.innerHTML = '<option value="">— Selecione —</option>';
     // Grupo Fornecedores
-    const fornsAtivos = Fornecedores.filter(f => f.status === 'Ativo' || !f.status).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    const fornsAtivos = Fornecedores.filter(f => f.status === 'Ativo' || !f.status);
     if(fornsAtivos.length){
       let grpForn = '<optgroup label="🏢 Fornecedores">';
       fornsAtivos.forEach(f => grpForn += `<option value="${f.nome}">${f.nome}</option>`);
@@ -3499,7 +3497,7 @@ function openModalAvulso(){
       sel.innerHTML += grpForn;
     }
     // Grupo Colaboradores
-    const colabsAtivos = Colaboradores.filter(c => c.status === 'Ativo' || !c.status).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    const colabsAtivos = Colaboradores.filter(c => c.status === 'Ativo' || !c.status);
     if(colabsAtivos.length){
       let grpColab = '<optgroup label="👤 Colaboradores">';
       colabsAtivos.forEach(c => grpColab += `<option value="${c.nome}">${c.nome}${c.cargo ? ' (' + c.cargo + ')' : ''}</option>`);
