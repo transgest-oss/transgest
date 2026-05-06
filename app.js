@@ -165,10 +165,10 @@ function populateSelects(){
     const isNfDest=sid==='f-nf-dest';
     s.innerHTML=(isNfDest?'<option value="">— Sem placa / Administrativo —</option><option value="Estoque">Estoque</option>':'<option value="-">Nenhuma (geral)</option>');
     if(isNfDest){
-      // Adiciona placas da frota
       Frota.forEach(f=>{ if(f.placa) s.innerHTML+=`<option value="${f.placa}">${f.placa}${f.modelo?' — '+f.modelo:''}</option>`; });
+    } else {
+      placas.forEach(p=>s.innerHTML+=`<option value="${p}">${p}</option>`);
     }
-    placas.forEach(p=>s.innerHTML+=`<option value="${p}">${p}</option>`);
   });
   // Fornecedores nos selects (ordem alfabética)
   const fornsAtivos = Fornecedores.filter(f=>f.status==='Ativo').sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
@@ -546,17 +546,20 @@ function excluirOC(id){ cancelarOC(id); }
 
 // ======================== CRUD NF ========================
 
-// Atualiza status da OC com base nas NFs já lançadas
+// Atualiza status da OC com base no valor total das NFs já lançadas
 function atualizarStatusOC(oc){
   if(!oc) return;
   const nfsVinculadas = NFs.filter(n => n.oc === oc.num);
-  const esperadas = oc.nfsEsperadas || 1;
   if(nfsVinculadas.length === 0){
     oc.nf = 'Pendente';
-  } else if(nfsVinculadas.length >= esperadas){
-    oc.nf = 'Recebida';
   } else {
-    oc.nf = 'Parcialmente Recebida';
+    const somaVinculadas = nfsVinculadas.reduce((acc,n)=>acc+(parseFloat(n.valor)||0),0);
+    const valorOC = parseFloat(oc.valor)||0;
+    if(valorOC > 0 && Math.abs(somaVinculadas - valorOC) <= 0.02){
+      oc.nf = 'Recebida';
+    } else {
+      oc.nf = 'Parcialmente Recebida';
+    }
   }
 }
 
@@ -1732,13 +1735,13 @@ function renderFrota(){
     return '';
   }
   const statusMap={'Ativo':'cg','Manutenção':'ca','Inativo':'cgr'};
-  $('frota-cards').innerHTML=Frota.length?[...Frota].sort((a,b)=>a.placa.localeCompare(b.placa,'pt-BR')).map(f=>{
+  $('frota-cards').innerHTML=Frota.length?Frota.map(f=>{
     const pct=Math.min(100,Math.round((f.gasto||0)/(f.limite||1)*100));
     const cls=pct>85?'danger':pct>65?'warn':'';
     const color=pct>85?'var(--red)':pct>65?'var(--amber)':'var(--accent)';
     const chipCls=pct>85?'cr':pct>65?'ca':'cg';
     const stCls=statusMap[f.status||'Ativo']||'cg';
-    const alertas=vencBadge(f.vlicen,'Licenc.');
+    const alertas=vencBadge(f.vlicen,'Licenc.')+vencBadge(f.vseguro,'Seguro');
     return `<div class="card-block" style="margin-bottom:0;border-left:3px solid ${f.status==='Inativo'?'var(--text3)':f.status==='Manutenção'?'var(--amber)':'var(--accent)'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div>
@@ -1757,6 +1760,7 @@ function renderFrota(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;color:var(--text3);margin-bottom:7px">
         ${f.chassi?`<div>Chassi: <span style="color:var(--text);font-family:var(--mono);font-size:9px">${f.chassi}</span></div>`:''}
         ${f.renavam?`<div>RENAVAM: <span style="color:var(--text);font-family:var(--mono)">${f.renavam}</span></div>`:''}
+        ${f.vseguro?`<div>Venc. seguro: <span style="color:var(--text)">${f.vseguro}</span></div>`:''}
         ${f.vlicen?`<div>Venc. licenc.: <span style="color:var(--text)">${f.vlicen}</span></div>`:''}
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
@@ -1781,6 +1785,7 @@ function renderFrota(){
         else if(dt<=d30) alertas.push(`⏰ ${f.placa}: ${label} vence em ${Math.ceil((dt-hoje)/864e5)} dias`);
       }
       checkDoc(f.vlicen,'Licenciamento');
+      checkDoc(f.vseguro,'Seguro');
     });
     if(alertas.length){
       alertasBar.style.display='flex';
@@ -1844,7 +1849,7 @@ function renderFrotaTabela(){
   const statusMap={'Ativo':'cg','Manutenção':'ca','Inativo':'cgr'};
   const tb=$('tb-frota-tabela');
   if(!tb)return;
-  tb.innerHTML=Frota.length?[...Frota].sort((a,b)=>a.placa.localeCompare(b.placa,'pt-BR')).map(f=>{
+  tb.innerHTML=Frota.length?Frota.map(f=>{
     const pct=Math.min(100,Math.round((f.gasto||0)/(f.limite||1)*100));
     const chipCls=pct>85?'cr':pct>65?'ca':'cg';
     return `<tr>
