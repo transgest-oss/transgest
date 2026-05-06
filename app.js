@@ -155,7 +155,7 @@ function populateSelects(){
   // OCs no select da NF
   const selNFOC=$('f-nf-oc');
   selNFOC.innerHTML='<option value="Sem OC">Sem OC</option>';
-  OCs.filter(o=>o.status!=='Cancelada').forEach(o=>selNFOC.innerHTML+=`<option value="${o.num}">${o.num} — ${o.forn}</option>`);
+  OCs.filter(o=>o.status!=='Cancelada' && o.nf!=='Recebida').forEach(o=>selNFOC.innerHTML+=`<option value="${o.num}">${o.num} — ${o.forn}</option>`);
   // Tipos OC
   atualizarSelectTiposOC();
   // Placas
@@ -170,8 +170,8 @@ function populateSelects(){
     }
     placas.forEach(p=>s.innerHTML+=`<option value="${p}">${p}</option>`);
   });
-  // Fornecedores nos selects
-  const fornsAtivos = Fornecedores.filter(f=>f.status==='Ativo');
+  // Fornecedores nos selects (ordem alfabética)
+  const fornsAtivos = Fornecedores.filter(f=>f.status==='Ativo').sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
   ['f-oc-forn','f-nf-forn','f-nfr-forn','f-tit-forn','f-fat-forn'].forEach(sid=>{
     const s=$(sid); if(!s)return;
     const curVal = s.value;
@@ -247,9 +247,8 @@ window.openModal = function(id, mode, data){
     // Reset frota modal
     if(id==='modal-frota'){
       ['f-frota-placa','f-frota-modelo','f-frota-cor','f-frota-ano','f-frota-anomodelo',
-       'f-frota-chassi','f-frota-renavam','f-frota-km','f-frota-limite','f-frota-motoristas',
-       'f-frota-vcnh','f-frota-vlicen','f-frota-seguradora','f-frota-apolice',
-       'f-frota-vseguro','f-frota-vsegurado'].forEach(id=>{const el=$(id);if(el)el.value='';});
+       'f-frota-chassi','f-frota-renavam','f-frota-limite','f-frota-motoristas',
+       'f-frota-vlicen'].forEach(id=>{const el=$(id);if(el)el.value='';});
       if($('f-frota-status')) $('f-frota-status').value='Ativo';
       if($('f-frota-tipo')) $('f-frota-tipo').value='Caminhão';
       editing.frota = null;
@@ -1217,13 +1216,7 @@ function editarFrota(id){
   $('f-fr-chassi').value=o.chassi||'';
   $('f-fr-renavam').value=o.renavam||'';
   $('f-fr-status').value=o.status||'Ativo';
-  $('f-fr-km').value=o.km||'';
-  $('f-fr-vcnh').value=o.vcnh||'';
   $('f-fr-vlicen').value=o.vlicen||'';
-  $('f-fr-seguradora').value=o.seguradora||'';
-  $('f-fr-apolice').value=o.apolice||'';
-  $('f-fr-vseguro').value=o.vseguro||'';
-  $('f-fr-vsegurado').value=o.vsegurado||'';
   $('modal-frota-title').textContent='Editar Caminhão';
   $('btn-save-frota').textContent='💾 Atualizar';
   $('modal-frota').classList.add('open');
@@ -1241,14 +1234,8 @@ function salvarFrota(){
     renavam:$('f-fr-renavam').value.trim()||'',
     status:$('f-fr-status').value||'Ativo',
     motoristas:$('f-fr-motoristas').value.trim()||'-',
-    km:parseInt($('f-fr-km').value)||0,
     limite:parseFloat($('f-fr-limite').value)||5000,
-    vcnh:$('f-fr-vcnh').value||'',
     vlicen:$('f-fr-vlicen').value||'',
-    seguradora:$('f-fr-seguradora').value.trim()||'',
-    apolice:$('f-fr-apolice').value.trim()||'',
-    vseguro:$('f-fr-vseguro').value||'',
-    vsegurado:parseFloat($('f-fr-vsegurado').value)||0,
     gasto:0
   };
   if(editing.frota){
@@ -1264,7 +1251,7 @@ function salvarFrota(){
   $('btn-save-frota').textContent='💾 Salvar';
   // limpar campos adicionais
   ['f-fr-tipo','f-fr-cor','f-fr-anomodelo','f-fr-chassi','f-fr-renavam','f-fr-status',
-   'f-fr-km','f-fr-vcnh','f-fr-vlicen','f-fr-seguradora','f-fr-apolice','f-fr-vseguro','f-fr-vsegurado'].forEach(id=>{
+   'f-fr-vlicen'].forEach(id=>{
     const el=$(id); if(el) el.value=id==='f-fr-tipo'?'Caminhão':id==='f-fr-status'?'Ativo':'';
   });
   editing.frota=null; populateSelects(); renderFrota(); renderDashboard();
@@ -1751,7 +1738,7 @@ function renderFrota(){
     const color=pct>85?'var(--red)':pct>65?'var(--amber)':'var(--accent)';
     const chipCls=pct>85?'cr':pct>65?'ca':'cg';
     const stCls=statusMap[f.status||'Ativo']||'cg';
-    const alertas=vencBadge(f.vcnh,'CNH')+vencBadge(f.vlicen,'Licenc.')+vencBadge(f.vseguro,'Seguro');
+    const alertas=vencBadge(f.vlicen,'Licenc.')+vencBadge(f.vseguro,'Seguro');
     return `<div class="card-block" style="margin-bottom:0;border-left:3px solid ${f.status==='Inativo'?'var(--text3)':f.status==='Manutenção'?'var(--amber)':'var(--accent)'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div>
@@ -1767,13 +1754,10 @@ function renderFrota(){
       </div>
       ${alertas?`<div style="margin-bottom:7px">${alertas}</div>`:''}
       <div style="font-size:12px;color:var(--text2);margin-bottom:5px">👤 ${f.motoristas||'-'}</div>
-      ${f.km?`<div style="font-size:11px;color:var(--text3);margin-bottom:5px">📏 KM atual: <span class="mono" style="color:var(--text)">${f.km.toLocaleString('pt-BR')} km</span></div>`:''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;color:var(--text3);margin-bottom:7px">
         ${f.chassi?`<div>Chassi: <span style="color:var(--text);font-family:var(--mono);font-size:9px">${f.chassi}</span></div>`:''}
         ${f.renavam?`<div>RENAVAM: <span style="color:var(--text);font-family:var(--mono)">${f.renavam}</span></div>`:''}
-        ${f.seguradora&&f.seguradora!=='-'?`<div>Seguro: <span style="color:var(--text)">${f.seguradora}</span></div>`:''}
         ${f.vseguro?`<div>Venc. seguro: <span style="color:var(--text)">${f.vseguro}</span></div>`:''}
-        ${f.vcnh?`<div>Venc. CNH: <span style="color:var(--text)">${f.vcnh}</span></div>`:''}
         ${f.vlicen?`<div>Venc. licenc.: <span style="color:var(--text)">${f.vlicen}</span></div>`:''}
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
@@ -1797,7 +1781,6 @@ function renderFrota(){
         if(dt<hoje) alertas.push(`⚠ ${f.placa}: <strong>${label} VENCIDO</strong>`);
         else if(dt<=d30) alertas.push(`⏰ ${f.placa}: ${label} vence em ${Math.ceil((dt-hoje)/864e5)} dias`);
       }
-      checkDoc(f.vcnh,'CNH do motorista');
       checkDoc(f.vlicen,'Licenciamento');
       checkDoc(f.vseguro,'Seguro');
     });
@@ -1872,12 +1855,10 @@ function renderFrotaTabela(){
       <td style="font-size:12px">${f.modelo||'-'} ${f.cor&&f.cor!=='-'?'· '+f.cor:''}</td>
       <td class="mono" style="font-size:11px">${f.ano||'-'}</td>
       <td style="font-size:11px">${f.motoristas||'-'}</td>
-      <td class="mono" style="font-size:11px">${f.km?(f.km).toLocaleString('pt-BR'):'-'}</td>
       <td>${chip(f.status||'Ativo',statusMap[f.status||'Ativo']||'cg')}</td>
       <td class="mono">${fmt(f.gasto||0)}</td>
       <td class="mono">${fmt(f.limite||0)}</td>
       <td>${chip(pct+'%',chipCls)}</td>
-      <td>${vc(f.vcnh)}</td>
       <td>${vc(f.vlicen)}</td>
       <td>${acts(`editarFrota(${f.id})`,`excluirFrota(${f.id})`)}</td>
     </tr>`;
@@ -1896,11 +1877,10 @@ function exportFrotaXLSX(){
   const ws=XLSX.utils.json_to_sheet(Frota.map(f=>({
     Placa:f.placa,Tipo:f.tipo||'Caminhão',Modelo:f.modelo,Cor:f.cor||'-',
     'Ano Fab.':f.ano,'Ano Modelo':f.anomodelo||'',Chassi:f.chassi||'',RENAVAM:f.renavam||'',
-    Status:f.status||'Ativo',Motorista:f.motoristas,KM:f.km||0,
+    Status:f.status||'Ativo',Motorista:f.motoristas,
     'Limite Mensal':f.limite,'Gasto Mês':f.gasto||0,
-    'Venc. CNH':f.vcnh||'','Venc. Licenc.':f.vlicen||'',
-    Seguradora:f.seguradora||'','Nº Apólice':f.apolice||'',
-    'Venc. Seguro':f.vseguro||'','Valor Segurado':f.vsegurado||0
+    'Venc. Licenc.':f.vlicen||'',
+    'Venc. Seguro':f.vseguro||''
   })));
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Frota');
