@@ -458,7 +458,7 @@ function salvarOC(){
     for(let i=0;i<placaSels.length;i++){
       if(placaSels[i].value==='-'){ toast('Informe a placa do caminhão '+(i+1),'error'); return; }
       if(!(parseFloat(valInps[i].value)>0)){ toast('Informe o valor do caminhão '+(i+1),'error'); return; }
-      rateio.push({ placa: placaSels[i].value, valor: parseFloat(parseFloat(valInps[i].value).toFixed(2)) });
+      rateio.push({ placa: placaSels[i].value, valor: Math.round(parseFloat(valInps[i].value)*100)/100 });
     }
     const soma = Math.round(rateio.reduce((a,r)=>a+r.valor,0)*100)/100;
     if(Math.abs(soma - valor) > 0.02){ toast('A soma do rateio (R$ '+soma.toLocaleString('pt-BR',{minimumFractionDigits:2})+') não bate com o valor total','error'); return; }
@@ -565,27 +565,29 @@ function nfGerarParcelas(){
   const total = parseFloat($('f-nf-valor').value)||0;
   const n = parseInt($('f-nf-parcelas').value)||1;
   const emissao = $('f-nf-data').value || today;
-  const base = parseFloat((total/n).toFixed(2));
-  const resto = parseFloat((total - base*n).toFixed(2));
+  const base = Math.floor((total/n)*100)/100;
+  const resto = Math.round((total - base*n)*100)/100;
   const linhas = [];
   for(let i=0;i<n;i++){
+    // vencimento: i+1 meses após emissão
     const d = new Date(emissao);
     d.setMonth(d.getMonth()+(i+1));
     const venc = d.toISOString().split('T')[0];
-    const val = i===n-1 ? parseFloat((base+resto).toFixed(2)) : base;
+    const val = i===n-1 ? Math.round((base+resto)*100)/100 : base;
     linhas.push({venc, val});
   }
   nfRenderLinhas(linhas);
   nfAtualizarSoma();
 }
 function nfRecalcularParcelas(){
+  // redistribui valores mantendo datas já definidas
   const n = parseInt($('f-nf-parcelas').value)||1;
   const total = parseFloat($('f-nf-valor').value)||0;
-  const base = parseFloat((total/n).toFixed(2));
-  const resto = parseFloat((total - base*n).toFixed(2));
+  const base = Math.floor((total/n)*100)/100;
+  const resto = Math.round((total - base*n)*100)/100;
   const rows = document.querySelectorAll('.parcela-val');
   rows.forEach((inp,i)=>{
-    inp.value = i===rows.length-1 ? (base+resto).toFixed(2) : base.toFixed(2);
+    inp.value = i===rows.length-1 ? (Math.round((base+resto)*100)/100).toFixed(2) : base.toFixed(2);
   });
   nfAtualizarSoma();
 }
@@ -685,6 +687,11 @@ async function salvarNF(){
   const forn=$('f-nf-forn').value.trim(); if(!forn){toast('Selecione o fornecedor','error');return;}
   const valorBase=parseFloat($('f-nf-valor').value)||0;
   if(!valorBase){toast('Informe o valor total da NF','error');return;}
+  const numNF=$('f-nf-num').value.trim();
+  if(numNF){
+    const duplicada=NFs.find(n=>n.num===numNF && n.forn===forn);
+    if(duplicada){toast(`NF ${numNF} já foi lançada para ${forn}!`,'error');return;}
+  }
   const acrescimo=parseFloat(document.getElementById('f-nf-acrescimo')?.value)||0;
   const desconto=parseFloat(document.getElementById('f-nf-desconto')?.value)||0;
   const total=Math.round((valorBase+acrescimo-desconto)*100)/100;
@@ -697,7 +704,7 @@ async function salvarNF(){
     if(!vencEls[i].value){toast('Informe a data da parcela '+(i+1),'error');return;}
     if(!(parseFloat(valEls[i].value)>0)){toast('Informe o valor da parcela '+(i+1),'error');return;}
   }
-  const parcelas=vencEls.map((el,i)=>({venc:el.value,val:parseFloat(parseFloat(valEls[i].value).toFixed(2))}));
+  const parcelas=vencEls.map((el,i)=>({venc:el.value,val:Math.round(parseFloat(valEls[i].value)*100)/100}));
   // Primeira parcela define venc principal da NF (compatibilidade)
   const vencPrincipal=parcelas[0].venc;
 
@@ -736,7 +743,7 @@ async function salvarNF(){
     const valInps   = [...document.querySelectorAll('.nf-rat-val')];
     for(let i = 0; i < placaSels.length; i++){
       if(!placaSels[i].value){ toast('Selecione a placa na linha '+(i+1)+' do rateio','error'); return; }
-      rateioManual.push({ placa: placaSels[i].value, valor: parseFloat(parseFloat(valInps[i].value).toFixed(2)) });
+      rateioManual.push({ placa: placaSels[i].value, valor: Math.round(parseFloat(valInps[i].value)*100)/100 });
     }
     const somaRM = Math.round(rateioManual.reduce((a,r)=>a+r.valor,0)*100)/100;
     if(Math.abs(somaRM - total) > 0.02){ toast('A soma do rateio (R$ '+somaRM.toLocaleString('pt-BR',{minimumFractionDigits:2})+') não bate com o valor total','error'); return; }
@@ -2796,7 +2803,7 @@ async function salvarFaturamento(){
     if(!vencEls[i].value){ toast('Informe a data da parcela '+(i+1),'error'); return; }
     if(!(parseFloat(valEls[i].value)>0)){ toast('Informe o valor da parcela '+(i+1),'error'); return; }
   }
-  const parcelas = vencEls.map((el,i)=>({venc:el.value, val:parseFloat(parseFloat(valEls[i].value).toFixed(2))}));
+  const parcelas = vencEls.map((el,i)=>({venc:el.value, val:Math.round(parseFloat(valEls[i].value)*100)/100}));
   const total = Math.round(checks.reduce((a,c)=>a+parseFloat(c.dataset.valor||0),0)*100)/100;
 
   const nfIds  = checks.map(c=>parseInt(c.dataset.id));
@@ -3065,6 +3072,11 @@ function salvarNFRapida(){
   if(!forn || forn === ''){ toast('Selecione o fornecedor','error'); return; }
   const total = parseFloat($('f-nfr-valor').value) || 0;
   if(!total){ toast('Informe o valor total da NF','error'); return; }
+  const numNF = $('f-nfr-num').value.trim();
+  if(numNF){
+    const duplicada = NFs.find(n => n.num === numNF && n.forn === forn);
+    if(duplicada){ toast(`NF ${numNF} já foi lançada para ${forn}!`,'error'); return; }
+  }
 
   const obj = {
     id: newId('nf'),
@@ -3624,7 +3636,7 @@ function salvarAvulso(){
       forn,
       tipo: 'Avulso',
       ref: (ref||desc) + label,
-      valor: parseFloat(parseFloat(vals[i].value).toFixed(2)),
+      valor: Math.round(parseFloat(vals[i].value)*100)/100,
       emissao: compData, // competência como data de emissão para o relatório
       venc: el.value,
       status: 'Pendente',
