@@ -20,10 +20,11 @@ function populateSelects(){
     const isNfDest=sid==='f-nf-dest';
     s.innerHTML=(isNfDest?'<option value="">— Sem placa / Administrativo —</option><option value="Estoque">Estoque</option>':'<option value="-">Nenhuma (geral)</option>');
     if(isNfDest){
-      // Adiciona placas da frota
+      // Adiciona placas da frota com modelo (apenas para f-nf-dest)
       Frota.forEach(f=>{ if(f.placa) s.innerHTML+=`<option value="${f.placa}">${f.placa}${f.modelo?' — '+f.modelo:''}</option>`; });
+    } else {
+      placas.forEach(p=>s.innerHTML+=`<option value="${p}">${p}</option>`);
     }
-    placas.forEach(p=>s.innerHTML+=`<option value="${p}">${p}</option>`);
   });
   // Fornecedores nos selects (ordem alfabética)
   const fornsAtivos = Fornecedores.filter(f=>f.status==='Ativo').sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
