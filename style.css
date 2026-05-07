@@ -85,8 +85,6 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
 .oc-motivo{font-size:10.5px;color:var(--red);margin-top:3px;line-height:1.25;max-width:260px;white-space:normal}
 .tr-cancelada td{opacity:.76;text-decoration:none;background:rgba(200,32,58,.045)!important}
 .tr-cancelada:hover td{background:rgba(200,32,58,.075)!important}
-.tr-encerrada-sem-nf td{background:rgba(245,166,35,.04)!important}
-.tr-encerrada-sem-nf:hover td{background:rgba(245,166,35,.09)!important}
 .oc-card-mobile-hint{font-size:11px;color:var(--text3)}
 
 /* TABLE */
@@ -246,3 +244,9 @@ textarea{resize:vertical;min-height:65px}
 .btn-logout{display:flex;align-items:center;gap:7px;width:100%;padding:7px 10px;border-radius:8px;border:1px solid rgba(200,32,58,.25);background:rgba(200,32,58,.07);color:var(--red);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);margin-top:10px;transition:all .15s}
 .btn-logout:hover{background:rgba(200,32,58,.15)}
 </style>
+
+/* OC — Encerrada s/ NF */
+.oc-status-card.encerrada-sem-nf{background:rgba(245,166,35,.15);color:var(--amber);border-color:rgba(245,166,35,.3)}
+.oc-filter-tab.amber.on{background:rgba(200,120,0,.12);color:var(--amber)}
+.tr-encerrada-sem-nf td{background:rgba(245,166,35,.04)!important}
+.tr-encerrada-sem-nf:hover td{background:rgba(245,166,35,.09)!important}

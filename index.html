@@ -151,15 +151,53 @@
       </div>
       <div class="oc-visual-toolbar">
         <div class="oc-filter-tabs" aria-label="Filtro de status das OCs">
-          <button class="oc-filter-tab on" id="oc-filter-todas" onclick="setFiltroOC('todas')">Todas</button>
-          <button class="oc-filter-tab" id="oc-filter-ativas" onclick="setFiltroOC('ativas')">Ativas</button>
+          <button class="oc-filter-tab on" id="oc-filter-todas"      onclick="setFiltroOC('todas')">Todas</button>
+          <button class="oc-filter-tab"    id="oc-filter-ativas"     onclick="setFiltroOC('ativas')">Ativas</button>
           <button class="oc-filter-tab danger" id="oc-filter-canceladas" onclick="setFiltroOC('canceladas')">Canceladas</button>
+          <button class="oc-filter-tab amber"  id="oc-filter-encerradas" onclick="setFiltroOC('encerradas')">⚠️ Enc. s/ NF</button>
         </div>
         <div class="oc-legend">
           <span><span class="oc-dot green"></span>Ativa</span>
           <span><span class="oc-dot red"></span>Cancelada</span>
-          <span class="oc-card-mobile-hint">Linhas canceladas ficam destacadas e sem edição.</span>
+          <span><span class="oc-dot" style="background:var(--amber)"></span>Enc. s/ NF</span>
         </div>
+      </div>
+      <!-- Filtros avançados OC -->
+      <div class="filter-bar" id="oc-filter-bar" style="margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <label>De</label>
+        <input type="date" id="oc-busca-de" onchange="renderOC()" style="font-size:12px;padding:5px 8px"/>
+        <label>Até</label>
+        <input type="date" id="oc-busca-ate" onchange="renderOC()" style="font-size:12px;padding:5px 8px"/>
+        <label>Fornecedor</label>
+        <input type="text" id="oc-busca-forn" placeholder="Buscar fornecedor..." oninput="renderOC()" style="font-size:12px;padding:5px 8px;min-width:160px"/>
+        <label>Placa</label>
+        <input type="text" id="oc-busca-placa" placeholder="Placa..." oninput="renderOC()" style="font-size:12px;padding:5px 8px;width:100px"/>
+        <label>Categoria</label>
+        <select id="oc-busca-cat" onchange="renderOC()" style="font-size:12px;padding:5px 8px">
+          <option value="">Todas</option>
+          <option value="manutencao">Manutenção</option>
+          <option value="scherer">Scherer</option>
+          <option value="scherer_ambi">Scherer Ambicampos</option>
+          <option value="combustiveis">Combustíveis</option>
+          <option value="impostos">Impostos</option>
+          <option value="diarias">Diárias</option>
+          <option value="consorcios">Consórcios</option>
+          <option value="gratificacoes">Gratificações</option>
+          <option value="seguros">Seguros</option>
+          <option value="funcionarios">Funcionários</option>
+          <option value="adiantamentos">Adiantamentos</option>
+          <option value="colaboradores">Colaboradores</option>
+          <option value="outros">Outros</option>
+        </select>
+        <label>Status NF</label>
+        <select id="oc-busca-nf" onchange="renderOC()" style="font-size:12px;padding:5px 8px">
+          <option value="">Todos</option>
+          <option value="Pendente">Pendente</option>
+          <option value="Parcialmente Recebida">Parc. Recebida</option>
+          <option value="Recebida">Recebida</option>
+          <option value="Sem NF">Sem NF</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="limparFiltrosOC()">Limpar</button>
       </div>
       <div class="table-wrap"><table>
         <thead><tr><th>Nº OC</th><th>Data</th><th>Fornecedor</th><th>Categoria</th><th>Placa(s)</th><th>Tipo</th><th>Valor</th><th>Status</th><th>NF</th><th style="width:170px">Ações</th></tr></thead>
@@ -247,6 +285,9 @@
         <select id="fin-filtro-forn" onchange="renderFin()"><option value="">Todos</option></select>
         <label>Placa</label>
         <select id="fin-filtro-placa" onchange="renderFin()"><option value="">Todas</option></select>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--amber);font-weight:600;border:1px solid rgba(245,166,35,.3);background:rgba(245,166,35,.08);padding:4px 10px;border-radius:7px">
+          <input type="checkbox" id="fin-filtro-sem-nf" onchange="renderFin()" style="accent-color:var(--amber)"/> ⚠️ Somente s/ NF
+        </label>
         <button class="btn btn-secondary btn-sm" onclick="resetFinFiltros()">Limpar</button>
       </div>
       <div class="table-wrap"><table>
@@ -1757,18 +1798,9 @@
     <div style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.3);border-radius:10px;padding:12px 14px;margin-bottom:16px">
       <div style="font-size:10px;color:var(--amber);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:8px">📋 OC vinculada</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-        <div>
-          <div style="font-size:10px;color:var(--text3)">Número</div>
-          <div style="font-family:var(--mono);font-weight:700;color:var(--accent2)" id="encnf-oc-num">—</div>
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--text3)">Fornecedor</div>
-          <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="encnf-oc-forn">—</div>
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--text3)">Valor da OC</div>
-          <div style="font-family:var(--mono);font-weight:700;color:var(--amber)" id="encnf-oc-valor">—</div>
-        </div>
+        <div><div style="font-size:10px;color:var(--text3)">Número</div><div style="font-family:var(--mono);font-weight:700;color:var(--accent2)" id="encnf-oc-num">—</div></div>
+        <div><div style="font-size:10px;color:var(--text3)">Fornecedor</div><div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="encnf-oc-forn">—</div></div>
+        <div><div style="font-size:10px;color:var(--text3)">Valor da OC</div><div style="font-family:var(--mono);font-weight:700;color:var(--amber)" id="encnf-oc-valor">—</div></div>
       </div>
     </div>
     <div style="background:rgba(0,112,214,.07);border:1px solid rgba(0,112,214,.2);border-radius:8px;padding:9px 13px;margin-bottom:16px;font-size:12px;color:var(--accent2);line-height:1.5">
@@ -1778,7 +1810,7 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="form-group">
         <label>Fornecedor</label>
-        <div style="background:var(--input-bg,#F5F8FB);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text2)" id="encnf-forn">—</div>
+        <div style="background:#F5F8FB;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text2)" id="encnf-forn">—</div>
       </div>
       <div class="form-group">
         <label>Valor do Lançamento *</label>
@@ -1810,9 +1842,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-encerrar-sem-nf')">Cancelar</button>
-      <button class="btn btn-amber" onclick="confirmarEncerrarOCSemNF()" style="font-weight:600">
-        ⚠️ Confirmar Encerramento s/ NF
-      </button>
+      <button class="btn btn-amber" onclick="confirmarEncerrarOCSemNF()" style="font-weight:600">⚠️ Confirmar Encerramento s/ NF</button>
     </div>
   </div>
 </div>
