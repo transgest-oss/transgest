@@ -1708,6 +1708,132 @@ supa.auth.getSession().then(async ({ data: { session } }) => {
   _appInitializing = false;
 });
 
+
+// ======================== IMPORTADOR EXCEL — PIPAS ========================
+function abrirImportadorPipa(){
+  const input = document.getElementById('input-import-pipa');
+  if(input){ input.value = ''; input.click(); }
+}
+
+async function importarPipaXLSX(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  toast('⏳ Lendo planilha...', 'success');
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const wb = XLSX.read(arrayBuffer, { type: 'arraybuffer', cellDates: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if(!rows.length){ toast('Planilha vazia ou sem dados.', 'error'); return; }
+
+    // Detecta colunas automaticamente (case-insensitive)
+    const sample = rows[0];
+    const keys = Object.keys(sample);
+    const findCol = (...opts) => keys.find(k => opts.some(o => k.toLowerCase().includes(o.toLowerCase()))) || '';
+
+    const colData      = findCol('data','date');
+    const colHora      = findCol('hora','hour','time');
+    const colLitros    = findCol('peso','litro','volume','qty','qtd','quantidade');
+    const colPlaca     = findCol('placa','plate','veículo','veiculo');
+    const colDestino   = findCol('descarga','destino','local de desc','destination','local desc');
+    const colMotorista = findCol('motorista','driver','motor');
+
+    if(!colPlaca || !colLitros){
+      toast('Não foi possível identificar as colunas. Verifique o arquivo.', 'error');
+      return;
+    }
+
+    let importadas = 0;
+    let ignoradas  = 0;
+    const novas = [];
+
+    rows.forEach(row => {
+      const placa     = String(row[colPlaca]||'').trim().toUpperCase();
+      const litros    = parseFloat(row[colLitros]) || 0;
+      const destino   = String(row[colDestino]||'').trim() || 'Não informado';
+      const motorista = String(row[colMotorista]||'').trim() || '-';
+
+      // Data
+      let dataISO = today;
+      if(colData && row[colData]){
+        const d = row[colData];
+        if(d instanceof Date){
+          dataISO = d.toISOString().slice(0,10);
+        } else if(typeof d === 'string' && d.match(/\d{4}-\d{2}-\d{2}/)){
+          dataISO = d.slice(0,10);
+        } else if(typeof d === 'string' && d.match(/\d{2}\/\d{2}\/\d{4}/)){
+          const [dd,mm,yyyy] = d.split('/');
+          dataISO = `${yyyy}-${mm}-${dd}`;
+        }
+      }
+
+      // Hora
+      let hora = '';
+      if(colHora && row[colHora]){
+        const h = row[colHora];
+        if(h instanceof Date){
+          hora = h.toTimeString().slice(0,5);
+        } else if(typeof h === 'string'){
+          hora = h.slice(0,5);
+        } else if(typeof h === 'number'){
+          // Excel armazena hora como fração do dia
+          const totalMin = Math.round(h * 24 * 60);
+          const hh = String(Math.floor(totalMin/60)).padStart(2,'0');
+          const mm = String(totalMin % 60).padStart(2,'0');
+          hora = `${hh}:${mm}`;
+        }
+      }
+
+      if(!placa || litros <= 0){ ignoradas++; return; }
+
+      // Verifica duplicata por data+placa+litros+hora
+      const jaTem = ViagensPipa.some(v =>
+        v.placa === placa &&
+        v.data  === dataISO &&
+        Math.abs((parseFloat(v.litros)||0) - litros) < 1 &&
+        (!hora || v.hora === hora)
+      );
+      if(jaTem){ ignoradas++; return; }
+
+      novas.push({
+        id:        _nextPipaId++,
+        data:      dataISO,
+        hora:      hora,
+        placa:     placa,
+        litros:    litros,
+        destino:   destino,
+        motorista: motorista,
+        importado: true
+      });
+      importadas++;
+    });
+
+    if(!novas.length){
+      toast(`Nenhuma viagem nova encontrada. ${ignoradas} já existiam ou eram inválidas.`, 'error');
+      return;
+    }
+
+    // Insere no início (mais recentes primeiro)
+    ViagensPipa.unshift(...novas);
+
+    // Persiste no Supabase
+    await saveEntidade('ViagensPipa', novas);
+    await saveCounters();
+
+    renderPipas();
+    toast(`✅ ${importadas} viagem(ns) importada(s)! ${ignoradas > 0 ? ignoradas + ' duplicada(s)/inválida(s) ignorada(s).' : ''}`);
+
+  } catch(e){
+    console.error('Erro importação pipa:', e);
+    toast('Erro ao importar: ' + e.message, 'error');
+  }
+
+  event.target.value = '';
+}
+
 // ======================== IMPORTAÇÃO SEGURA — CONTAS A PAGAR ========================
 // Esta camada deixa o sistema mais tolerante a planilhas com nomes de colunas diferentes
 // e garante que os títulos importados sejam salvos em tg_titulos.data com os campos que a tela usa.

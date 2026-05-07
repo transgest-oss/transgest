@@ -692,6 +692,8 @@
         <div class="section-title">🚛 Operações — Pipas (<span id="pipas-count">0</span> viagens)</div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary btn-sm" onclick="exportPipasXLSX()">📊 Excel</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirImportadorPipa()" title="Importar viagens de planilha Excel">📥 Importar Excel</button>
+          <input type="file" id="input-import-pipa" accept=".xlsx,.xls" style="display:none" onchange="importarPipaXLSX(event)"/>
           <button class="btn btn-primary" onclick="openModalPipa('novo')">+ Registrar Viagem</button>
         </div>
       </div>
