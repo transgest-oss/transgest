@@ -1744,6 +1744,79 @@
   </div>
 </div>
 
+<!-- MODAL: ENCERRAR OC SEM NF -->
+<div class="modal-overlay" id="modal-encerrar-sem-nf">
+  <div class="modal" style="width:520px">
+    <div class="modal-title" style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:22px">⚠️</span>
+      <div>
+        <div>Encerrar OC sem Nota Fiscal</div>
+        <div style="font-size:11px;font-weight:400;color:var(--text3);margin-top:2px">Cria um lançamento avulso vinculado e fecha o fluxo da OC</div>
+      </div>
+    </div>
+    <div style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.3);border-radius:10px;padding:12px 14px;margin-bottom:16px">
+      <div style="font-size:10px;color:var(--amber);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:8px">📋 OC vinculada</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:10px;color:var(--text3)">Número</div>
+          <div style="font-family:var(--mono);font-weight:700;color:var(--accent2)" id="encnf-oc-num">—</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3)">Fornecedor</div>
+          <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="encnf-oc-forn">—</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3)">Valor da OC</div>
+          <div style="font-family:var(--mono);font-weight:700;color:var(--amber)" id="encnf-oc-valor">—</div>
+        </div>
+      </div>
+    </div>
+    <div style="background:rgba(0,112,214,.07);border:1px solid rgba(0,112,214,.2);border-radius:8px;padding:9px 13px;margin-bottom:16px;font-size:12px;color:var(--accent2);line-height:1.5">
+      ℹ️ Um <strong>lançamento avulso</strong> será criado no <strong>Contas a Pagar</strong> vinculado a esta OC.
+      A OC será encerrada com status <strong>"Encerrada s/ NF"</strong> e o registro ficará preservado no histórico.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>Fornecedor</label>
+        <div style="background:var(--input-bg,#F5F8FB);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text2)" id="encnf-forn">—</div>
+      </div>
+      <div class="form-group">
+        <label>Valor do Lançamento *</label>
+        <input type="number" id="encnf-valor" step="0.01" min="0.01" placeholder="0,00" style="font-family:var(--mono)"/>
+      </div>
+      <div class="form-group">
+        <label>Vencimento *</label>
+        <input type="date" id="encnf-venc"/>
+      </div>
+      <div class="form-group">
+        <label>Status do Título</label>
+        <select id="encnf-status">
+          <option value="Pendente">Pendente (ainda não pago)</option>
+          <option value="Pago">Pago (já quitado)</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Placa vinculada</label>
+        <input type="text" id="encnf-placa" placeholder="-"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Motivo do encerramento sem NF *</label>
+        <input type="text" id="encnf-motivo" placeholder="Ex: Fornecedor não emitiu NF, pagamento antecipado, serviço informal..."/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Observações adicionais</label>
+        <input type="text" id="encnf-obs" placeholder="Opcional — aparecerá no campo obs do título"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-encerrar-sem-nf')">Cancelar</button>
+      <button class="btn btn-amber" onclick="confirmarEncerrarOCSemNF()" style="font-weight:600">
+        ⚠️ Confirmar Encerramento s/ NF
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- CONFIRM DELETE -->
 <div class="modal-overlay" id="modal-confirm">
   <div class="modal confirm-modal">

@@ -85,6 +85,8 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
 .oc-motivo{font-size:10.5px;color:var(--red);margin-top:3px;line-height:1.25;max-width:260px;white-space:normal}
 .tr-cancelada td{opacity:.76;text-decoration:none;background:rgba(200,32,58,.045)!important}
 .tr-cancelada:hover td{background:rgba(200,32,58,.075)!important}
+.tr-encerrada-sem-nf td{background:rgba(245,166,35,.04)!important}
+.tr-encerrada-sem-nf:hover td{background:rgba(245,166,35,.09)!important}
 .oc-card-mobile-hint{font-size:11px;color:var(--text3)}
 
 /* TABLE */

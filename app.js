@@ -550,6 +550,87 @@ function cancelarOC(id){
 }
 function excluirOC(id){ cancelarOC(id); }
 
+// ======================== ENCERRAR OC SEM NF ========================
+function abrirEncerrarOCSemNF(id){
+  const oc = OCs.find(x => x.id === id);
+  if(!oc) return;
+  if(oc.status === 'Cancelada')       { toast('OC cancelada não pode ser encerrada.','error'); return; }
+  if(oc.nf === 'Recebida')            { toast('Esta OC j\u00e1 possui NF recebida.','error'); return; }
+  if(oc.status === 'Encerrada s/ NF') { toast('Esta OC j\u00e1 foi encerrada sem NF.','error'); return; }
+
+  $('encnf-oc-num').textContent   = oc.num;
+  $('encnf-oc-forn').textContent  = oc.forn;
+  $('encnf-oc-valor').textContent = fmt(oc.valor);
+  $('encnf-valor').value          = oc.valor;
+  $('encnf-forn').textContent     = oc.forn;
+  $('encnf-venc').value           = today;
+  $('encnf-status').value         = 'Pendente';
+  $('encnf-motivo').value         = '';
+  $('encnf-obs').value            = '';
+  $('encnf-placa').value          = oc.placas || '-';
+  $('modal-encerrar-sem-nf').dataset.ocId = id;
+  $('modal-encerrar-sem-nf').classList.add('open');
+}
+
+async function confirmarEncerrarOCSemNF(){
+  const id  = Number($('modal-encerrar-sem-nf').dataset.ocId);
+  const oc  = OCs.find(x => x.id === id);
+  if(!oc){ toast('OC n\u00e3o encontrada.','error'); return; }
+
+  const motivo = $('encnf-motivo').value.trim();
+  if(!motivo){ toast('Informe o motivo do encerramento.','error'); return; }
+
+  const valor = parseFloat($('encnf-valor').value) || 0;
+  if(valor <= 0){ toast('Informe um valor v\u00e1lido para o lan\u00e7amento.','error'); return; }
+
+  const venc   = $('encnf-venc').value || today;
+  const status = $('encnf-status').value || 'Pendente';
+  const obs    = $('encnf-obs').value.trim();
+  const placa  = $('encnf-placa').value || '-';
+
+  const titulo = {
+    id:          newId('tit'),
+    forn:        oc.forn,
+    fornecedor:  oc.forn,
+    ref:         'OC-' + oc.num + '-SEM-NF',
+    tipo:        'Lan\u00e7amento s/ NF',
+    categoria:   oc.categoria || 'outros',
+    valor,
+    emissao:     today,
+    venc,
+    status,
+    placa,
+    obs:         obs || ('Encerramento sem NF \u2014 OC ' + oc.num + '. Motivo: ' + motivo),
+    ocId:        oc.id,
+    ocNum:       oc.num,
+    semNF:       true,
+    boleto:      '',
+    comprovante: ''
+  };
+  Titulos.unshift(titulo);
+
+  const antes = cloneSimples(oc);
+  oc.nf                = 'Sem NF';
+  oc.status            = 'Encerrada s/ NF';
+  oc.encerradaSemNFEm  = new Date().toISOString();
+  oc.encerradaSemNFPor = usuarioAtualNome();
+  oc.motivoSemNF       = motivo;
+
+  registrarHistoricoOC(oc, 'Encerrada sem NF',
+    'Lan\u00e7amento avulso criado: ' + fmt(valor) + ' \u2014 venc. ' + venc + ' \u2014 status: ' + status + '. Motivo: ' + motivo,
+    antes, oc);
+
+  await saveEntidade('Titulos', [titulo]);
+  await saveEntidade('OCs', [oc]);
+  if(HistoricoOC.length) await saveEntidade('HistoricoOC', [HistoricoOC[0]]);
+  await saveCounters();
+
+  closeModal('modal-encerrar-sem-nf');
+  populateSelects();
+  renderAll();
+  toast('\u2705 OC ' + oc.num + ' encerrada! T\u00edtulo avulso de ' + fmt(valor) + ' criado no Contas a Pagar.');
+}
+
 // ======================== CRUD NF ========================
 
 // Atualiza status da OC com base na SOMA dos valores das NFs lançadas
@@ -1522,10 +1603,10 @@ function setFiltroOC(filtro){
   renderOC();
 }
 
-function badgeStatusOC(cancelada){
-  return cancelada
-    ? '<span class="oc-status-card cancelada">🚫 Cancelada</span>'
-    : '<span class="oc-status-card ativa">● Ativa</span>';
+function badgeStatusOC(oc){
+  if(oc.status === 'Cancelada')        return '<span class="oc-status-card cancelada">🚫 Cancelada</span>';
+  if(oc.status === 'Encerrada s/ NF')  return '<span class="oc-status-card" style="background:rgba(245,166,35,.15);color:var(--amber);border:1px solid rgba(245,166,35,.3)">⚠️ Enc. s/ NF</span>';
+  return '<span class="oc-status-card ativa">● Ativa</span>';
 }
 
 function renderOC(){
@@ -1553,17 +1634,23 @@ function renderOC(){
     const rBadge = o.isRateio ? `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(167,139,250,.14);color:var(--purple);border:1px solid rgba(167,139,250,.25);margin-left:4px">🔀 ${o.rateio.length} caminhões</span>` : '';
     const motivo = cancelada && o.motivoCancelamento ? `<div class="oc-motivo">Motivo: ${o.motivoCancelamento}</div>` : '';
     const num = `<div class="oc-num-wrap"><span>${o.num}</span>${cancelada?'<span class="oc-cancel-tag">Cancelada</span>':''}</div>`;
+    const encerradaSemNF = o.status === 'Encerrada s/ NF';
+    const semNFBtn = (!cancelada && !encerradaSemNF && o.nf !== 'Recebida')
+      ? `<button class="btn btn-amber btn-sm" onclick="abrirEncerrarOCSemNF(${o.id})" title="Encerrar sem NF — cria lançamento avulso">⚠️ s/ NF</button>`
+      : '';
     const botoes = cancelada
       ? `<button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button><button class="btn btn-muted btn-sm" onclick="verHistoricoOC(${o.id})">🕘 Histórico</button>`
-      : `<button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button><button class="btn btn-edit btn-sm" onclick="editarOC(${o.id})">✏️</button><button class="btn btn-amber btn-sm" onclick="cancelarOC(${o.id})">🚫 Cancelar</button><button class="btn btn-muted btn-sm" onclick="verHistoricoOC(${o.id})">🕘</button>`;
-    return `<tr class="${cancelada?'tr-cancelada':''}" data-status="${cancelada?'cancelada':'ativa'}">
+      : encerradaSemNF
+        ? `<button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button><button class="btn btn-muted btn-sm" onclick="verHistoricoOC(${o.id})">🕘 Histórico</button>`
+        : `<button class="btn btn-secondary btn-sm" onclick="gerarPDFOC(${o.id})">📄 PDF</button><button class="btn btn-edit btn-sm" onclick="editarOC(${o.id})">✏️</button>${semNFBtn}<button class="btn btn-amber btn-sm" onclick="cancelarOC(${o.id})">🚫 Cancelar</button><button class="btn btn-muted btn-sm" onclick="verHistoricoOC(${o.id})">🕘</button>`;
+    return `<tr class="${cancelada?'tr-cancelada':encerradaSemNF?'tr-encerrada-sem-nf':''}" data-status="${cancelada?'cancelada':encerradaSemNF?'encerrada':'ativa'}">
     <td class="mono" style="color:var(--accent2);font-size:11px">${num}</td>
     <td style="font-size:11px">${o.data}</td>
     <td style="max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.forn}">${o.forn}${motivo}</td>
     <td class="mono" style="font-size:11px">${o.placas}${rBadge}</td>
     <td>${chip(o.tipo,'cgr')}</td>
     <td class="mono">${fmt(o.valor)}</td>
-    <td>${badgeStatusOC(cancelada)}</td>
+    <td>${badgeStatusOC(o)}</td>
     <td>${chipS(cancelada ? 'Cancelada' : o.nf)}</td>
     <td><div class="action-btns">${botoes}</div></td>
   </tr>`;
@@ -5050,6 +5137,7 @@ const FN_ENTIDADES = {
   salvarNFRapida:   ['NFs', 'OCs'],
   marcarPago:       ['Titulos'],
   cancelarOC:       ['OCs', 'HistoricoOC'],
+  // confirmarEncerrarOCSemNF gerencia o próprio save diretamente (função async com await)
 };
 
 function wrapSalvar(fnName){
