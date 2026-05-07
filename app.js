@@ -155,7 +155,13 @@ function populateSelects(){
   // OCs no select da NF
   const selNFOC=$('f-nf-oc');
   selNFOC.innerHTML='<option value="Sem OC">Sem OC</option>';
-  OCs.filter(o=>o.status!=='Cancelada' && o.nf!=='Recebida').forEach(o=>selNFOC.innerHTML+=`<option value="${o.num}">${o.num} — ${o.forn}</option>`);
+  OCs.filter(o=>{
+    if(o.status==='Cancelada') return false;
+    // Mostra a OC enquanto a soma das NFs vinculadas for menor que o valor da OC
+    const somaVinculadas = NFs.filter(n=>n.oc===o.num).reduce((acc,n)=>acc+(parseFloat(n.valor)||0),0);
+    const valorOC = parseFloat(o.valor)||0;
+    return somaVinculadas < valorOC - 0.02;
+  }).forEach(o=>selNFOC.innerHTML+=`<option value="${o.num}">${o.num} — ${o.forn} (OC: ${fmt(parseFloat(o.valor)||0)})</option>`);
   // Tipos OC
   atualizarSelectTiposOC();
   // Placas
@@ -546,14 +552,18 @@ function excluirOC(id){ cancelarOC(id); }
 
 // ======================== CRUD NF ========================
 
-// Atualiza status da OC com base nas NFs já lançadas
+// Atualiza status da OC com base na SOMA dos valores das NFs lançadas
 function atualizarStatusOC(oc){
   if(!oc) return;
   const nfsVinculadas = NFs.filter(n => n.oc === oc.num);
-  const esperadas = oc.nfsEsperadas || 1;
   if(nfsVinculadas.length === 0){
     oc.nf = 'Pendente';
-  } else if(nfsVinculadas.length >= esperadas){
+    return;
+  }
+  const somaVinculadas = nfsVinculadas.reduce((acc, n) => acc + (parseFloat(n.valor)||0), 0);
+  const valorOC = parseFloat(oc.valor) || 0;
+  // Tolerância de R$ 0,02 para arredondamentos
+  if(somaVinculadas >= valorOC - 0.02){
     oc.nf = 'Recebida';
   } else {
     oc.nf = 'Parcialmente Recebida';
@@ -3998,19 +4008,49 @@ const RM_LINHAS = [
   { id: 'colaboradores',  label: 'Colaboradores',                cats: ['colaboradores'] },
 ];
 
-// Calcula o total de uma categoria num mês/ano a partir dos Títulos
+// Calcula o total de uma categoria num mês/ano — NFs + Títulos avulsos
 function rmValorCatMes(cats, ano, mes){
-  // Regime de competência: agrupa pela data de emissão da NF
-  // não pelo vencimento do título
   const prefixo = `${ano}-${String(mes).padStart(2,'0')}`;
-  
-  // Busca nas NFs pela data de emissão
-  return NFs.filter(nf => {
+
+  // 1) NFs pela data de emissão (exclui as aguardando faturamento)
+  const totalNFs = NFs.filter(nf => {
     const cat = nf.categoria || 'manutencao';
     if(!cats.includes(cat)) return false;
     if(nf.pgto === 'Aguardando Faturamento') return false;
     return (nf.data||'').startsWith(prefixo);
-  }).reduce((a,nf) => a + (nf.valor||0), 0);
+  }).reduce((a,nf) => a + (parseFloat(nf.valor)||0), 0);
+
+  // 2) Títulos avulsos (sem NF vinculada) pela data de emissão/competência
+  // Evita dupla contagem: exclui títulos que foram gerados por NFs (ref começa com número de NF conhecida)
+  const nfNums = new Set(NFs.map(nf => nf.num).filter(Boolean));
+  const totalTitulos = Titulos.filter(t => {
+    const cat = t.categoria || t.tipo || '';
+    // Mapeia o tipo do título para a categoria do resumo
+    const catMapeada = (() => {
+      if(cat === 'impostos' || cat === 'Imposto ISSQN' || cat === 'Imposto INSS' || cat === 'FGTS') return 'impostos';
+      if(cat === 'funcionarios' || cat === 'Folha de Pagamento') return 'funcionarios';
+      if(cat === 'diarias') return 'diarias';
+      if(cat === 'consorcios') return 'consorcios';
+      if(cat === 'gratificacoes' || cat === 'Gratificações') return 'gratificacoes';
+      if(cat === 'seguros' || cat === 'Seguro') return 'seguros';
+      if(cat === 'adiantamentos' || cat === 'Adiantamentos') return 'adiantamentos';
+      if(cat === 'colaboradores') return 'colaboradores';
+      if(cat === 'combustiveis') return 'combustiveis';
+      if(cat === 'manutencao') return 'manutencao';
+      if(cat === 'scherer') return 'scherer';
+      if(cat === 'scherer_ambi') return 'scherer_ambi';
+      if(cat === 'outros' || cat === 'Outros' || cat === 'Aluguel' || cat === 'Compromisso Anterior') return 'outros';
+      return null;
+    })();
+    if(!catMapeada || !cats.includes(catMapeada)) return false;
+    // Exclui títulos que já vieram de uma NF (evita dupla contagem)
+    if(t.ref && nfNums.has(t.ref)) return false;
+    // Usa data de emissão/competência do título
+    const dataRef = (t.emissao || t.venc || '');
+    return dataRef.startsWith(prefixo);
+  }).reduce((a,t) => a + (parseFloat(t.valor)||0), 0);
+
+  return totalNFs + totalTitulos;
 }
 
 function renderRelMensal(){
