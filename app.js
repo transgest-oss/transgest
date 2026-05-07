@@ -544,6 +544,9 @@ function cancelarOC(id){
       registro_id: o.num || o.id,
       descricao: `Cancelou OC ${o.num || o.id}. Motivo: ${motivoLimpo}`
     });
+    // Salva diretamente no Supabase para evitar race condition com wrapSalvar
+    saveEntidade('OCs', [o]);
+    if(HistoricoOC.length) saveEntidade('HistoricoOC', [HistoricoOC[0]]);
     toast('OC cancelada e preservada no histórico.');
     renderAll();
   });
@@ -2129,7 +2132,7 @@ function atualizarSelectTiposOC(){
 }
 
 function renderPendentes(){
-  const pends=OCs.filter(o=>o.nf==='Pendente'||o.nf==='Parcialmente Recebida');
+  const pends=OCs.filter(o=>(o.nf==='Pendente'||o.nf==='Parcialmente Recebida') && o.status!=='Cancelada' && o.status!=='Encerrada s/ NF');
   $('tb-pendentes').innerHTML=pends.length?pends.map(o=>{
     const days=Math.round((new Date()-new Date(o.data))/86400000);
     const nfsLancadas = NFs.filter(n=>n.oc===o.num).length;
@@ -5117,7 +5120,7 @@ const _orig = {};
   'salvarOC','salvarNF','salvarTitulo','salvarSaida','salvarFrota',
   'salvarEPIEntrada','salvarEPISaida','salvarColab','salvarUsuario',
   'salvarFornecedor','salvarProduto','salvarNFRapida',
-  'marcarPago','cancelarOC'
+  'marcarPago'
 ].forEach(fn => { _orig[fn] = window[fn]; });
 
 // Mapa: função → quais entidades ela afeta
@@ -5136,7 +5139,7 @@ const FN_ENTIDADES = {
   // salvarFaturamento gerencia o próprio save diretamente (função async)
   salvarNFRapida:   ['NFs', 'OCs'],
   marcarPago:       ['Titulos'],
-  cancelarOC:       ['OCs', 'HistoricoOC'],
+  // cancelarOC: gerencia o próprio save via confirmDelete interceptado
   // confirmarEncerrarOCSemNF: async direta com saveEntidade
 };
 

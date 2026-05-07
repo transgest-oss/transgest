@@ -250,3 +250,6 @@ textarea{resize:vertical;min-height:65px}
 .oc-filter-tab.amber.on{background:rgba(200,120,0,.12);color:var(--amber)}
 .tr-encerrada-sem-nf td{background:rgba(245,166,35,.04)!important}
 .tr-encerrada-sem-nf:hover td{background:rgba(245,166,35,.09)!important}
+
+/* PAGINAÇÃO */
+#oc-paginacao, #nf-paginacao, #fin-paginacao { padding: 6px 0 2px; }
