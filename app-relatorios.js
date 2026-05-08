@@ -78,12 +78,72 @@ function relCateg(d){
   $('tb-categ').innerHTML=ks.length?ks.map(k=>`<tr><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:${CC[k]};flex-shrink:0"></span>${CL[k]||k}</span></td><td class="mono">${fmt(ct[k])}</td><td class="mono" style="color:var(--text2)">${cq[k]}</td><td class="mono" style="color:var(--accent)">${fmt(cpg[k]||0)}</td><td class="mono" style="color:var(--red)">${fmt(cpn[k]||0)}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">Sem dados</td></tr>';
 }
 function relPlaca(d){
-  const pm={},pp={};
-  d.filter(x=>x.placa&&x.placa!=='-').forEach(x=>{if(x.cat==='manutencao')pm[x.placa]=(pm[x.placa]||0)+x.valor;if(x.cat==='pecas')pp[x.placa]=(pp[x.placa]||0)+x.valor;});
-  const ps=[...new Set([...Object.keys(pm),...Object.keys(pp)])].sort();
+  // Base de cálculo: OCs (não títulos/financeiro)
+  // Filtra OCs pelo período selecionado usando a data da OC
+  const {de, ate} = getDates();
+  const ocsNoPeriodo = OCs.filter(o => {
+    if(o.status === 'Cancelada') return false;
+    const dataOC = new Date(o.data);
+    return dataOC >= de && dataOC <= ate;
+  });
+
+  // Acumula valor por placa, respeitando rateio
+  const ptot = {}; // total por placa
+  ocsNoPeriodo.forEach(o => {
+    if(o.isRateio && Array.isArray(o.rateio) && o.rateio.length) {
+      // OC com rateio: distribui cada fatia para sua placa
+      o.rateio.forEach(r => {
+        if(r.placa && r.placa !== '-') {
+          ptot[r.placa] = (ptot[r.placa] || 0) + (parseFloat(r.valor) || 0);
+        }
+      });
+    } else {
+      // OC simples: placa única
+      const p = o.placas || o.placa || '-';
+      if(p && p !== '-') {
+        ptot[p] = (ptot[p] || 0) + (parseFloat(o.valor) || 0);
+      }
+    }
+  });
+
+  const ps = Object.keys(ptot).sort();
   dc('c-placa');
-  if(ps.length)CH['c-placa']=new Chart($('c-placa'),{type:'bar',data:{labels:ps,datasets:[{label:'Manutenção',data:ps.map(p=>pm[p]||0),backgroundColor:'#0099FF',borderRadius:4},{label:'Peças',data:ps.map(p=>pp[p]||0),backgroundColor:'#00C4A1',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8FA3C0',font:{size:11}},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#5A7394',font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'},grid:{color:'rgba(255,255,255,.05)'}}}}});
-  $('tb-rfplaca').innerHTML=ps.length?ps.map(p=>{const m=pm[p]||0,pc=pp[p]||0,tot=m+pc,lim=5000,sl=lim-tot,pct=Math.round(Math.min(100,tot/lim*100));return`<tr><td class="mono" style="color:var(--accent2)">${p}</td><td class="mono">${fmt(m)}</td><td class="mono">${fmt(pc)}</td><td class="mono" style="font-weight:600">${fmt(tot)}</td><td class="mono" style="color:var(--text3)">${fmt(lim)}</td><td class="mono" style="color:${sl<0?'var(--red)':'var(--accent)'}">${fmt(sl)}</td><td>${chip(pct+'%',pct>85?'cr':pct>65?'ca':'cg')}</td></tr>`;}).join(''):'<tr><td colspan="7" class="empty">Sem dados por placa</td></tr>';
+  if(ps.length) CH['c-placa'] = new Chart($('c-placa'), {
+    type: 'bar',
+    data: {
+      labels: ps,
+      datasets: [{
+        label: 'Gasto (OCs)',
+        data: ps.map(p => ptot[p] || 0),
+        backgroundColor: '#0099FF',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8FA3C0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,.05)' } },
+        y: { ticks: { color: '#5A7394', font: { size: 10 }, callback: v => 'R$' + Math.round(v / 1000) + 'k' }, grid: { color: 'rgba(255,255,255,.05)' } }
+      }
+    }
+  });
+
+  // Busca limite por placa na frota (campo limite)
+  $('tb-rfplaca').innerHTML = ps.length ? ps.map(p => {
+    const tot = ptot[p] || 0;
+    const frotaItem = Frota.find(f => f.placa === p);
+    const lim = parseFloat(frotaItem && frotaItem.limite ? frotaItem.limite : 5000);
+    const sl = lim - tot;
+    const pct = Math.round(Math.min(100, tot / lim * 100));
+    return `<tr>
+      <td class="mono" style="color:var(--accent2)">${p}</td>
+      <td class="mono" style="font-weight:600">${fmt(tot)}</td>
+      <td class="mono" style="color:var(--text3)">${fmt(lim)}</td>
+      <td class="mono" style="color:${sl < 0 ? 'var(--red)' : 'var(--accent)'}">${fmt(sl)}</td>
+      <td>${chip(pct + '%', pct > 85 ? 'cr' : pct > 65 ? 'ca' : 'cg')}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" class="empty">Sem dados por placa</td></tr>';
 }
 function relLista(d){
   $('cnt-lista').textContent=d.length+' registros';
