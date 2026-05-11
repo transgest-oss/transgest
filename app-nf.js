@@ -4,7 +4,7 @@
 // Atualiza status da OC com base na SOMA dos valores das NFs lançadas
 function atualizarStatusOC(oc){
   if(!oc) return;
-  const nfsVinculadas = NFs.filter(n => n.oc === oc.num);
+  const nfsVinculadas = NFs.filter(n => n.oc === oc.num && n.pgto !== 'Aguardando Faturamento');
   if(nfsVinculadas.length === 0){
     oc.nf = 'Pendente';
     return;
