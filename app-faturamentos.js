@@ -273,14 +273,10 @@ async function salvarFaturamento(){
   };
   Faturamentos.unshift(fat);
 
-  // Marca NFs como Faturado e atualiza status das OCs vinculadas
+  // Marca NFs como Faturado
   nfIds.forEach(id=>{
     const nf = NFs.find(x=>x.id===id);
-    if(nf){
-      nf.pgto='Faturado'; nf.fatNum=num;
-      const oc = OCs.find(o => o.num === nf.oc);
-      if(oc) atualizarStatusOC(oc);
-    }
+    if(nf){ nf.pgto='Faturado'; nf.fatNum=num; }
   });
 
   // Cria 1 título por parcela — mas todas referenciando o mesmo faturamento consolidado
