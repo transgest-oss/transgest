@@ -266,7 +266,7 @@ function renderOC(){
     const trClass = cancelada ? 'tr-cancelada' : encerradaSemNF ? 'tr-encerrada-sem-nf' : '';
     return `<tr class="${trClass}" data-status="${cancelada?'cancelada':encerradaSemNF?'encerrada':'ativa'}">
     <td class="mono" style="color:var(--accent2);font-size:11px">${num}</td>
-    <td style="font-size:11px">${o.data}</td>
+    <td style="font-size:11px">${formatarDataBR(o.data)}</td>
     <td style="max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.forn}">${o.forn}${motivo}</td>
     <td class="mono" style="font-size:11px">${o.placas}${rBadge}</td>
     <td>${chip(o.tipo,'cgr')}</td>
@@ -446,9 +446,8 @@ function renderEstoque(){
   // Tabela histórico de saídas
   $('saidas-count').textContent=Saidas.length;
   $('tb-saidas').innerHTML=Saidas.length?Saidas.map(s=>`<tr>
-    <td style="font-size:11px">${s.data}</td>
+    <td style="font-size:11px">${formatarDataBR(s.data)}</td>
     <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.peca}</td>
-    <td class="mono">${(s.qtd||0).toLocaleString('pt-BR',{maximumFractionDigits:3})} ${s.unSaida||''}</td>
     <td class="mono" style="color:var(--accent)">${s.placa}</td>
     <td>${s.resp}</td>
     <td class="mono" style="color:var(--accent2);font-size:11px">${s.oc}</td>
@@ -469,13 +468,14 @@ function renderFrota(){
     return '';
   }
   const statusMap={'Ativo':'cg','Manutenção':'ca','Inativo':'cgr'};
-  $('frota-cards').innerHTML=Frota.length?Frota.map(f=>{
+  const frotaOrdenada=[...Frota].sort((a,b)=>(a.placa||'').localeCompare(b.placa||'','pt-BR'));
+  $('frota-cards').innerHTML=frotaOrdenada.length?frotaOrdenada.map(f=>{
     const pct=Math.min(100,Math.round((f.gasto||0)/(f.limite||1)*100));
     const cls=pct>85?'danger':pct>65?'warn':'';
     const color=pct>85?'var(--red)':pct>65?'var(--amber)':'var(--accent)';
     const chipCls=pct>85?'cr':pct>65?'ca':'cg';
     const stCls=statusMap[f.status||'Ativo']||'cg';
-    const alertas=vencBadge(f.vlicen,'Licenc.')+vencBadge(f.vseguro,'Seguro');
+    const alertas=vencBadge(f.vlicen,'Licenc.');
     return `<div class="card-block" style="margin-bottom:0;border-left:3px solid ${f.status==='Inativo'?'var(--text3)':f.status==='Manutenção'?'var(--amber)':'var(--accent)'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div>
@@ -494,8 +494,7 @@ function renderFrota(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;color:var(--text3);margin-bottom:7px">
         ${f.chassi?`<div>Chassi: <span style="color:var(--text);font-family:var(--mono);font-size:9px">${f.chassi}</span></div>`:''}
         ${f.renavam?`<div>RENAVAM: <span style="color:var(--text);font-family:var(--mono)">${f.renavam}</span></div>`:''}
-        ${f.vseguro?`<div>Venc. seguro: <span style="color:var(--text)">${f.vseguro}</span></div>`:''}
-        ${f.vlicen?`<div>Venc. licenc.: <span style="color:var(--text)">${f.vlicen}</span></div>`:''}
+        ${f.vlicen?`<div>Venc. licenc.: <span style="color:var(--text)">${formatarDataBR(f.vlicen)}</span></div>`:''}
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
         <span style="color:var(--text3)">Gasto mensal</span>
@@ -511,7 +510,7 @@ function renderFrota(){
   const alertasBar=$('frota-alertas-bar');
   if(alertasBar){
     const alertas=[];
-    Frota.forEach(f=>{
+    frotaOrdenada.forEach(f=>{
       function checkDoc(data,label){
         if(!data) return;
         const dt=new Date(data+'T00:00:00');
@@ -519,7 +518,6 @@ function renderFrota(){
         else if(dt<=d30) alertas.push(`⏰ ${f.placa}: ${label} vence em ${Math.ceil((dt-hoje)/864e5)} dias`);
       }
       checkDoc(f.vlicen,'Licenciamento');
-      checkDoc(f.vseguro,'Seguro');
     });
     if(alertas.length){
       alertasBar.style.display='flex';
@@ -564,8 +562,8 @@ function renderEPI(){
   }).join(''):'<tr><td colspan="10" class="empty">Sem EPIs cadastrados no estoque</td></tr>';
   $('tb-epi-ent').innerHTML=EPIEntregas.length?EPIEntregas.map(e=>`<tr>
     <td>${e.colab}</td><td style="font-size:11px">${e.epi}</td>
-    <td class="mono">${e.qtd}</td><td style="font-size:11px">${e.data}</td>
-    <td style="font-size:11px;color:var(--text3)"${vencCls(e.troca)}>${e.troca||'-'}</td>
+    <td class="mono">${e.qtd}</td><td style="font-size:11px">${formatarDataBR(e.data)}</td>
+    <td style="font-size:11px;color:var(--text3)"${vencCls(e.troca)}>${formatarDataBR(e.troca)||'-'}</td>
     <td>${acts(`editarEPISaida(${e.id})`,`excluirEPISaida(${e.id})`)}</td>
   </tr>`).join(''):'<tr><td colspan="6" class="empty">Sem entregas registradas</td></tr>';
 }
@@ -576,14 +574,15 @@ function renderFrotaTabela(){
   function vc(data){
     if(!data) return '-';
     const dt=new Date(data+'T00:00:00');
-    if(dt<hoje) return `<span style="color:var(--red);font-weight:600">⚠ ${data}</span>`;
-    if(dt<=d30) return `<span style="color:var(--amber);font-weight:600">⏰ ${data}</span>`;
-    return `<span style="font-size:11px">${data}</span>`;
+    if(dt<hoje) return `<span style="color:var(--red);font-weight:600">⚠ ${formatarDataBR(data)}</span>`;
+    if(dt<=d30) return `<span style="color:var(--amber);font-weight:600">⏰ ${formatarDataBR(data)}</span>`;
+    return `<span style="font-size:11px">${formatarDataBR(data)}</span>`;
   }
   const statusMap={'Ativo':'cg','Manutenção':'ca','Inativo':'cgr'};
   const tb=$('tb-frota-tabela');
   if(!tb)return;
-  tb.innerHTML=Frota.length?Frota.map(f=>{
+  const frotaOrd=[...Frota].sort((a,b)=>(a.placa||'').localeCompare(b.placa||'','pt-BR'));
+  tb.innerHTML=frotaOrd.length?frotaOrd.map(f=>{
     const pct=Math.min(100,Math.round((f.gasto||0)/(f.limite||1)*100));
     const chipCls=pct>85?'cr':pct>65?'ca':'cg';
     return `<tr>
@@ -599,7 +598,7 @@ function renderFrotaTabela(){
       <td>${vc(f.vlicen)}</td>
       <td>${acts(`editarFrota(${f.id})`,`excluirFrota(${f.id})`)}</td>
     </tr>`;
-  }).join(''):'<tr><td colspan="13" class="empty">Nenhum veículo cadastrado.</td></tr>';
+  }).join(''):'<tr><td colspan="12" class="empty">Nenhum veículo cadastrado.</td></tr>';
 }
 function setFrotaTab(tab, el){
   document.querySelectorAll('.tab-row .tab').forEach(t=>t.classList.remove('on'));
@@ -774,7 +773,7 @@ function renderPendentes(){
       : '';
     return `<tr>
       <td class="mono" style="color:var(--accent2)">${o.num}</td>
-      <td style="font-size:11px">${o.data}</td>
+      <td style="font-size:11px">${formatarDataBR(o.data)}</td>
       <td>${o.forn}</td>
       <td class="mono" style="font-size:11px">${o.placas}</td>
       <td class="mono">${fmt(o.valor)}</td>
