@@ -341,13 +341,16 @@ function salvarOC(){
     num = String(maiorExistente + 1);
   }
 
-  const obj={num,data,forn,placas,valor,tipo:categoriaLabel(catOC),categoria:catOC,nf:'Pendente',nfsEsperadas:1,desc:$('f-oc-desc').value.trim(),rateio,isRateio};
+  // nf e nfsEsperadas são preservados na edição e recalculados depois
+  const obj={num,data,forn,placas,valor,tipo:categoriaLabel(catOC),categoria:catOC,desc:$('f-oc-desc').value.trim(),rateio,isRateio};
 
   if(editing.oc){
     const i=OCs.findIndex(x=>x.id===editing.oc);
     if(OCs[i].status==='Cancelada'){ toast('OC cancelada não pode ser editada.','error'); return; }
     const antes = cloneSimples(OCs[i]);
     OCs[i]={...OCs[i],...obj};
+    // Recalcula status NF para não perder vínculo com NFs já lançadas
+    atualizarStatusOC(OCs[i]);
     registrarHistoricoOC(OCs[i], 'Editou OC', resumoMudancasOC(antes, OCs[i]), antes, OCs[i]);
     registrarLog({
       acao: 'editou',
