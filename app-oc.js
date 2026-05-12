@@ -7,7 +7,7 @@ function populateSelects(){
   OCs.filter(o=>{
     if(o.status==='Cancelada') return false;
     // Mostra a OC enquanto a soma das NFs vinculadas for menor que o valor da OC
-    const somaVinculadas = NFs.filter(n=>n.oc===o.num).reduce((acc,n)=>acc+(parseFloat(n.valor)||0),0);
+    const somaVinculadas = NFs.filter(n=>String(n.oc)===String(o.num)).reduce((acc,n)=>acc+(parseFloat(n.valor)||0),0);
     const valorOC = parseFloat(o.valor)||0;
     return somaVinculadas < valorOC - 0.02;
   }).forEach(o=>selNFOC.innerHTML+=`<option value="${o.num}">${o.num} — ${o.forn} (OC: ${fmt(parseFloat(o.valor)||0)})</option>`);

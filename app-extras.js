@@ -17,7 +17,7 @@ function nfCalcDivergencia(){
 
   // Soma das NFs ja lancadas para esta OC (exceto a que esta sendo editada agora)
   const nfEditandoId = window._nfEditandoId || null;
-  const nfsExistentes = NFs.filter(nf => nf.oc === ocNum && nf.id !== nfEditandoId);
+  const nfsExistentes = NFs.filter(nf => String(nf.oc) === String(ocNum) && nf.id !== nfEditandoId);
   const somaExistentes = nfsExistentes.reduce((acc, nf) => acc + (parseFloat(nf.valor)||0), 0);
   const somaTotal = Math.round((somaExistentes + valorFinal) * 100) / 100;
 
