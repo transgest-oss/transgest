@@ -14,14 +14,14 @@ function populateSelects(){
   // Tipos OC
   atualizarSelectTiposOC();
   // Placas
-  const placas=Frota.map(f=>f.placa);
+  const placas=[...Frota].sort((a,b)=>(a.placa||'').localeCompare(b.placa||'','pt-BR')).map(f=>f.placa);
   ['f-oc-placa','f-nf-dest','f-saida-placa','f-tit-placa'].forEach(sid=>{
     const s=$(sid); if(!s)return;
     const isNfDest=sid==='f-nf-dest';
     s.innerHTML=(isNfDest?'<option value="">— Sem placa / Administrativo —</option><option value="Estoque">Estoque</option>':'<option value="-">Nenhuma (geral)</option>');
     if(isNfDest){
       // Adiciona placas da frota com modelo (apenas para f-nf-dest)
-      Frota.forEach(f=>{ if(f.placa) s.innerHTML+=`<option value="${f.placa}">${f.placa}${f.modelo?' — '+f.modelo:''}</option>`; });
+      [...Frota].sort((a,b)=>(a.placa||'').localeCompare(b.placa||'','pt-BR')).forEach(f=>{ if(f.placa) s.innerHTML+=`<option value="${f.placa}">${f.placa}${f.modelo?' — '+f.modelo:''}</option>`; });
     } else {
       placas.forEach(p=>s.innerHTML+=`<option value="${p}">${p}</option>`);
     }
@@ -48,7 +48,7 @@ function populateSelects(){
   // EPIs para saída
   const se=$('f-episaida-epi');
   se.innerHTML='';
-  EPIEstoque.forEach(e=>se.innerHTML+=`<option value="${e.epi}">${e.epi}</option>`);
+  [...EPIEstoque].sort((a,b)=>(a.epi||'').localeCompare(b.epi||'','pt-BR')).forEach(e=>se.innerHTML+=`<option value="${e.epi}">${e.epi}</option>`);
 }
 
 // ======================== OC ========================
