@@ -153,6 +153,27 @@ async function uploadComprovanteTitulo(){
   const { data } = supa.storage.from('comprovantes').getPublicUrl(nome);
   return data && data.publicUrl ? data.publicUrl : '';
 }
+async function uploadCRLV(inputId){
+  const input = $(inputId);
+  const file = input && input.files && input.files[0] ? input.files[0] : null;
+  if(!file) return '';
+  const maxMB = 12;
+  if(file.size > maxMB * 1024 * 1024){
+    toast(`Arquivo muito grande. Limite: ${maxMB}MB.`, 'error');
+    return null;
+  }
+  const pasta = new Date().toISOString().slice(0,10);
+  const nome = `crlv/${pasta}/${Date.now()}_${limparNomeArquivo(file.name)}`;
+  const { error } = await supa.storage.from('transgest-docs').upload(nome, file, { upsert:false, contentType:file.type || undefined });
+  if(error){
+    console.error(error);
+    toast('Erro ao enviar CRLV: ' + error.message, 'error');
+    return null;
+  }
+  const { data } = supa.storage.from('transgest-docs').getPublicUrl(nome);
+  return data && data.publicUrl ? data.publicUrl : '';
+}
+
 function linkComprovante(url, icone='📎', label='Ver'){
   if(!url) return '<span style="font-size:11px;color:var(--text3)">—</span>';
   const urls = url.split('|').filter(Boolean);

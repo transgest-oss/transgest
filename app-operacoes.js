@@ -121,11 +121,19 @@ function editarFrota(id){
   $('f-fr-renavam').value=o.renavam||'';
   $('f-fr-status').value=o.status||'Ativo';
   $('f-fr-vlicen').value=o.vlicen||'';
+  // CRLV
+  if($('f-fr-crlv-file')) $('f-fr-crlv-file').value='';
+  if($('fr-crlv-atual')){
+    $('fr-crlv-atual').style.display = o.crlv ? 'block' : 'none';
+    $('fr-crlv-atual').innerHTML = o.crlv
+      ? `📄 CRLV atual: <a href="${o.crlv}" target="_blank" rel="noopener">abrir arquivo</a><br><span style="color:var(--text3)">Escolha outro arquivo somente se quiser substituir.</span>`
+      : '';
+  }
   $('modal-frota-title').textContent='Editar Caminhão';
   $('btn-save-frota').textContent='💾 Atualizar';
   $('modal-frota').classList.add('open');
 }
-function salvarFrota(){
+async function salvarFrota(){
   const placa=$('f-fr-placa').value.trim().toUpperCase(); if(!placa){toast('Informe a placa','error');return;}
   const obj={
     placa,
@@ -142,22 +150,35 @@ function salvarFrota(){
     vlicen:$('f-fr-vlicen').value||'',
     gasto:0
   };
+
+  // Upload CRLV
+  const btn = $('btn-save-frota');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Salvando...'; }
+  const crlvNovo = await uploadCRLV('f-fr-crlv-file');
+  if(crlvNovo === null){
+    if(btn){ btn.disabled=false; btn.textContent=editing.frota?'💾 Atualizar':'💾 Salvar'; }
+    return;
+  }
+
   if(editing.frota){
     const i=Frota.findIndex(x=>x.id===editing.frota);
     obj.gasto=Frota[i].gasto||0;
+    obj.crlv = crlvNovo || Frota[i].crlv || '';
     Frota[i]={...Frota[i],...obj};
     editing.frota=null; toast('Caminhão atualizado!');
   } else {
-    obj.id=newId('frota'); Frota.push(obj); toast('Caminhão cadastrado!');
+    obj.id=newId('frota'); obj.crlv=crlvNovo||''; Frota.push(obj); toast('Caminhão cadastrado!');
   }
+  if(btn){ btn.disabled=false; btn.textContent='💾 Salvar'; }
   closeModal('modal-frota');
   $('modal-frota-title').textContent='Cadastrar Caminhão';
   $('btn-save-frota').textContent='💾 Salvar';
-  // limpar campos adicionais
   ['f-fr-tipo','f-fr-cor','f-fr-anomodelo','f-fr-chassi','f-fr-renavam','f-fr-status',
    'f-fr-vlicen'].forEach(id=>{
     const el=$(id); if(el) el.value=id==='f-fr-tipo'?'Caminhão':id==='f-fr-status'?'Ativo':'';
   });
+  if($('f-fr-crlv-file')) $('f-fr-crlv-file').value='';
+  if($('fr-crlv-atual')){ $('fr-crlv-atual').style.display='none'; $('fr-crlv-atual').innerHTML=''; }
   editing.frota=null; populateSelects(); renderFrota(); renderDashboard();
 }
 function excluirFrota(id){

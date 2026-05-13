@@ -596,6 +596,7 @@ function renderFrotaTabela(){
       <td class="mono">${fmt(f.limite||0)}</td>
       <td>${chip(pct+'%',chipCls)}</td>
       <td>${vc(f.vlicen)}</td>
+      <td>${linkComprovante(f.crlv||'','📄','CRLV')}</td>
       <td>${acts(`editarFrota(${f.id})`,`excluirFrota(${f.id})`)}</td>
     </tr>`;
   }).join(''):'<tr><td colspan="12" class="empty">Nenhum veículo cadastrado.</td></tr>';
