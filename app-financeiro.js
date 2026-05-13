@@ -243,18 +243,48 @@ function excluirTitulo(id){
     Titulos=Titulos.filter(x=>x.id!==id); toast('Título excluído.'); renderAll();
   });
 }
+// ======================== BAIXA DE PAGAMENTO ========================
+let _pagandoId = null;
+
 function marcarPago(id){
-  const t=Titulos.find(x=>x.id===id);
-  if(t){
-    t.status='Pago';
-    registrarLog({
-      acao: 'baixou_pagamento',
-      tabela: 'tg_titulos',
-      registro_id: t.ref || t.id,
-      descricao: `Marcou como pago: ${t.ref || t.id} — ${t.forn || 'sem fornecedor'} — ${fmt(t.valor)}`
-    });
-    renderFin();
-    toast('Título marcado como pago!');
-  }
+  // Abre modal de confirmação em vez de pagar direto
+  const t = Titulos.find(x => x.id === id);
+  if(!t) return;
+  _pagandoId = id;
+  $('cpag-forn').textContent = t.forn || '—';
+  $('cpag-ref').textContent  = (t.ref && t.ref !== '-' ? t.ref + ' · ' : '') + fmt(t.valor) + ' · venc. ' + formatarDataBR(t.venc);
+  $('cpag-data').value  = today;
+  $('cpag-valor').value = (parseFloat(t.valor) || 0).toFixed(2);
+  $('cpag-juros').value = '';
+  $('modal-confirmar-pag').classList.add('open');
+}
+
+function confirmarPagamento(){
+  const t = Titulos.find(x => x.id === _pagandoId);
+  if(!t){ closeModal('modal-confirmar-pag'); return; }
+
+  const dataPag = $('cpag-data').value || today;
+  const valorPago = parseFloat($('cpag-valor').value) || parseFloat(t.valor) || 0;
+  const juros = parseFloat($('cpag-juros').value) || 0;
+
+  if(!dataPag){ toast('Informe a data do pagamento', 'error'); return; }
+  if(valorPago <= 0){ toast('Informe o valor pago', 'error'); return; }
+
+  t.status      = 'Pago';
+  t.dataPagamento = dataPag;
+  t.valorPago   = Math.round((valorPago + juros) * 100) / 100;
+  if(juros > 0) t.juros = juros;
+
+  registrarLog({
+    acao: 'baixou_pagamento',
+    tabela: 'tg_titulos',
+    registro_id: t.ref || t.id,
+    descricao: `Pagamento em ${dataPag}: ${t.ref || t.id} — ${t.forn || 'sem fornecedor'} — ${fmt(t.valorPago)}${juros > 0 ? ' (juros: ' + fmt(juros) + ')' : ''}`
+  });
+
+  closeModal('modal-confirmar-pag');
+  _pagandoId = null;
+  renderFin();
+  toast('✅ Pagamento registrado em ' + formatarDataBR(dataPag) + (juros > 0 ? ' · Juros: ' + fmt(juros) : ''));
 }
 
