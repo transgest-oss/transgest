@@ -630,18 +630,32 @@ function gastoPlacaMes(placa, ano, mes){
   NFs.forEach(nf => {
     if(!(nf.data||'').startsWith(prefixo)) return;
     const oc = OCs.find(o => o.num === nf.oc);
-    if(oc && oc.isRateio && oc.rateio){
-      oc.rateio.forEach(r => { if(r.placa === placa) total += r.valor||0; });
+    const valorNF = parseFloat(nf.valor) || 0;
+    if(oc && oc.isRateio && Array.isArray(oc.rateio) && oc.rateio.length){
+      // OC RATEADA: distribui o valor da NF proporcionalmente ao rateio da OC
+      const valorOC = parseFloat(oc.valor) || 0;
+      if(valorOC > 0){
+        oc.rateio.forEach(r => {
+          if(r.placa === placa){
+            const proporcao = (parseFloat(r.valor) || 0) / valorOC;
+            total += proporcao * valorNF;
+          }
+        });
+      }
     } else {
-      if(nf.dest === placa) total += nf.valor||0;
+      // OC SIMPLES: prioriza a placa registrada na OC; fallback para nf.dest
+      const placaEfetiva = (oc && oc.placas && oc.placas !== '-') ? oc.placas : (nf.dest || '');
+      if(placaEfetiva === placa) total += valorNF;
     }
   });
-  // Também considera Títulos com placa e vencimento no mês
+  // Títulos avulsos com placa no mês (sem NF vinculada) — usa emissão como competência
   Titulos.forEach(t => {
     if(!t.placa || t.placa !== placa) return;
-    if(!(t.venc||'').startsWith(prefixo)) return;
-    // Evita dupla contagem — só conta títulos que não têm NF vinculada
-    if(!t.nf) total += t.valor||0;
+    const dataRef = (t.emissao || t.venc || '');
+    if(!dataRef.startsWith(prefixo)) return;
+    // Evita dupla contagem — só conta títulos que não vieram de uma NF
+    if(t.nf) return;
+    total += parseFloat(t.valor) || 0;
   });
   return Math.round(total * 100) / 100;
 }
