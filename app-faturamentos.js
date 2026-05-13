@@ -273,10 +273,18 @@ async function salvarFaturamento(){
   };
   Faturamentos.unshift(fat);
 
-  // Marca NFs como Faturado
+  // Marca NFs como Faturado e atualiza status das OCs vinculadas
+  const ocsAfetadasIds = new Set();
   nfIds.forEach(id=>{
     const nf = NFs.find(x=>x.id===id);
-    if(nf){ nf.pgto='Faturado'; nf.fatNum=num; }
+    if(nf){
+      nf.pgto='Faturado'; nf.fatNum=num;
+      // Recalcula status da OC vinculada
+      if(nf.oc && nf.oc !== 'Sem OC'){
+        const ocVinc = OCs.find(o=>String(o.num)===String(nf.oc));
+        if(ocVinc){ atualizarStatusOC(ocVinc); ocsAfetadasIds.add(ocVinc.id); }
+      }
+    }
   });
 
   // Cria 1 título por parcela — mas todas referenciando o mesmo faturamento consolidado
@@ -342,7 +350,18 @@ async function salvarFaturamento(){
     else { console.log('[FAT] ✅ NFs atualizadas. qtd=', nfsAfetadas.length); }
   }
 
-  // 4) Contadores
+  // 4) Persiste OCs cujo status foi recalculado
+  if(ocsAfetadasIds.size){
+    const ocsParaSalvar = OCs.filter(o=>ocsAfetadasIds.has(o.id));
+    const _ts2 = new Date().toISOString();
+    const _r4 = await supa.from('tg_ocs').upsert(
+      ocsParaSalvar.map(o=>({ id: Number(o.id), data: o, updated_at: _ts2 })), { onConflict: 'id' }
+    );
+    if(_r4.error){ console.error('[FAT] Erro ao atualizar OCs:', _r4.error); }
+    else { console.log('[FAT] ✅ OCs atualizadas. qtd=', ocsParaSalvar.length); }
+  }
+
+  // 5) Contadores
   await saveCounters();
   console.log('[FAT] Concluído. Faturamentos em memória:', Faturamentos.length);
 }
