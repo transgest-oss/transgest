@@ -811,6 +811,20 @@
         <span>🔴 Média acima do limite — fora da faixa</span>
         <span style="color:var(--text3)">— Mês sem lançamentos</span>
       </div>
+
+      <!-- RESUMO PLACA × VALOR TOTAL -->
+      <div class="card" style="margin-top:20px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">📋 Resumo — Valor de Ordem por Placa</div>
+        <table style="width:100%;max-width:420px">
+          <thead>
+            <tr>
+              <th style="text-align:left;font-size:11px;color:var(--text3);padding-bottom:6px">Placa / Categoria</th>
+              <th style="text-align:right;font-size:11px;color:var(--text3);padding-bottom:6px">Valor Total</th>
+            </tr>
+          </thead>
+          <tbody id="tb-desp-resumo"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- RESUMO OPERACIONAL MENSAL -->
@@ -1140,7 +1154,7 @@
       <div class="form-group"><label>Data</label><input type="date" id="f-oc-data"/></div>
       <div class="form-group full"><label>Fornecedor</label><select id="f-oc-forn"><option value="">— Selecione o fornecedor —</option></select></div>
       <div class="form-group full"><label>Categoria</label>
-        <select id="f-oc-cat">
+        <select id="f-oc-cat" onchange="ocToggleCategoria()">
           <option value="manutencao">Manutenção</option><option value="scherer">Scherer</option><option value="scherer_ambi">Scherer Ambicampos</option><option value="combustiveis">Combustíveis</option><option value="impostos">Impostos</option><option value="outros">Outros</option><option value="diarias">Diárias</option><option value="consorcios">Consórcios</option><option value="gratificacoes">Gratificações</option><option value="seguros">Seguros</option><option value="funcionarios">Funcionários</option><option value="adiantamentos">Adiantamentos</option>
           <option value="colaboradores">Colaboradores</option>
         </select>

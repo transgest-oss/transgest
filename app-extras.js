@@ -654,11 +654,12 @@ function renderDespesas(){
   const ano = parseInt((document.getElementById('desp-ano')||{value:'2026'}).value) || 2026;
   const mesAtual = new Date().getMonth() + 1; // 1-12
   const anoAtual = new Date().getFullYear();
-  // Meses a exibir: de Janeiro até o mês atual (se for o ano atual), senão Dezembro
   const mesesExibir = ano === anoAtual ? mesAtual : 12;
 
-  // Apenas placas reais da frota (exclui categorias como ESTOQUE, OUTROS, etc.)
-  const placasValidas = Frota.filter(f => f.placa && f.placa.trim() !== '');
+  // Todas as entradas da frota com placa, ordenadas alfabeticamente
+  const placasValidas = Frota
+    .filter(f => f.placa && f.placa.trim() !== '')
+    .sort((a, b) => a.placa.localeCompare(b.placa, 'pt-BR'));
 
   if(!placasValidas.length){
     document.getElementById('tb-despesas-head').innerHTML = '';
@@ -676,15 +677,21 @@ function renderDespesas(){
     }
   });
 
+  // Total geral de OCs emitidas no ano (para KPI)
+  const totalOCsAno = OCs.filter(o => {
+    if(o.status === 'Cancelada') return false;
+    return (o.data||'').startsWith(String(ano));
+  }).reduce((a,o) => a + (parseFloat(o.valor)||0), 0);
+
   // Cabeçalho da tabela
   const thead = document.getElementById('tb-despesas-head');
   thead.innerHTML = `<tr>
-    <th style="text-align:left">Placa</th>
-    <th style="text-align:right">Limite</th>
-    ${Array.from({length: mesesExibir}, (_,i) => `<th>${MESES_NOME[i].slice(0,3)}</th>`).join('')}
-    <th style="background:rgba(0,112,214,.07)">Total</th>
-    <th style="background:rgba(0,149,122,.07)">Média</th>
-    <th>Status</th>
+    <th style="text-align:left">Placa / Categoria</th>
+    <th style="text-align:right">Limite Mensal</th>
+    ${Array.from({length: mesesExibir}, (_,i) => `<th style="text-align:right">${MESES_NOME[i]}</th>`).join('')}
+    <th style="background:rgba(0,112,214,.07);text-align:right">Total ${ano}</th>
+    <th style="background:rgba(0,149,122,.07);text-align:right">Média/Mês</th>
+    <th style="text-align:center">Status</th>
   </tr>`;
 
   // Corpo da tabela
@@ -697,7 +704,6 @@ function renderDespesas(){
     const gastos = matriz[f.placa];
     const mesesComDados = gastos.filter(g => g > 0).length;
     const totalPlaca = gastos.reduce((a,g) => a+g, 0);
-    // Média acumulada: soma ÷ número de meses (independente de ter dados ou não)
     const media = mesesComDados > 0 ? totalPlaca / mesesExibir : 0;
     const limite = f.limite || 0;
     const dentro = limite > 0 && media <= limite;
@@ -709,41 +715,62 @@ function renderDespesas(){
 
     const celulasMeses = gastos.map(g =>
       g > 0
-        ? `<td class="mono">${fmt(g)}</td>`
-        : `<td class="desp-vazio">—</td>`
+        ? `<td class="mono" style="text-align:right">${fmt(g)}</td>`
+        : `<td class="desp-vazio" style="text-align:right">—</td>`
     ).join('');
 
     const mediaClass = dentro ? 'desp-media-ok' : fora ? 'desp-media-nok' : '';
     const statusIcon = dentro ? '🟢' : fora ? '🔴' : '⚪';
-    const statusLabel = dentro ? 'OK' : fora ? 'Acima' : 'Sem limite';
+    const statusLabel = dentro ? 'OK' : fora ? 'Acima' : '—';
 
     return `<tr>
-      <td>${f.placa}</td>
-      <td class="mono" style="color:var(--text3)">${limite > 0 ? fmt(limite) : '—'}</td>
+      <td style="font-weight:600">${f.placa}</td>
+      <td class="mono" style="color:var(--text3);text-align:right">${limite > 0 ? fmt(limite) : '—'}</td>
       ${celulasMeses}
-      <td class="mono" style="background:rgba(0,112,214,.05);font-weight:700">${fmt(totalPlaca)}</td>
-      <td class="mono ${mediaClass}" style="border-radius:6px">${mesesComDados > 0 ? fmt(media) : '—'}</td>
+      <td class="mono" style="background:rgba(0,112,214,.05);font-weight:700;text-align:right">${totalPlaca > 0 ? fmt(totalPlaca) : '—'}</td>
+      <td class="mono ${mediaClass}" style="border-radius:6px;text-align:right">${mesesComDados > 0 ? fmt(media) : '—'}</td>
       <td style="text-align:center;font-size:13px">${statusIcon} ${statusLabel}</td>
     </tr>`;
   });
 
   tbody.innerHTML = rows.join('') + `<tr style="border-top:2px solid var(--border);background:var(--card)">
-    <td style="font-weight:800;font-size:13px">TOTAL</td>
+    <td style="font-weight:800;font-size:13px">TOTAL GERAL</td>
     <td></td>
     ${Array.from({length: mesesExibir}, () => '<td></td>').join('')}
-    <td class="mono" style="font-weight:800;font-size:13px;background:rgba(0,112,214,.07)">${fmt(totalGeral)}</td>
+    <td class="mono" style="font-weight:800;font-size:13px;background:rgba(0,112,214,.07);text-align:right">${fmt(totalGeral)}</td>
     <td></td>
     <td></td>
   </tr>`;
 
-  // KPIs
+  // KPIs — inclui total de OCs emitidas no ano
   const kpis = document.getElementById('desp-kpis');
   const mediaGeral = placasValidas.length > 0 ? totalGeral / (placasValidas.length * mesesExibir) : 0;
   kpis.innerHTML =
     `<div class="stat-card"><div class="stat-label">Caminhões avaliados</div><div class="stat-value" style="font-size:20px">${placasValidas.length}</div><div class="stat-sub">${mesesExibir} meses acumulados</div></div>` +
     `<div class="stat-card"><div class="stat-label">Dentro do limite 🟢</div><div class="stat-value" style="font-size:20px;color:var(--accent)">${dentroCount}</div><div class="stat-sub">Elegíveis à gratificação</div></div>` +
     `<div class="stat-card"><div class="stat-label">Acima do limite 🔴</div><div class="stat-value" style="font-size:20px;color:var(--red)">${foraCount}</div><div class="stat-sub">Fora da faixa</div></div>` +
-    `<div class="stat-card"><div class="stat-label">Gasto Total ${ano}</div><div class="stat-value" style="font-size:20px;color:var(--amber)">${fmt(totalGeral)}</div><div class="stat-sub">Média ${fmt(mediaGeral)}/caminhão/mês</div></div>`;
+    `<div class="stat-card"><div class="stat-label">Total OCs ${ano}</div><div class="stat-value" style="font-size:20px;color:var(--accent2)">${fmt(totalOCsAno)}</div><div class="stat-sub">OCs emitidas no ano</div></div>` +
+    `<div class="stat-card"><div class="stat-label">Gasto Total ${ano}</div><div class="stat-value" style="font-size:20px;color:var(--amber)">${fmt(totalGeral)}</div><div class="stat-sub">Média ${fmt(mediaGeral)}/placa/mês</div></div>`;
+
+  // Renderiza tabela resumida
+  renderDespesaResumo(placasValidas, matriz, totalGeral);
+}
+
+// Tabela resumida: Placa → Valor Total (igual ao print da planilha)
+function renderDespesaResumo(placasValidas, matriz, totalGeral){
+  const tb = document.getElementById('tb-desp-resumo');
+  if(!tb) return;
+  const rows = placasValidas.map(f => {
+    const total = (matriz[f.placa]||[]).reduce((a,g) => a+g, 0);
+    return `<tr>
+      <td style="font-size:13px;font-weight:500;padding:5px 0;border-bottom:1px solid var(--border)">${f.placa}</td>
+      <td class="mono" style="text-align:right;font-size:13px;font-weight:600;padding:5px 0;border-bottom:1px solid var(--border);color:${total>0?'var(--text)':'var(--text3)'}">${total > 0 ? fmt(total) : '—'}</td>
+    </tr>`;
+  }).join('');
+  tb.innerHTML = rows + `<tr>
+    <td style="font-size:13px;font-weight:800;padding:8px 0 2px">TOTAL</td>
+    <td class="mono" style="text-align:right;font-size:13px;font-weight:800;padding:8px 0 2px;color:var(--accent2)">${fmt(totalGeral)}</td>
+  </tr>`;
 }
 
 function exportDespesasXLSX(){
