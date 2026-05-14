@@ -243,6 +243,77 @@ function excluirTitulo(id){
     Titulos=Titulos.filter(x=>x.id!==id); toast('Título excluído.'); renderAll();
   });
 }
+// ======================== PAGAMENTO EM LOTE ========================
+function atualizarSelecaoFin(){
+  const chks = [...document.querySelectorAll('.fin-chk:checked')];
+  const total = chks.reduce((a, c) => a + (parseFloat(c.dataset.valor)||0), 0);
+  const bar = $('fin-lote-bar');
+  const allChk = $('fin-check-all');
+  if(chks.length > 0){
+    bar.style.display = 'flex';
+    $('fin-lote-info').textContent = `${chks.length} título${chks.length>1?'s':''} selecionado${chks.length>1?'s':''}`;
+    $('fin-lote-total').textContent = '· ' + fmt(total);
+  } else {
+    bar.style.display = 'none';
+  }
+  // Atualiza estado do checkbox do cabeçalho
+  const todos = [...document.querySelectorAll('.fin-chk')];
+  if(allChk){
+    allChk.indeterminate = chks.length > 0 && chks.length < todos.length;
+    allChk.checked = todos.length > 0 && chks.length === todos.length;
+  }
+}
+
+function toggleTodosFinanceiro(el){
+  const chks = [...document.querySelectorAll('.fin-chk')];
+  chks.forEach(c => c.checked = el.checked);
+  atualizarSelecaoFin();
+}
+
+function limparSelecaoFin(){
+  document.querySelectorAll('.fin-chk').forEach(c => c.checked = false);
+  const allChk = $('fin-check-all');
+  if(allChk){ allChk.checked = false; allChk.indeterminate = false; }
+  const bar = $('fin-lote-bar');
+  if(bar) bar.style.display = 'none';
+}
+
+function abrirPagamentoLote(){
+  const chks = [...document.querySelectorAll('.fin-chk:checked')];
+  if(!chks.length){ toast('Selecione ao menos um título', 'error'); return; }
+  const total = chks.reduce((a, c) => a + (parseFloat(c.dataset.valor)||0), 0);
+  $('lote-resumo').textContent = `${chks.length} título${chks.length>1?'s':''} · Total: ${fmt(total)}`;
+  $('lote-data').value = today;
+  $('modal-pag-lote').classList.add('open');
+}
+
+function confirmarPagamentoLote(){
+  const dataPag = $('lote-data').value || today;
+  if(!dataPag){ toast('Informe a data do pagamento', 'error'); return; }
+  const chks = [...document.querySelectorAll('.fin-chk:checked')];
+  if(!chks.length){ closeModal('modal-pag-lote'); return; }
+  const ids = chks.map(c => parseInt(c.dataset.id));
+  let pagos = 0;
+  ids.forEach(id => {
+    const t = Titulos.find(x => x.id === id);
+    if(!t || t.status === 'Pago') return;
+    t.status = 'Pago';
+    t.dataPagamento = dataPag;
+    t.valorPago = parseFloat(t.valor) || 0;
+    pagos++;
+  });
+  registrarLog({
+    acao: 'baixou_pagamento_lote',
+    tabela: 'tg_titulos',
+    registro_id: ids.join(','),
+    descricao: `Pagamento em lote em ${dataPag}: ${pagos} título(s) baixados`
+  });
+  closeModal('modal-pag-lote');
+  limparSelecaoFin();
+  renderFin();
+  toast(`✅ ${pagos} título${pagos>1?'s':''} marcado${pagos>1?'s':''} como pago${pagos>1?'s':''} em ${formatarDataBR(dataPag)}`);
+}
+
 // ======================== BAIXA DE PAGAMENTO ========================
 let _pagandoId = null;
 

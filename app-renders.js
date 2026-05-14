@@ -406,7 +406,11 @@ function renderFin(){
     const pgBtn=t.status==='Pendente'
       ?`<button class="btn btn-save btn-sm" onclick="marcarPago(${t.id})" style="font-size:10px">✓ Pagar</button>`
       :`<span style="font-size:11px;color:var(--accent)">✓ Quitado</span>`;
+    const chk = t.status==='Pendente'
+      ? `<input type="checkbox" class="fin-chk" data-id="${t.id}" data-valor="${parseFloat(t.valor)||0}" onchange="atualizarSelecaoFin()" style="accent-color:var(--accent2)">`
+      : '';
     return `<tr>
+      <td style="text-align:center">${chk}</td>
       <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.forn}">${t.forn}${t.semNF && t.ocNum ? `<br><span style="font-size:10px;background:rgba(245,166,35,.14);color:var(--amber);border:1px solid rgba(245,166,35,.3);border-radius:6px;padding:1px 6px;font-weight:600;cursor:pointer" onclick="setFiltroOC('encerradas');showScreen('oc',null)" title="Ver OC de origem">📋 OC-${t.ocNum}</span>` : ''}</td>
       <td><span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(0,112,214,.09);color:var(--accent2);font-weight:600">${categoriaLabel(t.categoria||'manutencao')}</span></td>
       <td>${chip(t.tipo,'cgr')}</td>
@@ -418,7 +422,7 @@ function renderFin(){
       <td>${linkComprovante(t.boleto,"📄","Boleto")}</td><td>${linkComprovante(t.comprovante,"📎","Comp.")}</td>
       <td><div class="action-btns">${pgBtn}<button class="btn btn-edit btn-sm" onclick="editarTitulo(${t.id})">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirTitulo(${t.id})">🗑️</button></div></td>
     </tr>`;
-  }).join(''):'<tr><td colspan="10" class="empty">Nenhum título encontrado com esses filtros.</td></tr>';
+  }).join(''):'<tr><td colspan="12" class="empty">Nenhum título encontrado com esses filtros.</td></tr>';
 }
 
 function renderEstoque(){
@@ -596,7 +600,6 @@ function renderFrotaTabela(){
       <td class="mono">${fmt(f.limite||0)}</td>
       <td>${chip(pct+'%',chipCls)}</td>
       <td>${vc(f.vlicen)}</td>
-      <td>${linkComprovante(f.crlv||'','📄','CRLV')}</td>
       <td>${acts(`editarFrota(${f.id})`,`excluirFrota(${f.id})`)}</td>
     </tr>`;
   }).join(''):'<tr><td colspan="12" class="empty">Nenhum veículo cadastrado.</td></tr>';
