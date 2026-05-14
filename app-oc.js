@@ -138,6 +138,12 @@ window.openModal = function(id, mode, data){
 };
 
 // ======================== CRUD OC ========================
+// Garante que o campo de placa aparece em todas as categorias
+function ocToggleCategoria(){
+  const wrap = $('oc-placa-wrap');
+  if(wrap) wrap.style.display = '';
+}
+
 function ocToggleRateio(){
   const sim = $('f-oc-rateio').value === 'Sim';
   $('oc-rateio-wrap').style.display = sim ? 'block' : 'none';
