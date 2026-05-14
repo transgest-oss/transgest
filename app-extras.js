@@ -658,7 +658,7 @@ function renderDespesas(){
   const mesesExibir = ano === anoAtual ? mesAtual : 12;
 
   // Apenas placas reais da frota (exclui categorias como ESTOQUE, OUTROS, etc.)
-  const placasValidas = Frota.filter(f => f.placa && /^[A-Z]{3}\d[A-Z0-9]\d{2}$|^[A-Z]{3}\d{4}$/.test(f.placa));
+  const placasValidas = Frota.filter(f => f.placa && f.placa.trim() !== '');
 
   if(!placasValidas.length){
     document.getElementById('tb-despesas-head').innerHTML = '';
@@ -753,7 +753,7 @@ function exportDespesasXLSX(){
   const anoAtual = new Date().getFullYear();
   const mesesExibir = ano === anoAtual ? mesAtual : 12;
 
-  const placasValidas = Frota.filter(f => f.placa && /^[A-Z]{3}\d[A-Z0-9]\d{2}$|^[A-Z]{3}\d{4}$/.test(f.placa));
+  const placasValidas = Frota.filter(f => f.placa && f.placa.trim() !== '');
 
   const cabecalho = ['Placa','Limite', ...MESES_NOME.slice(0, mesesExibir), 'Total', 'Média Acumulada', 'Status'];
   const rows = [cabecalho];
