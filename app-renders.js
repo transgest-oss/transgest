@@ -246,9 +246,6 @@ function renderOC(){
     : (filtroOCAtual==='encerradas'||filtroOCAtual==='sem-nf') ? 'Nenhuma OC encerrada sem NF encontrada'
     : 'Nenhuma OC cadastrada';
 
-  // Ordena por data decrescente (mais recente primeiro)
-  lista = lista.sort((a,b) => (b.data||'').localeCompare(a.data||''));
-
   const _ocPag = paginar(lista, 'oc');
   lista = _ocPag.itens;
   renderPaginacao('oc-paginacao', 'oc', _ocPag.total, _ocPag.pag, _ocPag.totalPags, 'mudarPaginaOC');
@@ -633,30 +630,31 @@ function exportFrotaXLSX(){
 
 
 function calcGastoPorPlaca(){
-  // BASE: OCs emitidas (não NFs) — mesma lógica da tela Despesas por Placa
-  const gastos = {};
+  // Calcula gasto real por placa a partir das NFs lançadas (pgto != Aguardando)
+  // Para NFs de OCs rateadas → usa o rateio da OC
+  // Para NFs de OCs simples ou sem OC → usa a placa da NF
+  const gastos = {}; // { placa: { serv, pcs, total } }
   Frota.forEach(f => { gastos[f.placa] = { serv: 0, pcs: 0, total: 0 }; });
 
-  OCs.forEach(o => {
-    if(o.status === 'Cancelada') return;
-    const isPeca = o.tipo && o.tipo.toLowerCase().includes('peça');
+  NFs.forEach(nf => {
+    const oc = OCs.find(o => o.num === nf.oc);
+    const isPeca = nf.tipo && nf.tipo.toLowerCase().includes('peça');
 
-    if(o.isRateio && Array.isArray(o.rateio) && o.rateio.length > 0){
-      o.rateio.forEach(r => {
+    if(oc && oc.isRateio && oc.rateio && oc.rateio.length > 0){
+      // NF de OC rateada: distribui pelo rateio da OC
+      oc.rateio.forEach(r => {
         if(!gastos[r.placa]) gastos[r.placa] = { serv: 0, pcs: 0, total: 0 };
-        const val = parseFloat(r.valor) || 0;
-        if(isPeca) gastos[r.placa].pcs = Math.round((gastos[r.placa].pcs + val)*100)/100;
-        else       gastos[r.placa].serv = Math.round((gastos[r.placa].serv + val)*100)/100;
-        gastos[r.placa].total = Math.round((gastos[r.placa].total + val)*100)/100;
+        if(isPeca) gastos[r.placa].pcs = Math.round((gastos[r.placa].pcs + r.valor)*100)/100;
+        else        gastos[r.placa].serv = Math.round((gastos[r.placa].serv + r.valor)*100)/100;
+        gastos[r.placa].total = Math.round((gastos[r.placa].total + r.valor)*100)/100;
       });
     } else {
-      const placa = o.placas || '-';
-      if(placa && placa !== '-'){
-        if(!gastos[placa]) gastos[placa] = { serv: 0, pcs: 0, total: 0 };
-        const val = parseFloat(o.valor) || 0;
-        if(isPeca) gastos[placa].pcs = Math.round((gastos[placa].pcs + val)*100)/100;
-        else       gastos[placa].serv = Math.round((gastos[placa].serv + val)*100)/100;
-        gastos[placa].total = Math.round((gastos[placa].total + val)*100)/100;
+      // NF simples: usa a placa/dest da NF
+      const placa = nf.dest;
+      if(placa && gastos[placa]){
+        if(isPeca) gastos[placa].pcs = Math.round((gastos[placa].pcs + nf.valor)*100)/100;
+        else        gastos[placa].serv = Math.round((gastos[placa].serv + nf.valor)*100)/100;
+        gastos[placa].total = Math.round((gastos[placa].total + nf.valor)*100)/100;
       }
     }
   });
@@ -664,27 +662,29 @@ function calcGastoPorPlaca(){
 }
 
 
-// Calcula gasto do mês atual por placa a partir das OCs emitidas
+// Calcula gasto do mês atual por placa (sempre a partir das NFs — nunca usa f.gasto)
 function calcGastoMesAtual(){
   const h = new Date();
-  const prefixo = `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}`;
+  const anoAtual = h.getFullYear();
+  const mesAtual = h.getMonth();
   const gastos = {};
   Frota.forEach(f => { gastos[f.placa] = 0; });
 
-  OCs.forEach(o => {
-    if(o.status === 'Cancelada') return;
-    if(!(o.data||'').startsWith(prefixo)) return;
+  NFs.forEach(nf => {
+    // filtra pelo mês da data da NF
+    const d = nf.data ? new Date(nf.data + 'T00:00:00') : null;
+    if(!d || d.getFullYear() !== anoAtual || d.getMonth() !== mesAtual) return;
 
-    if(o.isRateio && Array.isArray(o.rateio) && o.rateio.length > 0){
-      o.rateio.forEach(r => {
+    const oc = OCs.find(o => o.num === nf.oc);
+    if(oc && oc.isRateio && oc.rateio && oc.rateio.length > 0){
+      oc.rateio.forEach(r => {
         if(gastos[r.placa] === undefined) gastos[r.placa] = 0;
-        gastos[r.placa] = Math.round((gastos[r.placa] + (parseFloat(r.valor)||0)) * 100) / 100;
+        gastos[r.placa] = Math.round((gastos[r.placa] + r.valor) * 100) / 100;
       });
     } else {
-      const placa = o.placas || '-';
-      if(placa && placa !== '-'){
-        if(gastos[placa] === undefined) gastos[placa] = 0;
-        gastos[placa] = Math.round((gastos[placa] + (parseFloat(o.valor)||0)) * 100) / 100;
+      const placa = nf.dest;
+      if(placa && gastos[placa] !== undefined){
+        gastos[placa] = Math.round((gastos[placa] + nf.valor) * 100) / 100;
       }
     }
   });
@@ -712,10 +712,10 @@ function renderRelGastos(){
     Frota.forEach(f=>{const o=document.createElement('option');o.value=f.placa;o.textContent=f.placa;pfEl.appendChild(o);});
   }
   const gastos = calcGastoPorPlaca();
-  let lista = [...Frota].filter(f=>!pfVal||f.placa===pfVal).sort((a,b)=>(a.placa||'').localeCompare(b.placa||'','pt-BR'));
+  let lista = Frota.filter(f=>!pfVal||f.placa===pfVal);
   const cnt=$('rel-gastos-count');
   if(cnt) cnt.textContent=lista.length+' placa(s) exibida(s)';
-  // Cabeçalho
+  // Garante cabeçalho correto
   const thead = document.getElementById('tb-rel-head');
   if(thead) thead.innerHTML = `<tr>
     <th style="text-align:left">Placa</th>
