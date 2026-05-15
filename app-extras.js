@@ -760,13 +760,17 @@ function renderDespesas(){
 function renderDespesaResumo(placasValidas, matriz, totalGeral){
   const tb = document.getElementById('tb-desp-resumo');
   if(!tb) return;
-  const rows = placasValidas.map(f => {
-    const total = (matriz[f.placa]||[]).reduce((a,g) => a+g, 0);
-    return `<tr>
-      <td style="font-size:13px;font-weight:500;padding:5px 0;border-bottom:1px solid var(--border)">${f.placa}</td>
-      <td class="mono" style="text-align:right;font-size:13px;font-weight:600;padding:5px 0;border-bottom:1px solid var(--border);color:${total>0?'var(--text)':'var(--text3)'}">${total > 0 ? fmt(total) : '—'}</td>
-    </tr>`;
-  }).join('');
+  // Filtra só placas com valor > 0 e ordena alfabeticamente
+  const comValor = placasValidas
+    .map(f => ({ placa: f.placa, total: (matriz[f.placa]||[]).reduce((a,g) => a+g, 0) }))
+    .filter(x => x.total > 0)
+    .sort((a,b) => a.placa.localeCompare(b.placa, 'pt-BR'));
+
+  const rows = comValor.map(x => `<tr>
+    <td style="font-size:13px;font-weight:500;padding:5px 0;border-bottom:1px solid var(--border)">${x.placa}</td>
+    <td class="mono" style="text-align:right;font-size:13px;font-weight:600;padding:5px 0;border-bottom:1px solid var(--border)">${fmt(x.total)}</td>
+  </tr>`).join('');
+
   tb.innerHTML = rows + `<tr>
     <td style="font-size:13px;font-weight:800;padding:8px 0 2px">TOTAL</td>
     <td class="mono" style="text-align:right;font-size:13px;font-weight:800;padding:8px 0 2px;color:var(--accent2)">${fmt(totalGeral)}</td>

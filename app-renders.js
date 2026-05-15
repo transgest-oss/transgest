@@ -246,6 +246,9 @@ function renderOC(){
     : (filtroOCAtual==='encerradas'||filtroOCAtual==='sem-nf') ? 'Nenhuma OC encerrada sem NF encontrada'
     : 'Nenhuma OC cadastrada';
 
+  // Ordena por data decrescente (mais recente primeiro)
+  lista = lista.sort((a,b) => (b.data||'').localeCompare(a.data||''));
+
   const _ocPag = paginar(lista, 'oc');
   lista = _ocPag.itens;
   renderPaginacao('oc-paginacao', 'oc', _ocPag.total, _ocPag.pag, _ocPag.totalPags, 'mudarPaginaOC');

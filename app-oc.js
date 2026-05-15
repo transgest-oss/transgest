@@ -348,7 +348,8 @@ function salvarOC(){
   }
 
   // nf e nfsEsperadas são preservados na edição e recalculados depois
-  const obj={num,data,forn,placas,valor,tipo:categoriaLabel(catOC),categoria:catOC,desc:$('f-oc-desc').value.trim(),rateio,isRateio};
+  const tipoOC = ($('f-oc-tipo')||{value:''}).value || categoriaLabel(catOC);
+  const obj={num,data,forn,placas,valor,tipo:tipoOC,categoria:catOC,desc:$('f-oc-desc').value.trim(),rateio,isRateio};
 
   if(editing.oc){
     const i=OCs.findIndex(x=>x.id===editing.oc);
