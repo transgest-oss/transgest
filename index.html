@@ -804,12 +804,28 @@
       <!-- KPIs -->
       <div class="stats-row stats-4" id="desp-kpis" style="margin-bottom:16px"></div>
 
-      <!-- TABELA PRINCIPAL -->
-      <div class="card" style="overflow-x:auto;overflow-y:visible">
-        <table id="tb-despesas" style="min-width:900px">
-          <thead id="tb-despesas-head"></thead>
-          <tbody id="tb-despesas-body"></tbody>
-        </table>
+      <!-- TABELA + RESUMO LADO A LADO -->
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <!-- Tabela principal -->
+        <div class="card" style="overflow-x:auto;flex:1;min-width:0">
+          <table id="tb-despesas" style="min-width:900px">
+            <thead id="tb-despesas-head"></thead>
+            <tbody id="tb-despesas-body"></tbody>
+          </table>
+        </div>
+        <!-- Resumo placa × valor -->
+        <div class="card" style="min-width:260px;max-width:300px;flex-shrink:0">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px">📋 Resumo por Placa</div>
+          <table style="width:100%">
+            <thead>
+              <tr>
+                <th style="text-align:left;font-size:11px;color:var(--text3);padding-bottom:6px">Placa</th>
+                <th style="text-align:right;font-size:11px;color:var(--text3);padding-bottom:6px">Total</th>
+              </tr>
+            </thead>
+            <tbody id="tb-desp-resumo"></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- LEGENDA -->
@@ -817,20 +833,6 @@
         <span>🟢 Média abaixo do limite — motorista elegível à gratificação</span>
         <span>🔴 Média acima do limite — fora da faixa</span>
         <span style="color:var(--text3)">— Mês sem lançamentos</span>
-      </div>
-
-      <!-- RESUMO PLACA × VALOR TOTAL -->
-      <div class="card" style="margin-top:20px">
-        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">📋 Resumo — Valor de Ordem por Placa</div>
-        <table style="width:100%;max-width:420px">
-          <thead>
-            <tr>
-              <th style="text-align:left;font-size:11px;color:var(--text3);padding-bottom:6px">Placa / Categoria</th>
-              <th style="text-align:right;font-size:11px;color:var(--text3);padding-bottom:6px">Valor Total</th>
-            </tr>
-          </thead>
-          <tbody id="tb-desp-resumo"></tbody>
-        </table>
       </div>
     </div>
 
