@@ -255,22 +255,22 @@ async function salvarNF(){
     const temRateioOC = oc && oc.isRateio && oc.rateio && oc.rateio.length > 0;
 
     if(temRateioOC){
-      // Rateio via OC: 1 título por caminhão por parcela
+      // Rateio via OC: 1 título único por parcela (valor total da NF)
+      // O rateio por placa fica registrado na OC — não duplica no financeiro
+      const placasRateio = oc.rateio.map(r=>r.placa).join(' / ');
       parcelas.forEach((p,i)=>{
         const label=parcelas.length>1?` — Parcela ${i+1}/${parcelas.length}`:'';
-        oc.rateio.forEach(r=>{
-          Titulos.unshift({
-            id:newId('tit'), forn:obj.forn, tipo:'Boleto NF',
-            ref:obj.num+label+' ('+r.placa+')',
-            valor:Math.round((p.val*(r.valor/total))*100)/100,
-            emissao:obj.data, venc:p.venc, status:'Pendente',
-            placa:r.placa, obs:`Rateio OC — ${r.placa}`, categoria:obj.categoria||'manutencao'
-          });
+        Titulos.unshift({
+          id:newId('tit'), forn:obj.forn, tipo:'Boleto NF',
+          ref:obj.num+label,
+          valor:p.val,
+          emissao:obj.data, venc:p.venc, status:'Pendente',
+          placa:placasRateio, obs:`OC rateada — ${placasRateio}`, categoria:obj.categoria||'manutencao'
         });
       });
       const msg = parcelas.length>1
-        ? `NF lançada! ${parcelas.length} parcelas × ${oc.rateio.length} caminhões criadas no Contas a Pagar.`
-        : `NF lançada! Custo rateado em ${oc.rateio.length} caminhão(ões) no Contas a Pagar.`;
+        ? `NF lançada! ${parcelas.length} parcelas criadas no Contas a Pagar.`
+        : `NF lançada e título criado no Contas a Pagar!`;
       toast(msg);
     } else if(rateioManualAtivo && rateioManual.length > 0){
       // Rateio manual: 1 título por caminhão por parcela
