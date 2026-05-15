@@ -630,31 +630,30 @@ function exportFrotaXLSX(){
 
 
 function calcGastoPorPlaca(){
-  // Calcula gasto real por placa a partir das NFs lançadas (pgto != Aguardando)
-  // Para NFs de OCs rateadas → usa o rateio da OC
-  // Para NFs de OCs simples ou sem OC → usa a placa da NF
-  const gastos = {}; // { placa: { serv, pcs, total } }
+  // BASE: OCs emitidas (não NFs) — mesma lógica da tela Despesas por Placa
+  const gastos = {};
   Frota.forEach(f => { gastos[f.placa] = { serv: 0, pcs: 0, total: 0 }; });
 
-  NFs.forEach(nf => {
-    const oc = OCs.find(o => o.num === nf.oc);
-    const isPeca = nf.tipo && nf.tipo.toLowerCase().includes('peça');
+  OCs.forEach(o => {
+    if(o.status === 'Cancelada') return;
+    const isPeca = o.tipo && o.tipo.toLowerCase().includes('peça');
 
-    if(oc && oc.isRateio && oc.rateio && oc.rateio.length > 0){
-      // NF de OC rateada: distribui pelo rateio da OC
-      oc.rateio.forEach(r => {
+    if(o.isRateio && Array.isArray(o.rateio) && o.rateio.length > 0){
+      o.rateio.forEach(r => {
         if(!gastos[r.placa]) gastos[r.placa] = { serv: 0, pcs: 0, total: 0 };
-        if(isPeca) gastos[r.placa].pcs = Math.round((gastos[r.placa].pcs + r.valor)*100)/100;
-        else        gastos[r.placa].serv = Math.round((gastos[r.placa].serv + r.valor)*100)/100;
-        gastos[r.placa].total = Math.round((gastos[r.placa].total + r.valor)*100)/100;
+        const val = parseFloat(r.valor) || 0;
+        if(isPeca) gastos[r.placa].pcs = Math.round((gastos[r.placa].pcs + val)*100)/100;
+        else       gastos[r.placa].serv = Math.round((gastos[r.placa].serv + val)*100)/100;
+        gastos[r.placa].total = Math.round((gastos[r.placa].total + val)*100)/100;
       });
     } else {
-      // NF simples: usa a placa/dest da NF
-      const placa = nf.dest;
-      if(placa && gastos[placa]){
-        if(isPeca) gastos[placa].pcs = Math.round((gastos[placa].pcs + nf.valor)*100)/100;
-        else        gastos[placa].serv = Math.round((gastos[placa].serv + nf.valor)*100)/100;
-        gastos[placa].total = Math.round((gastos[placa].total + nf.valor)*100)/100;
+      const placa = o.placas || '-';
+      if(placa && placa !== '-'){
+        if(!gastos[placa]) gastos[placa] = { serv: 0, pcs: 0, total: 0 };
+        const val = parseFloat(o.valor) || 0;
+        if(isPeca) gastos[placa].pcs = Math.round((gastos[placa].pcs + val)*100)/100;
+        else       gastos[placa].serv = Math.round((gastos[placa].serv + val)*100)/100;
+        gastos[placa].total = Math.round((gastos[placa].total + val)*100)/100;
       }
     }
   });
@@ -662,29 +661,27 @@ function calcGastoPorPlaca(){
 }
 
 
-// Calcula gasto do mês atual por placa (sempre a partir das NFs — nunca usa f.gasto)
+// Calcula gasto do mês atual por placa a partir das OCs emitidas
 function calcGastoMesAtual(){
   const h = new Date();
-  const anoAtual = h.getFullYear();
-  const mesAtual = h.getMonth();
+  const prefixo = `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}`;
   const gastos = {};
   Frota.forEach(f => { gastos[f.placa] = 0; });
 
-  NFs.forEach(nf => {
-    // filtra pelo mês da data da NF
-    const d = nf.data ? new Date(nf.data + 'T00:00:00') : null;
-    if(!d || d.getFullYear() !== anoAtual || d.getMonth() !== mesAtual) return;
+  OCs.forEach(o => {
+    if(o.status === 'Cancelada') return;
+    if(!(o.data||'').startsWith(prefixo)) return;
 
-    const oc = OCs.find(o => o.num === nf.oc);
-    if(oc && oc.isRateio && oc.rateio && oc.rateio.length > 0){
-      oc.rateio.forEach(r => {
+    if(o.isRateio && Array.isArray(o.rateio) && o.rateio.length > 0){
+      o.rateio.forEach(r => {
         if(gastos[r.placa] === undefined) gastos[r.placa] = 0;
-        gastos[r.placa] = Math.round((gastos[r.placa] + r.valor) * 100) / 100;
+        gastos[r.placa] = Math.round((gastos[r.placa] + (parseFloat(r.valor)||0)) * 100) / 100;
       });
     } else {
-      const placa = nf.dest;
-      if(placa && gastos[placa] !== undefined){
-        gastos[placa] = Math.round((gastos[placa] + nf.valor) * 100) / 100;
+      const placa = o.placas || '-';
+      if(placa && placa !== '-'){
+        if(gastos[placa] === undefined) gastos[placa] = 0;
+        gastos[placa] = Math.round((gastos[placa] + (parseFloat(o.valor)||0)) * 100) / 100;
       }
     }
   });
@@ -715,17 +712,6 @@ function renderRelGastos(){
   let lista = Frota.filter(f=>!pfVal||f.placa===pfVal);
   const cnt=$('rel-gastos-count');
   if(cnt) cnt.textContent=lista.length+' placa(s) exibida(s)';
-  // Garante cabeçalho correto
-  const thead = document.getElementById('tb-rel-head');
-  if(thead) thead.innerHTML = `<tr>
-    <th style="text-align:left">Placa</th>
-    <th style="text-align:right">Manutenção (Serviço)</th>
-    <th style="text-align:right">Peças</th>
-    <th style="text-align:right">Total OCs</th>
-    <th style="text-align:right">Limite</th>
-    <th style="text-align:right">Saldo</th>
-    <th style="text-align:center">Uso %</th>
-  </tr>`;
   $('tb-rel').innerHTML=lista.map(f=>{
     const g = gastos[f.placa] || { serv: 0, pcs: 0, total: 0 };
     const tot = g.total;
