@@ -61,7 +61,6 @@
     <div class="nav-item" onclick="showScreen('colaboradores',this)"><span class="nav-icon">👥</span> Colaboradores</div>
     <div class="nav-item" onclick="showScreen('usuarios',this)"><span class="nav-icon">🔐</span> Usuários</div>
     <div class="nav-section" style="margin-top:6px">Relatórios</div>
-    <div class="nav-item" onclick="showScreen('rel-gastos',this)"><span class="nav-icon">📊</span> Gastos por Placa</div>
     <div class="nav-item" onclick="showScreen('rel-financeiro',this)"><span class="nav-icon">💰</span> Financeiro</div>
     <div class="nav-item" onclick="showScreen('pendentes',this)"><span class="nav-icon">⚠</span> OCs Pendentes</div>
     <div class="nav-item" onclick="showScreen('consulta',this);renderConsulta()"><span class="nav-icon">🔍</span> Consulta Rápida</div>
@@ -396,39 +395,6 @@
     </div>
 
     <!-- REL GASTOS -->
-    <div class="screen" id="screen-rel-gastos">
-      <div class="section-header">
-        <div class="section-title">Relatório — Gastos por Placa</div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-secondary btn-sm" onclick="exportRelGastosXLSX()">📊 Excel</button>
-          <button class="btn btn-secondary btn-sm" onclick="exportRelGastosPDF()">📄 PDF</button>
-          <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️ Imprimir</button>
-        </div>
-      </div>
-      <!-- FILTROS -->
-      <div class="filter-bar">
-        <label>Filtrar por Placa</label>
-        <select id="rel-placa-filter" onchange="renderRelGastos()" style="min-width:130px">
-          <option value="">Todas as Placas</option>
-        </select>
-        <label style="margin-left:8px">Mês</label>
-        <select id="rel-mes" style="font-size:12px;padding:6px 10px" onchange="renderRelGastos()">
-          <option value="4">Abril 2025</option><option value="3">Março 2025</option><option value="2">Fevereiro 2025</option>
-        </select>
-        <label style="margin-left:4px">Até</label>
-        <select id="rel-mes-fim" style="font-size:12px;padding:6px 10px" onchange="renderRelGastos()">
-          <option value="">—</option>
-          <option value="4">Abril 2025</option><option value="3">Março 2025</option><option value="2">Fevereiro 2025</option>
-        </select>
-        <button class="btn btn-secondary btn-sm" onclick="resetRelGastosFiltros()" style="margin-left:4px">Limpar</button>
-        <span id="rel-gastos-count" style="font-size:11px;color:var(--text3);margin-left:auto"></span>
-      </div>
-      <div class="table-wrap"><table>
-        <thead id="tb-rel-head"><tr><th style="text-align:left">Placa</th><th style="text-align:right">Manutenção (Serviço)</th><th style="text-align:right">Peças</th><th style="text-align:right">Total OCs</th><th style="text-align:right">Limite</th><th style="text-align:right">Saldo</th><th style="text-align:center">Uso %</th></tr></thead>
-        <tbody id="tb-rel"></tbody>
-      </table></div>
-    </div>
-
     <!-- REL FINANCEIRO -->
     <div class="screen" id="screen-rel-financeiro">
       <div class="section-header">
