@@ -715,6 +715,17 @@ function renderRelGastos(){
   let lista = [...Frota].filter(f=>!pfVal||f.placa===pfVal).sort((a,b)=>(a.placa||'').localeCompare(b.placa||'','pt-BR'));
   const cnt=$('rel-gastos-count');
   if(cnt) cnt.textContent=lista.length+' placa(s) exibida(s)';
+  // Cabeçalho
+  const thead = document.getElementById('tb-rel-head');
+  if(thead) thead.innerHTML = `<tr>
+    <th style="text-align:left">Placa</th>
+    <th style="text-align:right">Manutenção (Serviço)</th>
+    <th style="text-align:right">Peças</th>
+    <th style="text-align:right">Total OCs</th>
+    <th style="text-align:right">Limite</th>
+    <th style="text-align:right">Saldo</th>
+    <th style="text-align:center">Uso %</th>
+  </tr>`;
   $('tb-rel').innerHTML=lista.map(f=>{
     const g = gastos[f.placa] || { serv: 0, pcs: 0, total: 0 };
     const tot = g.total;

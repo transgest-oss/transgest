@@ -362,19 +362,30 @@ function exportRelGastosPDF(){
   doc.setFont('helvetica','normal');
   doc.text('Gerado em: '+new Date().toLocaleDateString('pt-BR'),148,19,{align:'center'});
   // Table header
-  const cols=['Placa','Manutenção','Peças','Estoque','Total Mês','Limite','Saldo','Uso %'];
-  const widths=[30,35,30,30,35,30,30,25];
+  const cols=['Placa','Total OCs','Limite','Saldo','Uso %'];
+  const widths=[40,55,45,45,30];
   let x=10,y=32;
-  doc.setFillColor(0,196,161); doc.rect(10,26,277,8,'F');
+  doc.setFillColor(0,196,161); doc.rect(10,26,215,8,'F');
   doc.setTextColor(11,22,40); doc.setFont('helvetica','bold'); doc.setFontSize(8);
   cols.forEach((c,i)=>{doc.text(c,x+2,31);x+=widths[i];});
   // Rows
   const gastosReaisPDF = calcGastoPorPlaca();
+  const frotaOrd = [...Frota].sort((a,b)=>(a.placa||'').localeCompare(b.placa||'','pt-BR'));
   doc.setFont('helvetica','normal'); doc.setTextColor(30,40,60);
-  Frota.forEach((f,ri)=>{
-    if(ri%2===0){doc.setFillColor(240,245,250);doc.rect(10,y-4,277,7,'F');}
-    const serv=Math.round(f.gasto*0.6),pcs=Math.round(f.gasto*0.3),est=Math.round(f.gasto*0.1);
-    const vals=[f.placa,'R$ '+serv.toLocaleString('pt-BR',{minimumFractionDigits:2}),'R$ '+pcs.toLocaleString('pt-BR',{minimumFractionDigits:2}),'R$ '+est.toLocaleString('pt-BR',{minimumFractionDigits:2}),'R$ '+f.gasto.toLocaleString('pt-BR',{minimumFractionDigits:2}),'R$ '+f.limite.toLocaleString('pt-BR',{minimumFractionDigits:2}),'R$ '+(f.limite-f.gasto).toLocaleString('pt-BR',{minimumFractionDigits:2}),Math.round(f.gasto/f.limite*100)+'%'];
+  frotaOrd.forEach((f,ri)=>{
+    if(ri%2===0){doc.setFillColor(240,245,250);doc.rect(10,y-4,215,7,'F');}
+    const g = gastosReaisPDF[f.placa] || {total:0};
+    const tot = g.total;
+    const lim = f.limite || 0;
+    const saldo = lim - tot;
+    const pct = lim > 0 ? Math.round(tot/lim*100) : 0;
+    const vals=[
+      f.placa,
+      'R$ '+tot.toLocaleString('pt-BR',{minimumFractionDigits:2}),
+      lim > 0 ? 'R$ '+lim.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—',
+      'R$ '+saldo.toLocaleString('pt-BR',{minimumFractionDigits:2}),
+      pct+'%'
+    ];
     x=10; vals.forEach((v,i)=>{doc.text(v,x+2,y);x+=widths[i];});
     y+=7; if(y>190){doc.addPage();y=20;}
   });
