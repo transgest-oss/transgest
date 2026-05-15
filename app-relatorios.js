@@ -1,4 +1,97 @@
 // ── RELATÓRIOS: Financeiro, Colaboradores, Usuários, Export XLSX/PDF ──
+// ======================== RELATÓRIO OCs PDF ========================
+function abrirRelatorioOCsPDF(){
+  const hoje = new Date().toISOString().slice(0,10);
+  const primeiroDiaMes = hoje.slice(0,7) + '-01';
+  const el_de = document.getElementById('rel-oc-de');
+  const el_ate = document.getElementById('rel-oc-ate');
+  if(el_de) el_de.value = primeiroDiaMes;
+  if(el_ate) el_ate.value = hoje;
+  document.getElementById('rel-oc-status').value = '';
+  document.getElementById('modal-rel-ocs').classList.add('open');
+}
+
+function gerarRelatorioOCsPDF(){
+  const{jsPDF}=window.jspdf||{};
+  if(!jsPDF){toast('Biblioteca PDF não carregou','error');return;}
+
+  const de     = document.getElementById('rel-oc-de').value;
+  const ate    = document.getElementById('rel-oc-ate').value;
+  const status = document.getElementById('rel-oc-status').value;
+
+  let lista = OCs.filter(o => {
+    if(de  && o.data < de)  return false;
+    if(ate && o.data > ate) return false;
+    if(status && o.status !== status) return false;
+    return true;
+  }).sort((a,b) => (a.data||'').localeCompare(b.data||''));
+
+  if(!lista.length){ toast('Nenhuma OC encontrada com esses filtros','error'); return; }
+
+  const totalGeral = lista.reduce((a,o) => a+(parseFloat(o.valor)||0), 0);
+  const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+  const W=297, M=8, TW=281;
+
+  // Cabeçalho
+  doc.setFillColor(11,22,40); doc.rect(0,0,W,22,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(14);
+  doc.text('AJBAM — Ordens de Compra', W/2, 12, {align:'center'});
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  const periodo = de && ate ? `Período: ${formatarDataBR(de)} a ${formatarDataBR(ate)}` : 'Todas as datas';
+  const statusLabel = status || 'Todos os status';
+  doc.text(`${periodo}   |   Status: ${statusLabel}   |   Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, W/2, 18, {align:'center'});
+
+  // Totalizador
+  doc.setFillColor(0,120,100); doc.rect(0,22,W,8,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text(`${lista.length} OC(s)   |   Total: R$ ${totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})}`, W/2, 27.5, {align:'center'});
+
+  // Cabeçalho da tabela
+  const cols   = ['Nº OC','Data','Fornecedor','Placa(s)','Valor','Status'];
+  const widths = [20, 24, 100, 60, 40, 37];
+  let y = 36;
+
+  function drawHeader(yH){
+    doc.setFillColor(220,228,236); doc.rect(M,yH,TW,8,'F');
+    doc.setTextColor(11,22,40); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+    let xH = M;
+    cols.forEach((c,i) => { doc.text(c, xH+2, yH+5.5); xH += widths[i]; });
+  }
+
+  drawHeader(y); y += 10;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+  let rowIdx = 0;
+
+  lista.forEach(o => {
+    if(y > 190){ doc.addPage(); y=12; drawHeader(y); y+=10; rowIdx=0; }
+    if(rowIdx%2===0){ doc.setFillColor(245,248,252); doc.rect(M,y-4,TW,7,'F'); }
+    const corStatus = o.status==='Cancelada'?[180,20,20]:o.status==='Encerrada s/ NF'?[180,100,0]:[30,40,60];
+    doc.setTextColor(...corStatus);
+    const vals = [
+      String(o.num||''),
+      formatarDataBR(o.data),
+      (o.forn||'-').slice(0,48),
+      (o.placas||'-').slice(0,28),
+      'R$ '+(parseFloat(o.valor)||0).toLocaleString('pt-BR',{minimumFractionDigits:2}),
+      o.status||'-'
+    ];
+    let x = M;
+    vals.forEach((v,i) => { doc.text(String(v), x+2, y); x += widths[i]; });
+    y += 7; rowIdx++;
+  });
+
+  // Total final
+  if(y>185){ doc.addPage(); y=12; }
+  doc.setFillColor(0,100,80); doc.rect(M,y,TW,9,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+  doc.text('TOTAL GERAL', M+2, y+6);
+  doc.text(`R$ ${totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2})}   (${lista.length} OC${lista.length!==1?'s':''})`, M+TW-2, y+6, {align:'right'});
+
+  closeModal('modal-rel-ocs');
+  doc.save(`Relatorio_OCs_${de||'inicio'}_a_${ate||'fim'}.pdf`);
+  toast('PDF gerado com sucesso!');
+}
+
 // ======================== RELATÓRIO FINANCEIRO ========================
 const DADOS_FIN=[];
 

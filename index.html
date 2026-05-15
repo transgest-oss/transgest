@@ -145,12 +145,10 @@
   <div class="section-title">
     Ordens de Compra (<span id="oc-count">0</span>)
   </div>
-
-  <button class="btn btn-primary" onclick="openModal('modal-oc','novo')">
-    + Nova OC
-  </button>
-
-
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="btn btn-secondary btn-sm" onclick="abrirRelatorioOCsPDF()">📄 Relatório PDF</button>
+    <button class="btn btn-primary" onclick="openModal('modal-oc','novo')">+ Nova OC</button>
+  </div>
       </div>
       <div class="oc-visual-toolbar">
         <div class="oc-filter-tabs" aria-label="Filtro de status das OCs">
@@ -1622,6 +1620,36 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-confirmar-pag')">Cancelar</button>
       <button class="btn btn-primary" onclick="confirmarPagamento()">✅ Confirmar Pagamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RELATÓRIO OCs PDF -->
+<div class="modal-overlay" id="modal-rel-ocs">
+  <div class="modal" style="width:420px">
+    <div class="modal-title">📄 Relatório de OCs — PDF</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>De</label>
+        <input type="date" id="rel-oc-de"/>
+      </div>
+      <div class="form-group">
+        <label>Até</label>
+        <input type="date" id="rel-oc-ate"/>
+      </div>
+      <div class="form-group full">
+        <label>Status</label>
+        <select id="rel-oc-status">
+          <option value="">Todos</option>
+          <option value="Ativa">Ativas</option>
+          <option value="Cancelada">Canceladas</option>
+          <option value="Encerrada s/ NF">Encerradas s/ NF</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-rel-ocs')">Cancelar</button>
+      <button class="btn btn-primary" onclick="gerarRelatorioOCsPDF()">📄 Gerar PDF</button>
     </div>
   </div>
 </div>
