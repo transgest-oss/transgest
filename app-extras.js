@@ -777,6 +777,80 @@ function renderDespesaResumo(placasValidas, matriz, totalGeral){
   </tr>`;
 }
 
+function abrirResumoDespesas(){
+  const ano = parseInt((document.getElementById('desp-ano')||{value:'2026'}).value) || 2026;
+  const mesAtual = new Date().getMonth() + 1;
+  const anoAtual = new Date().getFullYear();
+  const mesesExibir = ano === anoAtual ? mesAtual : 12;
+  const placasValidas = Frota
+    .filter(f => f.placa && f.placa.trim() !== '')
+    .sort((a,b) => a.placa.localeCompare(b.placa,'pt-BR'));
+  const matriz = {};
+  placasValidas.forEach(f => {
+    matriz[f.placa] = [];
+    for(let m = 1; m <= mesesExibir; m++) matriz[f.placa].push(gastoPlacaMes(f.placa, ano, m));
+  });
+  const totalGeral = placasValidas.reduce((a,f) => a + (matriz[f.placa]||[]).reduce((s,g)=>s+g,0), 0);
+  // Preenche o modal
+  const periodoEl = document.getElementById('resumo-desp-periodo');
+  if(periodoEl) periodoEl.textContent = `${MESES_NOME[0]} a ${MESES_NOME[mesesExibir-1]} de ${ano}`;
+  renderDespesaResumo(placasValidas, matriz, totalGeral);
+  document.getElementById('modal-resumo-despesas').classList.add('open');
+}
+
+function exportResumoDespesasPDF(){
+  const { jsPDF } = window.jspdf || {};
+  if(!jsPDF){ toast('Biblioteca PDF não carregou','error'); return; }
+  const ano = parseInt((document.getElementById('desp-ano')||{value:'2026'}).value) || 2026;
+  const mesAtual = new Date().getMonth() + 1;
+  const anoAtual = new Date().getFullYear();
+  const mesesExibir = ano === anoAtual ? mesAtual : 12;
+  const placasValidas = Frota
+    .filter(f => f.placa && f.placa.trim() !== '')
+    .sort((a,b) => a.placa.localeCompare(b.placa,'pt-BR'));
+  const dados = placasValidas.map(f => {
+    const total = [];
+    for(let m = 1; m <= mesesExibir; m++) total.push(gastoPlacaMes(f.placa, ano, m));
+    return { placa: f.placa, total: total.reduce((a,g)=>a+g,0) };
+  }).filter(x => x.total > 0);
+  const totalGeral = dados.reduce((a,x)=>a+x.total,0);
+
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const W = 210, M = 15;
+  // Cabeçalho
+  doc.setFillColor(11,22,40); doc.rect(0,0,W,22,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('AJBAM — Resumo de OCs por Placa', W/2, 12, {align:'center'});
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text(`${MESES_NOME[0]} a ${MESES_NOME[mesesExibir-1]} de ${ano}   |   Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, W/2, 18, {align:'center'});
+  // Cabeçalho tabela
+  let y = 30;
+  doc.setFillColor(0,196,161); doc.rect(M,y,180,8,'F');
+  doc.setTextColor(11,22,40); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text('Placa / Categoria', M+2, y+5.5);
+  doc.text('Valor Total OCs', M+178, y+5.5, {align:'right'});
+  y += 10;
+  // Linhas
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  dados.forEach((x, i) => {
+    if(y > 270){ doc.addPage(); y = 20; }
+    if(i%2===0){ doc.setFillColor(245,248,252); doc.rect(M,y-4,180,7,'F'); }
+    doc.setTextColor(30,40,60);
+    doc.text(x.placa, M+2, y);
+    doc.text('R$ '+x.total.toLocaleString('pt-BR',{minimumFractionDigits:2}), M+178, y, {align:'right'});
+    y += 7;
+  });
+  // Total
+  y += 2;
+  doc.setFillColor(0,100,80); doc.rect(M,y,180,9,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+  doc.text('TOTAL GERAL', M+2, y+6);
+  doc.text('R$ '+totalGeral.toLocaleString('pt-BR',{minimumFractionDigits:2}), M+178, y+6, {align:'right'});
+
+  doc.save(`Resumo_OCs_por_Placa_${ano}.pdf`);
+  toast('PDF gerado!');
+}
+
 function exportDespesasXLSX(){
   if(typeof XLSX === 'undefined'){ toast('Biblioteca XLSX não carregou','error'); return; }
   const ano = parseInt((document.getElementById('desp-ano')||{value:'2026'}).value) || 2026;
